@@ -22,6 +22,7 @@
 | Auditor | `.claude/agents/auditor.md` | 정적 분석, 린트, 보안 스캔 |
 | Skill Creator | `.claude/agents/skill-creator.md` | 스킬 생성, 평가, 개선, 패키징 |
 | Cross Validator | `.claude/agents/cross-validator.md` | Gemini CLI 활용 교차검증 |
+| Integrator | `.claude/agents/integrator.md` | 문서/설정 정합성 검증, 메타데이터 동기화 |
 | Releaser | `.claude/agents/releaser.md` | 릴리스 생성, 버전 관리, CHANGELOG |
 
 ---
@@ -53,7 +54,7 @@
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
 
 ### 이슈 라벨
-- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`, `agent:auditor`, `agent:skill-creator`, `agent:cross-validator`, `agent:releaser`
+- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`, `agent:auditor`, `agent:skill-creator`, `agent:cross-validator`, `agent:integrator`, `agent:releaser`
 - `scope:frontend`, `scope:backend`, `scope:fullstack`
 - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
 - `status:todo`, `status:in-progress`, `status:audit-passed`, `status:review`, `status:qa`, `status:done`
@@ -61,7 +62,7 @@
 
 ### 파이프라인
 ```
-Planner → PM → Architect → FE Dev + BE Dev (병렬) → Auditor → Reviewer → QA → Merge
+Planner → PM → Architect → FE Dev + BE Dev (병렬) → Auditor → Reviewer → QA → Integrator → Merge
 ```
 
 ### 에이전트 간 통신 규칙
