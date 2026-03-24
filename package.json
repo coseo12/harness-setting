@@ -1,0 +1,22 @@
+{
+  "name": "@seo/harness-setting",
+  "version": "1.0.0",
+  "description": "AI 에이전트 기반 자동화 개발 프레임워크",
+  "bin": {
+    "harness": "./bin/harness.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    ".claude/",
+    ".github/",
+    "scripts/",
+    "docs/",
+    "CLAUDE.md"
+  ],
+  "keywords": ["ai-agent", "claude", "automation", "harness"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.7.0"
+  }
+}

@@ -44,6 +44,18 @@ scripts/           # 실행 스크립트
 
 ### 1. 새 프로젝트에 적용
 
+**npx로 즉시 설치 (권장):**
+
+```bash
+# GitHub에서 직접 실행 (npm publish 불필요)
+npx github:seo/harness_setting init ./my-project
+
+# npm publish 후
+npx @seo/harness-setting init ./my-project
+```
+
+**또는 수동 설치:**
+
 ```bash
 # 이 저장소를 클론
 git clone <this-repo> /tmp/harness
@@ -55,13 +67,14 @@ git clone <this-repo> /tmp/harness
 ### 2. GitHub 라벨 설정
 
 ```bash
-./scripts/setup-labels.sh
+harness labels          # npx로 설치한 경우
+./scripts/setup-labels.sh  # 수동 설치한 경우
 ```
 
 ### 3. 에이전트 실행
 
 ```bash
-# 개별 에이전트 실행
+# 개별 에이전트 실행 (npx 설치: harness dispatch <agent> [n])
 ./scripts/dispatch-agent.sh pm              # PM: 요구사항 분석
 ./scripts/dispatch-agent.sh architect 5     # Architect: 이슈 #5 설계
 ./scripts/dispatch-agent.sh developer 5     # Developer: 이슈 #5 구현
@@ -83,6 +96,7 @@ git clone <this-repo> /tmp/harness
 
 ## 사전 요구사항
 
+- [Node.js](https://nodejs.org/) >= 16.7.0 (npx 설치 시)
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 - [GitHub CLI (gh)](https://cli.github.com/)
 - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (교차검증용)
