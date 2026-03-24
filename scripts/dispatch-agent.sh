@@ -194,8 +194,8 @@ get_allowed_tools() {
       echo "Read,Glob,Grep,Bash(gh issue *),Bash(gh label *)"
       ;;
     frontend-developer)
-      # 전체 개발 도구 (프론트엔드 중심)
-      echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(gh issue *),Bash(npm *),Bash(npx *),Bash(yarn *),Bash(pnpm *),Bash(make *),Bash(ls *),Bash(mkdir *)"
+      # 전체 개발 도구 (프론트엔드 중심) + 브라우저 테스트
+      echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(gh issue *),Bash(npm *),Bash(npx *),Bash(yarn *),Bash(pnpm *),Bash(make *),Bash(ls *),Bash(mkdir *),Bash(agent-browser *)"
       ;;
     backend-developer)
       # 전체 개발 도구 (백엔드 중심)
@@ -210,20 +210,20 @@ get_allowed_tools() {
       echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(gh issue *),Bash(npm *),Bash(make *),Bash(go *),Bash(cargo *),Bash(pytest *),Bash(python *),Bash(ls *),Bash(mkdir *)"
       ;;
     reviewer)
-      # 읽기 + gh PR 리뷰만
-      echo "Read,Glob,Grep,Bash(gh pr *),Bash(gh issue *),Bash(git diff *),Bash(git log *)"
+      # 읽기 + gh PR 리뷰 + 브라우저 스냅샷/스크린샷 (읽기 전용)
+      echo "Read,Glob,Grep,Bash(gh pr *),Bash(gh issue *),Bash(git diff *),Bash(git log *),Bash(agent-browser snapshot *),Bash(agent-browser screenshot *),Bash(agent-browser open *),Bash(agent-browser get *)"
       ;;
     qa)
-      # 읽기 + 테스트 실행 + 결과 보고
-      echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(npm test*),Bash(make test*),Bash(pytest *),Bash(go test *),Bash(cargo test *)"
+      # 읽기 + 테스트 실행 + 결과 보고 + 브라우저 E2E 테스트
+      echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(npm test*),Bash(make test*),Bash(pytest *),Bash(go test *),Bash(cargo test *),Bash(agent-browser *)"
       ;;
     skill-creator)
       # 읽기/쓰기 + 검증 스크립트
       echo "Read,Write,Edit,Glob,Grep,Bash(python3 *),Bash(ls *),Bash(mkdir *),Bash(chmod *)"
       ;;
     auditor)
-      # 읽기 + 린트/보안 도구
-      echo "Read,Glob,Grep,Bash(npm run lint*),Bash(npx eslint *),Bash(flake8 *),Bash(ruff *),Bash(golangci-lint *),Bash(cargo clippy *),Bash(gitleaks *),Bash(npm audit*),Bash(pip audit*),Bash(gh pr *),Bash(gh issue *)"
+      # 읽기 + 린트/보안 도구 + 브라우저 접근성/보안 테스트
+      echo "Read,Glob,Grep,Bash(npm run lint*),Bash(npx eslint *),Bash(flake8 *),Bash(ruff *),Bash(golangci-lint *),Bash(cargo clippy *),Bash(gitleaks *),Bash(npm audit*),Bash(pip audit*),Bash(gh pr *),Bash(gh issue *),Bash(agent-browser *)"
       ;;
     cross-validator)
       # 읽기 + gemini/gh 실행
