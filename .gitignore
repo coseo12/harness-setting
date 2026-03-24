@@ -15,3 +15,6 @@ Thumbs.db
 .env
 .env.local
 .claude/.harness/logs/
+
+# Node.js
+node_modules/
