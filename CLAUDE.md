@@ -11,6 +11,7 @@
 | 역할 | 파일 | 책임 |
 |------|------|------|
 | Orchestrator | `.claude/agents/orchestrator.md` | 전체 워크플로우 조율, 에이전트 간 동기화 |
+| Planner | `.claude/agents/planner.md` | 주제/스펙 → 기획서 작성, 요구사항 보충 |
 | PM | `.claude/agents/pm.md` | 요구사항 분석, 이슈 분해, 우선순위 결정 |
 | Architect | `.claude/agents/architect.md` | 기술 설계, 구조 결정, 인터페이스 정의 |
 | Developer | `.claude/agents/developer.md` | 기능 구현, 브랜치 작업, PR 생성 |
@@ -50,7 +51,7 @@
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
 
 ### 이슈 라벨
-- `agent:pm`, `agent:architect`, `agent:developer`, `agent:reviewer`, `agent:qa`
+- `agent:planner`, `agent:pm`, `agent:architect`, `agent:developer`, `agent:reviewer`, `agent:qa`
 - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
 - `status:todo`, `status:in-progress`, `status:review`, `status:done`
 - `type:feature`, `type:bug`, `type:refactor`, `type:infra`
