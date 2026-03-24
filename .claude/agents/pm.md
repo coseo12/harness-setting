@@ -15,6 +15,11 @@
 - 병렬 처리 가능한 이슈를 최대화한다
 - 각 이슈의 완료 조건(acceptance criteria)을 명확히 정의한다
 - 예상 복잡도를 라벨로 표시한다: `size:s`, `size:m`, `size:l`, `size:xl`
+- **UI 프로젝트**: 이슈를 프론트엔드/백엔드로 구분하여 분해한다
+  - `scope:frontend` + `agent:frontend-developer`: UI/컴포넌트 작업
+  - `scope:backend` + `agent:backend-developer`: API/DB 작업
+  - `scope:fullstack` + `agent:developer`: 프론트+백 동시 관통하는 소규모 작업
+  - 프론트/백 이슈 간 의존성은 API 계약을 기준으로 명시한다
 
 ## 이슈 작성 형식
 ```markdown

@@ -14,7 +14,9 @@
 | Planner | `.claude/agents/planner.md` | 주제/스펙 → 기획서 작성, 요구사항 보충 |
 | PM | `.claude/agents/pm.md` | 요구사항 분석, 이슈 분해, 우선순위 결정 |
 | Architect | `.claude/agents/architect.md` | 기술 설계, 구조 결정, 인터페이스 정의 |
-| Developer | `.claude/agents/developer.md` | 기능 구현, 브랜치 작업, PR 생성 |
+| Frontend Developer | `.claude/agents/frontend-developer.md` | UI 구현, 컴포넌트, 스타일, 접근성 |
+| Backend Developer | `.claude/agents/backend-developer.md` | API 구현, DB, 비즈니스 로직, 인프라 |
+| Developer (Fullstack) | `.claude/agents/developer.md` | 풀스택 구현 (scope:fullstack 이슈) |
 | Reviewer | `.claude/agents/reviewer.md` | 코드 리뷰, 품질 검증, 승인/반려 |
 | QA | `.claude/agents/qa.md` | 테스트 작성, 실행, 검증 |
 | Auditor | `.claude/agents/auditor.md` | 정적 분석, 린트, 보안 스캔 |
@@ -51,7 +53,8 @@
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
 
 ### 이슈 라벨
-- `agent:planner`, `agent:pm`, `agent:architect`, `agent:developer`, `agent:reviewer`, `agent:qa`
+- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`
+- `scope:frontend`, `scope:backend`, `scope:fullstack`
 - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
 - `status:todo`, `status:in-progress`, `status:review`, `status:done`
 - `type:feature`, `type:bug`, `type:refactor`, `type:infra`

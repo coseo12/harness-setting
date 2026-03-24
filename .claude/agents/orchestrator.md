@@ -38,7 +38,11 @@
 주제/스펙 수신 → Planner에게 기획 요청
 기획서 확정 → PM에게 이슈 분해 요청
 PM 분석 완료 → Architect에게 설계 요청
-설계 완료 → Developer(s)에게 구현 할당 (병렬 가능)
+설계 완료 → scope에 따라 Developer 할당:
+  scope:frontend → Frontend Developer에게 할당
+  scope:backend → Backend Developer에게 할당
+  scope:fullstack → Developer(Fullstack)에게 할당
+  FE/BE 이슈는 API 계약 확정 후 병렬 실행
 PR 생성 감지 → Reviewer에게 리뷰 요청
 리뷰 승인 → QA에게 테스트 요청
 테스트 통과 → 머지 승인
