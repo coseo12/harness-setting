@@ -10,6 +10,7 @@ usage() {
   echo "사용법: $0 <에이전트> [이슈번호|PR번호] [추가옵션]"
   echo ""
   echo "에이전트:"
+  echo "  planner        - 주제/스펙 → 기획서 작성"
   echo "  pm             - 요구사항 분석 및 이슈 분해"
   echo "  architect      - 기술 설계"
   echo "  developer      - 기능 구현"
@@ -21,6 +22,8 @@ usage() {
   echo "  releaser         - 릴리스 생성"
   echo ""
   echo "예시:"
+  echo "  $0 planner                 # Planner에게 기획 요청"
+  echo "  $0 planner 5               # Planner에게 이슈 #5 기반 기획 요청"
   echo "  $0 pm                    # PM에게 새 요구사항 분석 요청"
   echo "  $0 architect 5           # Architect에게 이슈 #5 설계 요청"
   echo "  $0 developer 5           # Developer에게 이슈 #5 구현 요청"
@@ -84,6 +87,13 @@ build_prompt() {
   local number="$2"
 
   case "${agent}" in
+    planner)
+      if [ -n "${number}" ]; then
+        echo "이슈 #${number}를 기반으로 기획서를 작성해줘. .claude/agents/planner.md 의 규칙을 따르고, docs/plans/ 에 기획 문서를 작성해줘. 불명확한 부분은 질문해줘."
+      else
+        echo "새로운 기획을 시작해줘. 사용자에게 주제나 스펙을 물어보고, .claude/agents/planner.md 의 규칙에 따라 기획서를 작성해줘. docs/plans/ 에 문서를 생성해줘."
+      fi
+      ;;
     pm)
       if [ -n "${number}" ]; then
         echo "이슈 #${number}를 분석하고 실행 가능한 하위 이슈로 분해해줘. .claude/agents/pm.md 의 규칙을 따르고, .claude/skills/create-issue/SKILL.md 의 형식으로 이슈를 생성해줘."
@@ -165,6 +175,10 @@ fi
 get_allowed_tools() {
   local agent="$1"
   case "${agent}" in
+    planner)
+      # 읽기 + 기획 문서 작성
+      echo "Read,Write,Edit,Glob,Grep,Bash(mkdir *),Bash(ls *)"
+      ;;
     pm)
       # 읽기 + gh 이슈 관리만
       echo "Read,Glob,Grep,Bash(gh issue *),Bash(gh label *)"
