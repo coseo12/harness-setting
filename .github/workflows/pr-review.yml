@@ -1,0 +1,46 @@
+name: PR 자동 리뷰 트리거
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [develop, main]
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR에 리뷰 대기 라벨 추가
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // status:review 라벨 추가
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['status:review']
+            });
+
+            // PR 본문에서 이슈 번호 추출
+            const body = context.payload.pull_request.body || '';
+            const issueMatch = body.match(/Closes #(\d+)/);
+            if (issueMatch) {
+              const issueNumber = parseInt(issueMatch[1]);
+              // 관련 이슈의 라벨 업데이트
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  name: 'status:in-progress'
+                });
+              } catch (e) {
+                // 라벨이 없으면 무시
+              }
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['status:review']
+              });
+            }

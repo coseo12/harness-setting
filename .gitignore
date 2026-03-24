@@ -1,0 +1,17 @@
+# Harness 로그 (상태 파일은 추적)
+.harness/logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 환경 변수
+.env
+.env.local
+.claude/.harness/logs/
