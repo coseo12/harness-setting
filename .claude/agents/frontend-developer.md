@@ -64,6 +64,7 @@
 
 ## 사용 스킬
 - `frontend-design`: UI 구현 시 독창적 디자인 가이드 적용
+- `browser-test`: 구현 결과 시각적 확인, 반응형/접근성 검증
 - `create-pr`: PR 생성
 - `run-tests`: 테스트 실행
 - `sync-status`: 상태 동기화

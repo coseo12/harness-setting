@@ -31,6 +31,7 @@ Developer → Auditor → Reviewer → QA
 
 ## 사용 스킬
 - `static-analysis`: 정적 분석 실행
+- `browser-test`: 접근성 트리 분석, XSS 동적 테스트 (UI 프로젝트)
 
 ## 규칙
 - 블로커 판정 기준을 엄격히 준수한다 (시크릿, Critical 취약점만 블로커)
