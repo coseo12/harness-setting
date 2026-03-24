@@ -13,7 +13,9 @@ usage() {
   echo "  planner        - 주제/스펙 → 기획서 작성"
   echo "  pm             - 요구사항 분석 및 이슈 분해"
   echo "  architect      - 기술 설계"
-  echo "  developer      - 기능 구현"
+  echo "  frontend-developer - 프론트엔드 구현"
+  echo "  backend-developer  - 백엔드 구현"
+  echo "  developer      - 풀스택 구현"
   echo "  reviewer       - 코드 리뷰"
   echo "  qa             - 테스트 수행"
   echo "  auditor          - 정적 분석/보안 스캔"
@@ -26,7 +28,9 @@ usage() {
   echo "  $0 planner 5               # Planner에게 이슈 #5 기반 기획 요청"
   echo "  $0 pm                    # PM에게 새 요구사항 분석 요청"
   echo "  $0 architect 5           # Architect에게 이슈 #5 설계 요청"
-  echo "  $0 developer 5           # Developer에게 이슈 #5 구현 요청"
+  echo "  $0 frontend-developer 5  # Frontend Dev에게 이슈 #5 구현 요청"
+  echo "  $0 backend-developer 5   # Backend Dev에게 이슈 #5 구현 요청"
+  echo "  $0 developer 5           # Fullstack Dev에게 이슈 #5 구현 요청"
   echo "  $0 auditor 12            # Auditor에게 PR #12 정적 분석 요청"
   echo "  $0 reviewer 12           # Reviewer에게 PR #12 리뷰 요청"
   echo "  $0 qa 12                 # QA에게 PR #12 테스트 요청"
@@ -96,16 +100,22 @@ build_prompt() {
       ;;
     pm)
       if [ -n "${number}" ]; then
-        echo "이슈 #${number}를 분석하고 실행 가능한 하위 이슈로 분해해줘. .claude/agents/pm.md 의 규칙을 따르고, .claude/skills/create-issue/SKILL.md 의 형식으로 이슈를 생성해줘."
+        echo "이슈 #${number}를 분석하고 실행 가능한 하위 이슈로 분해해줘. .claude/agents/pm.md 의 규칙을 따르고, .claude/skills/create-issue/SKILL.md 의 형식으로 이슈를 생성해줘. UI 프로젝트라면 scope:frontend/backend/fullstack 라벨로 구분해줘."
       else
-        echo "새로운 프로젝트 요구사항을 분석할 준비를 해줘. 사용자에게 요구사항을 물어보고, .claude/agents/pm.md 의 규칙에 따라 이슈로 분해해줘."
+        echo "새로운 프로젝트 요구사항을 분석할 준비를 해줘. 사용자에게 요구사항을 물어보고, .claude/agents/pm.md 의 규칙에 따라 이슈로 분해해줘. UI 프로젝트라면 scope:frontend/backend/fullstack 라벨로 구분해줘."
       fi
       ;;
     architect)
-      echo "이슈 #${number}에 대한 기술 설계를 수행해줘. .claude/agents/architect.md 의 규칙을 따르고, docs/architecture/ 에 설계 문서를 작성해줘."
+      echo "이슈 #${number}에 대한 기술 설계를 수행해줘. .claude/agents/architect.md 의 규칙을 따르고, docs/architecture/ 에 설계 문서를 작성해줘. UI 프로젝트라면 프론트엔드 설계(컴포넌트 구조, 디자인 시스템)와 API 계약을 반드시 포함해줘."
+      ;;
+    frontend-developer)
+      echo "이슈 #${number}를 구현해줘. .claude/agents/frontend-developer.md 의 규칙을 따라 feature 브랜치를 생성하고, UI를 구현한 후 PR을 생성해줘. Architect의 설계 문서(컴포넌트 구조, API 계약)와 Planner의 화면 흐름을 참고해줘."
+      ;;
+    backend-developer)
+      echo "이슈 #${number}를 구현해줘. .claude/agents/backend-developer.md 의 규칙을 따라 feature 브랜치를 생성하고, API/비즈니스 로직을 구현한 후 PR을 생성해줘. Architect의 설계 문서(API 계약, DB 스키마)를 참고해줘."
       ;;
     developer)
-      echo "이슈 #${number}를 구현해줘. .claude/agents/developer.md 의 규칙을 따라 feature 브랜치를 생성하고, 구현 후 PR을 생성해줘. 설계 문서가 있으면 참고해줘."
+      echo "이슈 #${number}를 풀스택으로 구현해줘. .claude/agents/developer.md 의 규칙을 따라 feature 브랜치를 생성하고, 구현 후 PR을 생성해줘. 설계 문서가 있으면 참고해줘."
       ;;
     reviewer)
       echo "PR #${number}를 리뷰해줘. .claude/agents/reviewer.md 의 체크리스트에 따라 리뷰하고, 승인 또는 변경 요청을 해줘."
@@ -182,6 +192,14 @@ get_allowed_tools() {
     pm)
       # 읽기 + gh 이슈 관리만
       echo "Read,Glob,Grep,Bash(gh issue *),Bash(gh label *)"
+      ;;
+    frontend-developer)
+      # 전체 개발 도구 (프론트엔드 중심)
+      echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(gh issue *),Bash(npm *),Bash(npx *),Bash(yarn *),Bash(pnpm *),Bash(make *),Bash(ls *),Bash(mkdir *)"
+      ;;
+    backend-developer)
+      # 전체 개발 도구 (백엔드 중심)
+      echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(gh issue *),Bash(npm *),Bash(make *),Bash(go *),Bash(cargo *),Bash(pytest *),Bash(python *),Bash(ls *),Bash(mkdir *),Bash(docker *)"
       ;;
     architect)
       # 읽기 + 설계 문서 작성
