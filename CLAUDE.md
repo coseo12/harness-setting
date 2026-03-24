@@ -53,11 +53,16 @@
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
 
 ### 이슈 라벨
-- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`
+- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`, `agent:auditor`, `agent:skill-creator`, `agent:cross-validator`, `agent:releaser`
 - `scope:frontend`, `scope:backend`, `scope:fullstack`
 - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
-- `status:todo`, `status:in-progress`, `status:review`, `status:done`
+- `status:todo`, `status:in-progress`, `status:audit-passed`, `status:review`, `status:qa`, `status:done`
 - `type:feature`, `type:bug`, `type:refactor`, `type:infra`
+
+### 파이프라인
+```
+Planner → PM → Architect → FE Dev + BE Dev (병렬) → Auditor → Reviewer → QA → Merge
+```
 
 ### 에이전트 간 통신 규칙
 1. **기본**: GitHub Issues/PR 코멘트를 통해 소통

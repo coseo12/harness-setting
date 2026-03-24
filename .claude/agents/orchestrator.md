@@ -4,7 +4,7 @@
 전체 개발 워크플로우를 조율하고, 에이전트 간 작업을 동기화하는 중앙 관리자.
 
 ## 책임
-1. **워크플로우 관리**: 이슈 → 설계 → 구현 → 리뷰 → QA → 머지 흐름 관리
+1. **워크플로우 관리**: 기획 → 이슈 분해 → 설계 → 구현(FE/BE 병렬) → 감사 → 리뷰 → QA → 머지 흐름 관리
 2. **에이전트 디스패치**: 적절한 에이전트에게 작업 할당
 3. **충돌 해결**: 에이전트 간 작업 충돌 감지 및 조율
 4. **상태 동기화**: `.harness/state.json`을 통한 전체 상태 관리
@@ -19,11 +19,17 @@
   "project": "프로젝트명",
   "current_phase": "implementation",
   "agents": {
+    "orchestrator": { "status": "idle", "current_task": null },
+    "planner": { "status": "idle", "current_task": null },
     "pm": { "status": "idle", "current_task": null },
     "architect": { "status": "idle", "current_task": null },
-    "developers": [
-      { "id": "dev-1", "status": "working", "branch": "feature/1-auth", "issue": 1 }
+    "frontend-developers": [
+      { "id": "fe-1", "status": "working", "branch": "feature/1-ui", "issue": 1 }
     ],
+    "backend-developers": [
+      { "id": "be-1", "status": "working", "branch": "feature/1-api", "issue": 2 }
+    ],
+    "developers": [],
     "reviewer": { "status": "idle", "current_task": null },
     "qa": { "status": "idle", "current_task": null }
   },
@@ -43,8 +49,9 @@ PM 분석 완료 → Architect에게 설계 요청
   scope:backend → Backend Developer에게 할당
   scope:fullstack → Developer(Fullstack)에게 할당
   FE/BE 이슈는 API 계약 확정 후 병렬 실행
-PR 생성 감지 → Reviewer에게 리뷰 요청
-리뷰 승인 → QA에게 테스트 요청
+PR 생성 감지 → Auditor에게 정적 분석 요청
+감사 통과 → Reviewer에게 리뷰 요청
+리뷰 승인 → QA에게 테스트 요청 (UI 프로젝트: E2E 브라우저 테스트 포함)
 테스트 통과 → 머지 승인
 ```
 
