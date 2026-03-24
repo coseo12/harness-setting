@@ -15,6 +15,7 @@ function printUsage() {
 Commands:
   init [경로]              새 프로젝트에 harness 프레임워크 초기화
   validate                 프로젝트 설정 검증
+  integrity                문서/설정 정합성 검증
   orchestrator <cmd>       오케스트레이터 실행 (start|pipeline|parallel)
   dispatch <agent> [n]     에이전트 디스패치
   labels                   GitHub 라벨 설정
@@ -31,6 +32,10 @@ switch (command) {
 
   case 'validate':
     runScript('validate-setup.sh', args.slice(1));
+    break;
+
+  case 'integrity':
+    runScript('validate-integrity.sh', args.slice(1));
     break;
 
   case 'orchestrator':

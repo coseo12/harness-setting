@@ -21,6 +21,7 @@ usage() {
   echo "  auditor          - 정적 분석/보안 스캔"
   echo "  skill-creator    - 스킬 생성/개선/검증"
   echo "  cross-validator  - Gemini CLI 교차검증"
+  echo "  integrator       - 문서/설정 정합성 검증"
   echo "  releaser         - 릴리스 생성"
   echo ""
   echo "예시:"
@@ -36,6 +37,7 @@ usage() {
   echo "  $0 qa 12                 # QA에게 PR #12 테스트 요청"
   echo "  $0 skill-creator         # 새 스킬 생성 시작"
   echo "  $0 cross-validator       # 프로젝트 구조 교차검증"
+  echo "  $0 integrator            # 정합성 검증"
   echo "  $0 releaser              # 릴리스 생성"
   exit 1
 }
@@ -140,6 +142,9 @@ build_prompt() {
         echo "이 프로젝트의 전체 구조를 Gemini CLI로 교차검증해줘. .claude/agents/cross-validator.md 의 규칙을 따르고, .claude/skills/cross-validate/scripts/cross_validate.sh structure 를 실행한 뒤 Gemini 피드백을 분석하여 교차검증 보고서를 작성해줘."
       fi
       ;;
+    integrator)
+      echo "프레임워크 전체의 문서/설정 정합성을 검증해줘. .claude/agents/integrator.md 의 규칙을 따라 먼저 scripts/validate-integrity.sh를 실행하고, 2차 문맥적 검증을 수행해줘. 불일치가 있으면 직접 수정하거나 이슈를 생성해줘."
+      ;;
     releaser)
       echo "릴리스를 생성해줘. .claude/agents/releaser.md 의 규칙을 따르고, .claude/skills/create-release/SKILL.md 의 절차대로 버전 결정, CHANGELOG 갱신, GitHub Release 생성을 수행해줘."
       ;;
@@ -224,6 +229,10 @@ get_allowed_tools() {
     auditor)
       # 읽기 + 린트/보안 도구 + 브라우저 접근성/보안 테스트
       echo "Read,Glob,Grep,Bash(npm run lint*),Bash(npx eslint *),Bash(flake8 *),Bash(ruff *),Bash(golangci-lint *),Bash(cargo clippy *),Bash(gitleaks *),Bash(npm audit*),Bash(pip audit*),Bash(gh pr *),Bash(gh issue *),Bash(agent-browser *)"
+      ;;
+    integrator)
+      # 읽기/쓰기 + 검증 스크립트 + gh 이슈
+      echo "Read,Write,Edit,Glob,Grep,Bash(bash *),Bash(ls *),Bash(mkdir *),Bash(git *),Bash(gh issue *),Bash(gh pr *)"
       ;;
     cross-validator)
       # 읽기 + gemini/gh 실행
