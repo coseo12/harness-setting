@@ -63,6 +63,7 @@
 - 의존성 있는 이슈는 선행 이슈 머지 후 `develop`에서 리베이스
 
 ## 사용 스킬
+- `frontend-design`: UI 구현 시 독창적 디자인 가이드 적용
 - `create-pr`: PR 생성
 - `run-tests`: 테스트 실행
 - `sync-status`: 상태 동기화
