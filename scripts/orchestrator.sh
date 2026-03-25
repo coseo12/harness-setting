@@ -198,7 +198,7 @@ auto_dispatch() {
     wait_for_slot
     local pr_num
     pr_num=$(echo "${qa_passed_prs}" | jq -r '.[0].number')
-    gh pr edit "${pr_num}" --remove-label "status:qa-passed" --add-label "status:done" 2>/dev/null || true
+    # 라벨은 Integrator 성공 후 전이 — 선제 전이하지 않음
     log "QA 통과 PR #${pr_num} 감지 → Integrator 디스패치"
     "${SCRIPT_DIR}/dispatch-agent.sh" integrator "${pr_num}" &
   fi
@@ -366,28 +366,45 @@ run_pipeline() {
     update_phase "testing"
   done
 
-  # 6. 완료
+  # 7. Integrator 정합성 검증
+  log "6/7 Integrator 정합성 검증 중..."
+  update_phase "integration"
+  dispatch_with_retry integrator "${pr_num}" || log "경고: Integrator 실패, 수동 확인 필요"
+
+  # 8. 완료
   update_phase "done"
   log "=== 파이프라인 완료: 이슈 #${issue_num} ==="
 }
 
-# 전체 파이프라인 (PM부터 시작)
+# 전체 파이프라인 (Planner부터 시작)
 run_full_pipeline() {
   local issue_num="$1"
   log "=== 전체 파이프라인 시작: 이슈 #${issue_num} ==="
 
-  # PM 이슈 분해
-  log "PM 이슈 분해 중..."
+  # 현재 시각 기록 — PM이 생성한 이슈만 필터링하기 위해
+  local pipeline_start
+  pipeline_start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  # 0. Planner 기획
+  log "0/N Planner 기획 중..."
   update_phase "planning"
+  if ! dispatch_with_retry planner "${issue_num}"; then
+    log "Planner 실패 → PM 단계로 진행"
+  fi
+
+  # 1. PM 이슈 분해
+  log "1/N PM 이슈 분해 중..."
+  update_phase "decomposition"
   if ! dispatch_with_retry pm "${issue_num}"; then
     log "파이프라인 중단: PM 실패"
     update_phase "failed"
     return 1
   fi
 
-  # PM이 생성한 하위 이슈 찾기
+  # PM이 생성한 하위 이슈 찾기 — 파이프라인 시작 이후 생성된 이슈만
   local sub_issues
-  sub_issues=$(gh issue list --label "status:todo" --json number --jq '.[].number' 2>/dev/null || echo "")
+  sub_issues=$(gh issue list --label "status:todo" --json number,createdAt \
+    --jq "[.[] | select(.createdAt >= \"${pipeline_start}\")] | .[].number" 2>/dev/null || echo "")
 
   if [ -z "${sub_issues}" ]; then
     log "경고: PM이 생성한 하위 이슈를 찾을 수 없습니다."

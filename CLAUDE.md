@@ -23,6 +23,7 @@
 | Skill Creator | `.claude/agents/skill-creator.md` | 스킬 생성, 평가, 개선, 패키징 |
 | Cross Validator | `.claude/agents/cross-validator.md` | Gemini CLI 활용 교차검증 |
 | Integrator | `.claude/agents/integrator.md` | 문서/설정 정합성 검증, 메타데이터 동기화 |
+| DevOps | `.claude/agents/devops.md` | CI/CD 관리, 관측 가능성, 에러 복구, 보안 |
 | Releaser | `.claude/agents/releaser.md` | 릴리스 생성, 버전 관리, CHANGELOG |
 
 ---
@@ -54,10 +55,12 @@
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
 
 ### 이슈 라벨
-- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`, `agent:auditor`, `agent:skill-creator`, `agent:cross-validator`, `agent:integrator`, `agent:releaser`
+- `agent:planner`, `agent:pm`, `agent:architect`, `agent:frontend-developer`, `agent:backend-developer`, `agent:developer`, `agent:reviewer`, `agent:qa`, `agent:auditor`, `agent:skill-creator`, `agent:cross-validator`, `agent:integrator`, `agent:devops`, `agent:releaser`
 - `scope:frontend`, `scope:backend`, `scope:fullstack`
 - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
-- `status:todo`, `status:in-progress`, `status:audit-passed`, `status:review`, `status:qa`, `status:done`
+- `size:s`, `size:m`, `size:l`, `size:xl`
+- `status:todo`, `status:in-progress`, `status:review`, `status:reviewing`, `status:audit-passed`, `status:qa`, `status:testing`, `status:qa-passed`, `status:done`, `status:blocked`, `status:stalled`, `status:agent-failed`
+- `needs:re-review`
 - `type:feature`, `type:bug`, `type:refactor`, `type:infra`
 
 ### 파이프라인
