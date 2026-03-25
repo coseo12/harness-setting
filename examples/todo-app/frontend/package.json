@@ -1,0 +1,13 @@
+{
+  "name": "todo-app-frontend",
+  "version": "1.0.0",
+  "description": "To-Do 앱 프론트엔드",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
