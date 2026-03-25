@@ -44,11 +44,42 @@ log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "${LOG_FILE}"
 }
 
-# Gemini 실행 (읽기 전용)
+# Gemini 모델 폴백 순서
+GEMINI_MODELS=("${GEMINI_MODEL:-gemini-2.5-pro}" "gemini-2.5-flash" "gemini-2.0-flash")
+MAX_GEMINI_RETRIES=3
+
+# Gemini 실행 (읽기 전용, 재시도 + 모델 폴백)
 run_gemini() {
   local prompt="$1"
-  log "Gemini 실행 중 (읽기 전용 모드)..."
-  gemini -p "${prompt}" --approval-mode plan 2>&1 | tee -a "${LOG_FILE}"
+
+  for model in "${GEMINI_MODELS[@]}"; do
+    local attempt=1
+    while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
+      log "Gemini 실행 중 (모델: ${model}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."
+      local output
+      output=$(gemini -m "${model}" -p "${prompt}" --approval-mode plan 2>&1) && {
+        echo "${output}" | tee -a "${LOG_FILE}"
+        return 0
+      }
+
+      # 429/5xx 에러인지 확인
+      if echo "${output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
+        log "경고: ${model} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
+        attempt=$((attempt + 1))
+        sleep $((attempt * 5))
+      else
+        # 다른 에러면 로그 남기고 다음 모델로
+        log "경고: ${model} 실패 — $(echo "${output}" | head -3)"
+        echo "${output}" >> "${LOG_FILE}"
+        break
+      fi
+    done
+    log "모델 ${model} 실패 → 다음 모델로 폴백"
+  done
+
+  log "에러: 모든 Gemini 모델이 실패했습니다."
+  echo "교차검증 스킵: Gemini API 사용 불가. 수동 검증을 진행하세요." | tee -a "${LOG_FILE}"
+  return 1
 }
 
 # 민감 파일 필터링

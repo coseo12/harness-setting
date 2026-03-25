@@ -88,7 +88,7 @@ sync_github() {
 auto_dispatch() {
   log "자동 디스패치 확인..."
 
-  # 리뷰 대기 PR → Reviewer 디스패치
+  # 리뷰 대기 PR → Auditor 디스패치 (Auditor 통과 후 Reviewer로 진행)
   local review_prs
   review_prs=$(gh pr list --label "status:review" --json number 2>/dev/null || echo "[]")
   local review_count
@@ -100,7 +100,22 @@ auto_dispatch() {
     pr_num=$(echo "${review_prs}" | jq -r '.[0].number')
     # 중복 디스패치 방지: 즉시 라벨 전이
     gh pr edit "${pr_num}" --remove-label "status:review" --add-label "status:reviewing" 2>/dev/null || true
-    log "리뷰 대기 PR #${pr_num} 감지 → Reviewer 디스패치"
+    log "리뷰 대기 PR #${pr_num} 감지 → Auditor 디스패치"
+    "${SCRIPT_DIR}/dispatch-agent.sh" auditor "${pr_num}" &
+  fi
+
+  # Auditor 통과 PR → Reviewer 디스패치
+  local audit_passed_prs
+  audit_passed_prs=$(gh pr list --label "status:audit-passed" --json number 2>/dev/null || echo "[]")
+  local audit_passed_count
+  audit_passed_count=$(echo "${audit_passed_prs}" | jq length 2>/dev/null || echo 0)
+
+  if [ "${audit_passed_count}" -gt 0 ]; then
+    wait_for_slot
+    local pr_num
+    pr_num=$(echo "${audit_passed_prs}" | jq -r '.[0].number')
+    gh pr edit "${pr_num}" --remove-label "status:audit-passed" --add-label "status:reviewing" 2>/dev/null || true
+    log "Auditor 통과 PR #${pr_num} 감지 → Reviewer 디스패치"
     "${SCRIPT_DIR}/dispatch-agent.sh" reviewer "${pr_num}" &
   fi
 
@@ -120,48 +135,72 @@ auto_dispatch() {
     "${SCRIPT_DIR}/dispatch-agent.sh" qa "${pr_num}" &
   fi
 
-  # TODO 이슈 중 developer 라벨 → Developer 디스패치 (의존성 확인 포함)
-  local dev_issues
-  dev_issues=$(gh issue list --label "status:todo,agent:developer" --json number,body 2>/dev/null || echo "[]")
-  local dev_count
-  dev_count=$(echo "${dev_issues}" | jq length 2>/dev/null || echo 0)
+  # TODO 이슈 중 개발자 라벨 → 해당 Developer 디스패치 (의존성 확인 포함)
+  # agent:developer, agent:frontend-developer, agent:backend-developer 모두 감지
+  local agent_labels=("agent:developer" "agent:frontend-developer" "agent:backend-developer")
+  local agent_names=("developer" "frontend-developer" "backend-developer")
 
-  if [ "${dev_count}" -gt 0 ]; then
-    local i=0
-    while [ "${i}" -lt "${dev_count}" ]; do
-      local issue_num
-      issue_num=$(echo "${dev_issues}" | jq -r ".[${i}].number")
-      local issue_body
-      issue_body=$(echo "${dev_issues}" | jq -r ".[${i}].body // \"\"")
+  for idx in "${!agent_labels[@]}"; do
+    local label="${agent_labels[$idx]}"
+    local agent_name="${agent_names[$idx]}"
 
-      # 의존성 확인: "선행: #번호" 패턴에서 선행 이슈가 닫혔는지 검증
-      local blocked=false
-      local dep_nums
-      dep_nums=$(echo "${issue_body}" | grep -oE '선행:?\s*#[0-9]+' | grep -oE '[0-9]+' || true)
+    local dev_issues
+    dev_issues=$(gh issue list --label "status:todo,${label}" --json number,body 2>/dev/null || echo "[]")
+    local dev_count
+    dev_count=$(echo "${dev_issues}" | jq length 2>/dev/null || echo 0)
 
-      if [ -n "${dep_nums}" ]; then
-        for dep in ${dep_nums}; do
-          local dep_state
-          dep_state=$(gh issue view "${dep}" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
-          if [ "${dep_state}" != "CLOSED" ]; then
-            log "이슈 #${issue_num}: 선행 이슈 #${dep} 미완료 (${dep_state}) → 디스패치 보류"
-            blocked=true
-            break
-          fi
-        done
-      fi
+    if [ "${dev_count}" -gt 0 ]; then
+      local i=0
+      while [ "${i}" -lt "${dev_count}" ]; do
+        local issue_num
+        issue_num=$(echo "${dev_issues}" | jq -r ".[${i}].number")
+        local issue_body
+        issue_body=$(echo "${dev_issues}" | jq -r ".[${i}].body // \"\"")
 
-      if [ "${blocked}" = false ]; then
-        wait_for_slot
-        # 중복 디스패치 방지: 즉시 라벨 전이
-        gh issue edit "${issue_num}" --remove-label "status:todo" --add-label "status:in-progress" 2>/dev/null || true
-        log "개발 대기 이슈 #${issue_num} 감지 → Developer 디스패치"
-        "${SCRIPT_DIR}/dispatch-agent.sh" developer "${issue_num}" &
-        break  # 한 사이클에 하나씩만 디스패치
-      fi
+        # 의존성 확인: "선행: #번호" 패턴에서 선행 이슈가 닫혔는지 검증
+        local blocked=false
+        local dep_nums
+        dep_nums=$(echo "${issue_body}" | grep -oE '선행:?\s*#[0-9]+' | grep -oE '[0-9]+' || true)
 
-      i=$((i + 1))
-    done
+        if [ -n "${dep_nums}" ]; then
+          for dep in ${dep_nums}; do
+            local dep_state
+            dep_state=$(gh issue view "${dep}" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+            if [ "${dep_state}" != "CLOSED" ]; then
+              log "이슈 #${issue_num}: 선행 이슈 #${dep} 미완료 (${dep_state}) → 디스패치 보류"
+              blocked=true
+              break
+            fi
+          done
+        fi
+
+        if [ "${blocked}" = false ]; then
+          wait_for_slot
+          # 중복 디스패치 방지: 즉시 라벨 전이
+          gh issue edit "${issue_num}" --remove-label "status:todo" --add-label "status:in-progress" 2>/dev/null || true
+          log "개발 대기 이슈 #${issue_num} 감지 → ${agent_name} 디스패치"
+          "${SCRIPT_DIR}/dispatch-agent.sh" "${agent_name}" "${issue_num}" &
+          break  # 한 사이클에 하나씩만 디스패치
+        fi
+
+        i=$((i + 1))
+      done
+    fi
+  done
+
+  # QA 통과 PR → Integrator 디스패치
+  local qa_passed_prs
+  qa_passed_prs=$(gh pr list --label "status:qa-passed" --json number 2>/dev/null || echo "[]")
+  local qa_passed_count
+  qa_passed_count=$(echo "${qa_passed_prs}" | jq length 2>/dev/null || echo 0)
+
+  if [ "${qa_passed_count}" -gt 0 ]; then
+    wait_for_slot
+    local pr_num
+    pr_num=$(echo "${qa_passed_prs}" | jq -r '.[0].number')
+    gh pr edit "${pr_num}" --remove-label "status:qa-passed" --add-label "status:done" 2>/dev/null || true
+    log "QA 통과 PR #${pr_num} 감지 → Integrator 디스패치"
+    "${SCRIPT_DIR}/dispatch-agent.sh" integrator "${pr_num}" &
   fi
 
   # 역방향 전이: 리뷰 반려된 PR → Developer에게 재할당
