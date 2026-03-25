@@ -51,7 +51,7 @@ echo ""
 
 # 4. 에이전트 파일
 echo "--- 에이전트 ---"
-for agent in orchestrator pm architect developer reviewer qa auditor skill-creator cross-validator releaser; do
+for agent in orchestrator planner pm architect frontend-developer backend-developer developer reviewer qa auditor integrator skill-creator cross-validator devops releaser; do
   [ -f "${PROJECT_DIR}/.claude/agents/${agent}.md" ] && pass "${agent}.md" || warn "${agent}.md 없음"
 done
 
@@ -59,7 +59,7 @@ echo ""
 
 # 5. 스킬 파일
 echo "--- 스킬 ---"
-for skill in create-issue create-pr review-pr run-tests sync-status create-skill cross-validate fix-error resolve-conflict static-analysis create-release generate-docs; do
+for skill in create-issue create-pr review-pr run-tests sync-status create-skill cross-validate fix-error resolve-conflict static-analysis create-release generate-docs browser-test playwright-test frontend-design; do
   [ -f "${PROJECT_DIR}/.claude/skills/${skill}/SKILL.md" ] && pass "${skill}" || warn "${skill} 없음"
 done
 

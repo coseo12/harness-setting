@@ -65,8 +65,11 @@
 ## 사용 스킬
 - `frontend-design`: UI 구현 시 독창적 디자인 가이드 적용
 - `browser-test`: 구현 결과 시각적 확인, 반응형/접근성 검증
+- `playwright-test`: form 제출 등 agent-browser 한계 시 폴백
 - `create-pr`: PR 생성
 - `run-tests`: 테스트 실행
+- `fix-error`: QA/CI 실패 시 에러 수정
+- `resolve-conflict`: 머지 충돌 해결
 - `sync-status`: 상태 동기화
 
 ## 규칙

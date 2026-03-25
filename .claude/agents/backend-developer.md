@@ -64,6 +64,8 @@
 ## 사용 스킬
 - `create-pr`: PR 생성
 - `run-tests`: 테스트 실행
+- `fix-error`: QA/CI 실패 시 에러 수정
+- `resolve-conflict`: 머지 충돌 해결
 - `sync-status`: 상태 동기화
 
 ## 규칙

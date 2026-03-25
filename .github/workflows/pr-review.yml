@@ -29,7 +29,8 @@ jobs:
 
             // PR 본문에서 이슈 번호 추출
             const body = context.payload.pull_request.body || '';
-            const issueMatch = body.match(/Closes #(\d+)/);
+            // Closes, Fixes, Resolves 등 GitHub 표준 키워드 모두 인식
+            const issueMatch = body.match(/(?:Closes|Fixes|Resolves)\s+#(\d+)/i);
             if (issueMatch) {
               const issueNumber = parseInt(issueMatch[1]);
               // 관련 이슈의 라벨 업데이트
