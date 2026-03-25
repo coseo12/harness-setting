@@ -257,11 +257,17 @@ agent-browser auth save staging --url https://staging.app.com/login
 agent-browser auth login staging
 ```
 
-## 알려진 제한
+## 알려진 제한 및 Playwright 폴백
 
-- **동적 마운트 컴포넌트**: React state 변경으로 새로 마운트된 컴포넌트 내부의 이벤트 핸들러가 `click` 명령으로 트리거되지 않을 수 있다. 조건부 렌더링(`{show && <Component />}`)으로 나타난 요소의 버튼 클릭이 실패하면, `snapshot -i`로 요소 존재를 확인한 뒤 ref 기반 클릭(`click @eN`)을 시도한다.
-- **React controlled input**: `fill` 명령이 React의 `onChange`를 트리거하지 못해 `useState`로 관리되는 값이 갱신되지 않을 수 있다. uncontrolled input(`useRef` + `FormData`)을 사용하면 `fill`로 설정한 DOM value가 제출 시 정상적으로 읽힌다.
-- **form submit**: `type="submit"` 버튼을 `click`해도 `<form onSubmit>`이 호출되지 않을 수 있다. `press Enter`나 ref 기반 클릭으로 대체를 시도한다.
+아래 상황에서는 `playwright-test` 스킬로 전환한다:
+
+| 상황 | agent-browser 증상 | Playwright 해결 |
+|------|-------------------|----------------|
+| 동적 마운트 컴포넌트 | `click` 후 상태 변화 없음 | auto-waiting으로 마운트 대기 후 클릭 |
+| React controlled input | `fill` 후 state 미갱신 | input/change 이벤트 순차 발생 |
+| form submit | `click` 후 서버에 요청 미도달 | 정상적 form submission 이벤트 체인 |
+
+**폴백 판단 기준**: agent-browser로 액션 수행 후 `snapshot`으로 결과를 확인했을 때 상태 변화가 없으면 동일 목표를 `playwright-test`로 재시도한다.
 
 ## 규칙
 

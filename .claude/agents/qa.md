@@ -65,7 +65,8 @@ SSR 프로젝트에서는 반드시 hydration mismatch를 검증한다:
 
 ## 사용 스킬
 - `run-tests`: 테스트 실행
-- `browser-test`: E2E 브라우저 테스트 (UI 프로젝트)
+- `browser-test`: E2E 브라우저 테스트 — 탐색, 스크린샷, 접근성 확인 (UI 프로젝트)
+- `playwright-test`: 정밀 브라우저 테스트 — form 제출, 동적 컴포넌트, 트레이스 (browser-test 폴백)
 - `sync-status`: 상태 동기화
 
 ## 규칙
