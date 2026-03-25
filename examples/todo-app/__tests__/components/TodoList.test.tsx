@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { TodoList } from '@/components/TodoList';
 import type { Todo } from '@/lib/types';
 
-// TodoItem이 fetch를 호출하므로 mock 필요
 global.fetch = vi.fn();
 
 const mockTodos: Todo[] = [
@@ -12,16 +11,18 @@ const mockTodos: Todo[] = [
     title: '첫 번째',
     description: '',
     completed: false,
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
+    category: 'personal',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: '2',
     title: '두 번째',
     description: '설명 있음',
     completed: true,
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
+    category: 'work',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -37,9 +38,9 @@ describe('TodoList', () => {
     expect(screen.getByText('두 번째')).toBeInTheDocument();
   });
 
-  it('할 일 개수만큼 아이템 렌더링', () => {
+  it('할 일 개수만큼 삭제 버튼 렌더링', () => {
     render(<TodoList todos={mockTodos} onChange={vi.fn()} />);
-    const items = screen.getAllByRole('checkbox');
+    const items = screen.getAllByLabelText('삭제');
     expect(items).toHaveLength(2);
   });
 });

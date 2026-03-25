@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 // POST /api/todos
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { title, description } = body;
+  const { title, description, category } = body;
 
   const error = validateTitle(title);
   if (error) {
@@ -25,6 +25,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const todo = todoRepository.create({ title, description });
+  const todo = todoRepository.create({ title, description, category });
   return NextResponse.json({ todo }, { status: 201 });
 }

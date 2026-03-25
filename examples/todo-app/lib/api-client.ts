@@ -1,4 +1,4 @@
-import type { Todo, TodoFilter, TodoListResponse, TodoResponse } from './types';
+import type { Todo, TodoCategory, TodoFilter, TodoListResponse, TodoResponse } from './types';
 
 export async function fetchTodos(filter: TodoFilter = ''): Promise<Todo[]> {
   const query = filter ? `?filter=${filter}` : '';
@@ -8,11 +8,15 @@ export async function fetchTodos(filter: TodoFilter = ''): Promise<Todo[]> {
   return data.todos;
 }
 
-export async function createTodo(title: string, description = ''): Promise<Todo> {
+export async function createTodo(
+  title: string,
+  description = '',
+  category: TodoCategory = 'personal',
+): Promise<Todo> {
   const res = await fetch('/api/todos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, description }),
+    body: JSON.stringify({ title, description, category }),
   });
   if (!res.ok) {
     const err = await res.json();
@@ -24,7 +28,7 @@ export async function createTodo(title: string, description = ''): Promise<Todo>
 
 export async function updateTodo(
   id: string,
-  updates: Partial<Pick<Todo, 'title' | 'description' | 'completed'>>,
+  updates: Partial<Pick<Todo, 'title' | 'description' | 'completed' | 'category'>>,
 ): Promise<Todo> {
   const res = await fetch(`/api/todos/${id}`, {
     method: 'PATCH',

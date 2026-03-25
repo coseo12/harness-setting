@@ -110,6 +110,23 @@ describe('To-Do API', () => {
     expect(res.status).toBe(404);
   });
 
+  it('POST /api/todos — 카테고리 지정', async () => {
+    const res = await POST(
+      createRequest('POST', '/api/todos', { title: '운동', category: 'health' }),
+    );
+    const body = await res.json();
+    expect(res.status).toBe(201);
+    expect(body.todo.category).toBe('health');
+  });
+
+  it('POST /api/todos — 카테고리 미지정 시 기본값', async () => {
+    const res = await POST(
+      createRequest('POST', '/api/todos', { title: '기본' }),
+    );
+    const body = await res.json();
+    expect(body.todo.category).toBe('personal');
+  });
+
   it('GET /api/health — 헬스체크', async () => {
     const { GET: healthGET } = await import('@/app/api/health/route');
     const res = await healthGET();

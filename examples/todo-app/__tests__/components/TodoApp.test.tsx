@@ -29,14 +29,20 @@ describe('TodoApp', () => {
   it('필터 버튼 3개 렌더링', () => {
     render(<TodoApp />);
     expect(screen.getByText('전체')).toBeInTheDocument();
-    expect(screen.getByText('미완료')).toBeInTheDocument();
+    expect(screen.getByText('진행 중')).toBeInTheDocument();
     expect(screen.getByText('완료')).toBeInTheDocument();
   });
 
-  it('빈 목록 메시지 표시', async () => {
+  it('카테고리 카드 4개 렌더링', () => {
     render(<TodoApp />);
-    await waitFor(() => {
-      expect(screen.getByText('할 일이 없습니다.')).toBeInTheDocument();
-    });
+    expect(screen.getByText('개인')).toBeInTheDocument();
+    expect(screen.getByText('업무')).toBeInTheDocument();
+    expect(screen.getByText('건강')).toBeInTheDocument();
+    expect(screen.getByText('학습')).toBeInTheDocument();
+  });
+
+  it('진행률 카드 렌더링', () => {
+    render(<TodoApp />);
+    expect(screen.getByText('오늘의 진행률')).toBeInTheDocument();
   });
 });

@@ -11,8 +11,9 @@ const baseTodo: Todo = {
   title: '테스트 할 일',
   description: '설명',
   completed: false,
-  createdAt: '2026-01-01T00:00:00Z',
-  updatedAt: '2026-01-01T00:00:00Z',
+  category: 'work',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 describe('TodoItem', () => {
@@ -39,9 +40,9 @@ describe('TodoItem', () => {
     expect(li).toHaveClass('completed');
   });
 
-  it('체크박스 클릭 시 PATCH API 호출', async () => {
+  it('완료 버튼 클릭 시 PATCH API 호출', async () => {
     render(<TodoItem todo={baseTodo} onChange={onChange} />);
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByLabelText('완료'));
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
@@ -64,5 +65,10 @@ describe('TodoItem', () => {
       );
       expect(onChange).toHaveBeenCalled();
     });
+  });
+
+  it('카테고리 태그가 표시됨', () => {
+    render(<TodoItem todo={baseTodo} onChange={onChange} />);
+    expect(screen.getByText(/업무/)).toBeInTheDocument();
   });
 });
