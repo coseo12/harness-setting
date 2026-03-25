@@ -16,6 +16,9 @@
 | `static-analysis` | 린트/보안 스캔 | Auditor |
 | `create-release` | 릴리스 생성 | Releaser |
 | `generate-docs` | 문서 자동 생성 | Releaser |
+| `browser-test` | E2E 브라우저 테스트 (agent-browser) | QA, FE Dev, Reviewer, Auditor |
+| `playwright-test` | 정밀 브라우저 테스트 (Playwright) | QA, FE Dev (browser-test 폴백) |
+| `frontend-design` | UI 디자인 가이드 적용 | FE Dev |
 
 ## 자주 묻는 질문
 

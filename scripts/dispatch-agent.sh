@@ -145,6 +145,13 @@ build_prompt() {
     integrator)
       echo "프레임워크 전체의 문서/설정 정합성을 검증해줘. .claude/agents/integrator.md 의 규칙을 따라 먼저 scripts/validate-integrity.sh를 실행하고, 2차 문맥적 검증을 수행해줘. 불일치가 있으면 직접 수정하거나 이슈를 생성해줘."
       ;;
+    devops)
+      if [ -n "${number}" ]; then
+        echo "이슈/PR #${number}에 대한 인프라 점검을 수행해줘. .claude/agents/devops.md 의 규칙을 따라 교착 상태 확인, 에이전트 로그 분석, 복구 조치를 수행해줘."
+      else
+        echo "프레임워크 전체의 인프라 건전성을 점검해줘. .claude/agents/devops.md 의 규칙을 따라 validate-integrity.sh, validate-setup.sh 실행, 교착 이슈 확인, 에이전트 상태 점검을 수행해줘."
+      fi
+      ;;
     releaser)
       echo "릴리스를 생성해줘. .claude/agents/releaser.md 의 규칙을 따르고, .claude/skills/create-release/SKILL.md 의 절차대로 버전 결정, CHANGELOG 갱신, GitHub Release 생성을 수행해줘."
       ;;
@@ -160,12 +167,23 @@ if [ -f "${PROJECT_DIR}/.harness/context.md" ]; then
 fi
 
 # 이슈/PR 본문을 프롬프트에 사전 로드
+# PR 기반 에이전트(auditor, reviewer, qa)는 gh pr view, 나머지는 gh issue view
 ISSUE_CONTEXT=""
 if [ -n "${TASK_NUMBER}" ]; then
-  ISSUE_BODY=$(gh issue view "${TASK_NUMBER}" --json body --jq '.body' 2>/dev/null || true)
-  if [ -n "${ISSUE_BODY}" ]; then
-    ISSUE_CONTEXT="관련 이슈 #${TASK_NUMBER} 내용:\n${ISSUE_BODY}\n\n"
-  fi
+  case "${AGENT}" in
+    auditor|reviewer|qa)
+      ISSUE_BODY=$(gh pr view "${TASK_NUMBER}" --json body --jq '.body' 2>/dev/null || true)
+      if [ -n "${ISSUE_BODY}" ]; then
+        ISSUE_CONTEXT="관련 PR #${TASK_NUMBER} 내용:\n${ISSUE_BODY}\n\n"
+      fi
+      ;;
+    *)
+      ISSUE_BODY=$(gh issue view "${TASK_NUMBER}" --json body --jq '.body' 2>/dev/null || true)
+      if [ -n "${ISSUE_BODY}" ]; then
+        ISSUE_CONTEXT="관련 이슈 #${TASK_NUMBER} 내용:\n${ISSUE_BODY}\n\n"
+      fi
+      ;;
+  esac
 fi
 
 FULL_PROMPT="${CONTEXT_PREFIX}${ISSUE_CONTEXT}${PROMPT}"
@@ -233,6 +251,10 @@ get_allowed_tools() {
     integrator)
       # 읽기/쓰기 + 검증 스크립트 + gh 이슈
       echo "Read,Write,Edit,Glob,Grep,Bash(bash *),Bash(ls *),Bash(mkdir *),Bash(git *),Bash(gh issue *),Bash(gh pr *)"
+      ;;
+    devops)
+      # 인프라 관리 — 검증 스크립트, 로그 분석, gh 이슈/PR, 프로세스 확인
+      echo "Read,Write,Edit,Glob,Grep,Bash(bash *),Bash(ls *),Bash(cat *),Bash(grep *),Bash(git *),Bash(gh issue *),Bash(gh pr *),Bash(gh run *),Bash(gh label *),Bash(ps *),Bash(lsof *)"
       ;;
     cross-validator)
       # 읽기 + gemini/gh 실행
