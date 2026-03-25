@@ -429,6 +429,10 @@ start_loop() {
   log "중지: Ctrl+C"
 
   while true; do
+    # 만료된 파일 잠금 정리
+    if [ -f "${SCRIPT_DIR}/lock-file.sh" ]; then
+      "${SCRIPT_DIR}/lock-file.sh" cleanup 2>/dev/null || true
+    fi
     sync_github
     auto_dispatch
     sleep "${POLL_INTERVAL}"

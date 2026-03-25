@@ -253,11 +253,25 @@ ALLOWED_TOOLS=$(get_allowed_tools "${AGENT}")
 # 타임아웃 설정 (기본 30분)
 AGENT_TIMEOUT="${HARNESS_AGENT_TIMEOUT:-1800}"
 
+# 병렬 에이전트용 파일 잠금 — 개발자 에이전트만 적용
+LOCK_ACQUIRED=""
+if [[ "${AGENT}" =~ ^(frontend-developer|backend-developer|developer)$ ]] && [ -n "${TASK_NUMBER}" ]; then
+  if [ -f "${SCRIPT_DIR}/lock-file.sh" ]; then
+    HARNESS_AGENT="${AGENT}" "${SCRIPT_DIR}/lock-file.sh" acquire "issue-${TASK_NUMBER}" 2>/dev/null && \
+      LOCK_ACQUIRED="issue-${TASK_NUMBER}" || true
+  fi
+fi
+
 # Claude Code 실행
 cd "${PROJECT_DIR}"
 
 EXIT_CODE=0
 timeout "${AGENT_TIMEOUT}" claude -p "${FULL_PROMPT}" --allowedTools "${ALLOWED_TOOLS}" 2>&1 | tee -a "${LOG_FILE}" || EXIT_CODE=$?
+
+# 파일 잠금 해제
+if [ -n "${LOCK_ACQUIRED}" ] && [ -f "${SCRIPT_DIR}/lock-file.sh" ]; then
+  "${SCRIPT_DIR}/lock-file.sh" release "${LOCK_ACQUIRED}" 2>/dev/null || true
+fi
 
 # 타임아웃 감지 (exit code 124)
 if [ "${EXIT_CODE}" -eq 124 ]; then
