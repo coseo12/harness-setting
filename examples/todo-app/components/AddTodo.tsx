@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import type { TodoCategory } from '@/lib/types';
 import { createTodo } from '@/lib/api-client';
 import { CATEGORIES, CATEGORY_KEYS } from '@/lib/categories';
@@ -10,19 +10,20 @@ interface AddTodoProps {
 }
 
 export function AddTodo({ onAdd }: AddTodoProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
   const [category, setCategory] = useState<TodoCategory>('personal');
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const trimmed = title.trim();
-    if (!trimmed) return;
+    const formData = new FormData(e.currentTarget);
+    const title = (formData.get('title') as string)?.trim() ?? '';
+    const description = (formData.get('description') as string)?.trim() ?? '';
+
+    if (!title) return;
 
     try {
-      await createTodo(trimmed, description.trim(), category);
-      setTitle('');
-      setDescription('');
+      await createTodo(title, description, category);
+      formRef.current?.reset();
       setCategory('personal');
       onAdd();
     } catch (err) {
@@ -31,22 +32,20 @@ export function AddTodo({ onAdd }: AddTodoProps) {
   }
 
   return (
-    <form className="add-todo-form" onSubmit={handleSubmit}>
+    <form ref={formRef} className="add-todo-form" onSubmit={handleSubmit}>
       <input
         type="text"
+        name="title"
         className="input-field"
         placeholder="새로운 할 일..."
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
         maxLength={200}
         autoFocus
       />
       <input
         type="text"
+        name="description"
         className="input-field input-desc"
         placeholder="설명 (선택)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
         maxLength={1000}
       />
       <div className="category-select">
