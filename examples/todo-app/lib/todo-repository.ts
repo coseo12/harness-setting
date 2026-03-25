@@ -52,6 +52,7 @@ export const todoRepository = {
       title: input.title.trim(),
       description: (input.description ?? '').trim(),
       completed: false,
+      category: input.category ?? 'personal',
       createdAt: now,
       updatedAt: now,
     };
@@ -74,6 +75,9 @@ export const todoRepository = {
     }
     if (input.completed !== undefined) {
       todos[index].completed = Boolean(input.completed);
+    }
+    if (input.category !== undefined) {
+      todos[index].category = input.category;
     }
     todos[index].updatedAt = new Date().toISOString();
 
