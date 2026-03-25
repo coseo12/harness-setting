@@ -66,11 +66,12 @@ gh issue comment <이슈번호> --body "의존성: #<선행이슈번호> 완료 
 
 | 카테고리 | 값 | 설명 |
 |----------|-----|------|
-| **에이전트** | `agent:pm` `agent:architect` `agent:developer` `agent:reviewer` `agent:qa` | 담당 에이전트 |
+| **에이전트** | `agent:planner` `agent:pm` `agent:architect` `agent:developer` `agent:frontend-developer` `agent:backend-developer` `agent:reviewer` `agent:qa` `agent:auditor` `agent:integrator` `agent:skill-creator` `agent:cross-validator` `agent:releaser` | 담당 에이전트 |
+| **범위** | `scope:frontend` `scope:backend` `scope:fullstack` | FE/BE 구분 |
 | **우선순위** | `priority:critical` `priority:high` `priority:medium` `priority:low` | 처리 긴급도 |
 | **크기** | `size:s` `size:m` `size:l` `size:xl` | s=1-2h, m=반나절, l=1일, xl=2일+ |
 | **타입** | `type:feature` `type:bug` `type:refactor` `type:infra` | 작업 분류 |
-| **상태** | `status:todo` `status:in-progress` `status:review` `status:done` | 진행 상태 |
+| **상태** | `status:todo` `status:in-progress` `status:review` `status:audit-passed` `status:qa` `status:qa-passed` `status:done` `status:blocked` | 진행 상태 |
 
 ## 규칙
 

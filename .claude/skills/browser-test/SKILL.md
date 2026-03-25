@@ -173,7 +173,35 @@ agent-browser snapshot -i --json
 # - 키보드 내비게이션이 가능한가
 ```
 
-### 5. XSS 동적 테스트 (Auditor)
+### 5. React SSR Hydration 검증 (QA/Frontend Developer)
+
+SSR 앱에서 서버/클라이언트 렌더링 불일치(hydration mismatch)를 감지한다.
+
+```bash
+# 1. 페이지 열기 — hydration이 완료될 때까지 대기
+agent-browser open http://localhost:3000
+agent-browser wait --load networkidle
+
+# 2. 콘솔에서 hydration 에러 패턴 감지
+agent-browser console
+# 확인할 패턴:
+#   - "Hydration failed"
+#   - "Text content does not match"
+#   - "Did not expect server HTML to contain"
+#   - "There was an error while hydrating"
+#   - "An error occurred during hydration"
+
+# 3. 에러 확인
+agent-browser errors
+```
+
+**hydration mismatch 발생 원인 (주의 패턴)**:
+- `new Date()`, `Date.now()` — 렌더 함수에서 직접 호출 금지, `useEffect` 내에서만 사용
+- `Math.random()` — 서버/클라이언트 결과가 다름
+- `window`, `document`, `localStorage` — 서버에 존재하지 않는 API
+- 브라우저 확장 프로그램이 주입하는 DOM 요소
+
+### 6. XSS 동적 테스트 (Auditor)
 
 ```bash
 # 입력 필드에 XSS 페이로드 주입
@@ -229,11 +257,24 @@ agent-browser auth save staging --url https://staging.app.com/login
 agent-browser auth login staging
 ```
 
+## 알려진 제한 및 Playwright 폴백
+
+아래 상황에서는 `playwright-test` 스킬로 전환한다:
+
+| 상황 | agent-browser 증상 | Playwright 해결 |
+|------|-------------------|----------------|
+| 동적 마운트 컴포넌트 | `click` 후 상태 변화 없음 | auto-waiting으로 마운트 대기 후 클릭 |
+| React controlled input | `fill` 후 state 미갱신 | input/change 이벤트 순차 발생 |
+| form submit | `click` 후 서버에 요청 미도달 | 정상적 form submission 이벤트 체인 |
+
+**폴백 판단 기준**: agent-browser로 액션 수행 후 `snapshot`으로 결과를 확인했을 때 상태 변화가 없으면 동일 목표를 `playwright-test`로 재시도한다.
+
 ## 규칙
 
 - `agent-browser`가 설치되어 있지 않으면 스킬 사용 전 설치를 안내한다
 - 브라우저 액션 전 반드시 `snapshot`으로 현재 상태를 파악한다
 - 클릭/입력 후 `wait`로 결과를 대기한 뒤 검증한다
 - 스크린샷은 의미 있는 파일명을 사용한다 (예: `login-success.png`)
+- SSR 앱(Next.js, Nuxt 등)은 반드시 hydration 검증을 수행한다
 - 보안 규칙을 반드시 준수한다
 - 테스트 결과는 PR 코멘트 또는 이슈에 보고한다

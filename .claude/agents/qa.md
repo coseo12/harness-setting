@@ -17,7 +17,16 @@ PR의 기능을 테스트하고, 품질 기준 충족 여부를 검증한다.
 3단계: 엣지 케이스 추가 테스트
 4단계: 통합 테스트 (영향받는 모듈)
 5단계: E2E 브라우저 테스트 (UI 프로젝트, agent-browser 사용)
+6단계: SSR hydration 검증 (Next.js/Nuxt 등 SSR 프로젝트)
 ```
+
+### SSR Hydration 검증 (6단계)
+
+SSR 프로젝트에서는 반드시 hydration mismatch를 검증한다:
+1. `agent-browser open` → `agent-browser console`로 hydration 에러 패턴 감지
+2. 감지 패턴: `"Hydration failed"`, `"Text content does not match"`, `"Did not expect server HTML"`
+3. **주요 위험 코드**: `new Date()`, `Date.now()`, `Math.random()`, `window`/`document` 직접 참조
+4. hydration 에러가 있으면 이벤트 핸들러가 바인딩되지 않을 수 있으므로 **반려 사유**에 해당
 
 ## 테스트 결과 보고 형식
 ```markdown
@@ -56,7 +65,8 @@ PR의 기능을 테스트하고, 품질 기준 충족 여부를 검증한다.
 
 ## 사용 스킬
 - `run-tests`: 테스트 실행
-- `browser-test`: E2E 브라우저 테스트 (UI 프로젝트)
+- `browser-test`: E2E 브라우저 테스트 — 탐색, 스크린샷, 접근성 확인 (UI 프로젝트)
+- `playwright-test`: 정밀 브라우저 테스트 — form 제출, 동적 컴포넌트, 트레이스 (browser-test 폴백)
 - `sync-status`: 상태 동기화
 
 ## 규칙

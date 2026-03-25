@@ -107,31 +107,38 @@ done
 
 echo ""
 
-# ─── 6. copy-template.js state.json 구조 검사 ───
-echo "6. copy-template.js 상태 구조 검사..."
+# ─── 6. state.json 스키마 정합성 검사 (init-project.sh + copy-template.js) ───
+echo "6. state.json 스키마 정합성 검사..."
 
+STATE_REQUIRED_KEYS=("planner" "frontend-developers" "backend-developers" "auditor" "integrator")
+
+# 6-1. copy-template.js 검사
 COPY_TEMPLATE="${PROJECT_DIR}/lib/copy-template.js"
 if [ -f "${COPY_TEMPLATE}" ]; then
-  # planner가 state.json에 포함되어 있는지 등 기본 검사
-  if grep -q "planner" "${COPY_TEMPLATE}" 2>/dev/null; then
-    ok "copy-template.js에 planner 포함"
-  else
-    warn "copy-template.js state.json에 planner 누락"
-  fi
-
-  if grep -q "frontend-developers" "${COPY_TEMPLATE}" 2>/dev/null; then
-    ok "copy-template.js에 frontend-developers 포함"
-  else
-    warn "copy-template.js state.json에 frontend-developers 누락"
-  fi
-
-  if grep -q "backend-developers" "${COPY_TEMPLATE}" 2>/dev/null; then
-    ok "copy-template.js에 backend-developers 포함"
-  else
-    warn "copy-template.js state.json에 backend-developers 누락"
-  fi
+  for key in "${STATE_REQUIRED_KEYS[@]}"; do
+    # JS 객체 키는 따옴표 있거나 없을 수 있음 (planner: 또는 'planner': 또는 "planner":)
+    if grep -qE "(\"${key}\"|'${key}'|${key})\s*:" "${COPY_TEMPLATE}" 2>/dev/null; then
+      ok "copy-template.js에 ${key} 포함"
+    else
+      warn "copy-template.js state.json에 ${key} 누락"
+    fi
+  done
 else
   warn "copy-template.js 파일 없음 (npm 패키지 미구성 환경)"
+fi
+
+# 6-2. init-project.sh 검사
+INIT_SCRIPT="${PROJECT_DIR}/scripts/init-project.sh"
+if [ -f "${INIT_SCRIPT}" ]; then
+  for key in "${STATE_REQUIRED_KEYS[@]}"; do
+    if grep -q "\"${key}\"" "${INIT_SCRIPT}" 2>/dev/null; then
+      ok "init-project.sh에 ${key} 포함"
+    else
+      warn "init-project.sh state.json에 ${key} 누락"
+    fi
+  done
+else
+  warn "init-project.sh 파일 없음"
 fi
 
 echo ""
