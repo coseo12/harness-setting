@@ -17,6 +17,19 @@ export function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<TodoFilter>('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [dateStr, setDateStr] = useState('');
+
+  // 클라이언트에서만 날짜 계산 — 서버/클라이언트 불일치(hydration mismatch) 방지
+  useEffect(() => {
+    setDateStr(
+      new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long',
+      }),
+    );
+  }, []);
 
   const loadTodos = useCallback(async () => {
     try {
@@ -49,14 +62,6 @@ export function TodoApp() {
     });
     return counts;
   }, [todos]);
-
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  });
 
   return (
     <div className="todo-app">
