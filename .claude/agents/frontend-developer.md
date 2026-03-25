@@ -76,3 +76,4 @@
 - 구현 중 설계 변경이 필요하면 Architect에게 이슈로 요청한다
 - PR당 변경 파일은 10개 이하를 목표로 한다
 - 매직 넘버, 하드코딩된 값은 상수로 분리한다
+- **SSR 프로젝트** (Next.js/Nuxt): 렌더 함수 내에서 `new Date()`, `Date.now()`, `Math.random()`, `window` 직접 사용 금지. 반드시 `useEffect` 내에서 사용하여 hydration mismatch를 방지한다

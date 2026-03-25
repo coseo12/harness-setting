@@ -52,6 +52,13 @@
 |-----------|--------|------|------|------|
 | ... | ... | ... | ... | ... |
 
+## SSR 안전 패턴 (Next.js/Nuxt 등 SSR 프로젝트)
+[서버/클라이언트 렌더링 불일치 방지 규칙]
+- `new Date()`, `Date.now()` → `useEffect` 내에서만 사용 (서버/클라이언트 시간 불일치)
+- `Math.random()` → 서버/클라이언트 결과 다름, seed 기반 또는 클라이언트 전용
+- `window`, `document`, `localStorage` → `typeof window !== 'undefined'` 가드 필수
+- 조건부 렌더링 주의 → hydration mismatch 시 이벤트 핸들러 바인딩 실패 가능
+
 ## 제약 사항
 [기술적 제한, 호환성 요구사항]
 
