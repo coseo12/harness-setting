@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-// ChatApp은 useSocket, useAuth, fetchMessages를 사용하므로 mock 필요
+// ChatApp은 useSocket, useAuth, fetchMessages, useRouter를 사용하므로 mock 필요
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1', nickname: '테스터' }, token: 'tok', loading: false }),
 }));
@@ -12,6 +12,11 @@ vi.mock('@/hooks/useSocket', () => ({
 
 vi.mock('@/lib/api-client', () => ({
   fetchMessages: vi.fn().mockResolvedValue({ messages: [], nextCursor: null }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/chat/r1',
 }));
 
 import ChatApp from '@/components/chat/ChatApp';
