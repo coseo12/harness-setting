@@ -65,8 +65,15 @@
 
 ### 파이프라인
 ```
-Planner → PM → Architect → FE Dev + BE Dev (병렬) → Auditor → Reviewer → QA → Integrator → Merge
+Planner → PM → Architect(설계+테스트시나리오) → FE Dev + BE Dev (시나리오→테스트→구현, 병렬) → Auditor(+과적합검증) → Reviewer(+테스트충분성) → QA(+E2E듀얼뷰포트) → Integrator → Merge
 ```
+
+### 테스트 전략: Specification-Driven Testing
+- **Architect**: 설계 문서에 테스트 시나리오 목록(자연어)을 포함한다
+- **Developer**: 시나리오를 테스트 코드로 변환 → 구현 → 통과 (테스트 우선)
+- **Auditor**: 테스트 과적합(하드코딩/편법) 검증
+- **Reviewer**: Architect 시나리오 대비 테스트 충분성 확인
+- **QA**: 모바일(480px) + 데스크톱(1200px) E2E 필수
 
 ### 에이전트 간 통신 규칙
 1. **기본**: GitHub Issues/PR 코멘트를 통해 소통
