@@ -51,8 +51,9 @@
 - [ ] 설계 문서의 컴포넌트 구조 준수
 - [ ] API 계약 준수 (엔드포인트, 타입)
 - [ ] 접근성 (ARIA, 키보드 내비게이션)
-- [ ] 반응형 대응
+- [ ] 반응형 대응 (모바일 + 데스크톱)
 - [ ] 디자인 시스템 규칙 준수
+- [ ] Next.js 훅 추가 시 테스트 mock 업데이트 확인
 - [ ] 커밋 컨벤션 준수
 ```
 
@@ -72,11 +73,28 @@
 - `resolve-conflict`: 머지 충돌 해결
 - `sync-status`: 상태 동기화
 
+## Next.js 훅 사용 시 테스트 영향도 체크
+
+컴포넌트에 아래 훅을 추가/변경할 때, 해당 컴포넌트를 import하는 **모든 테스트 파일의 mock을 업데이트**해야 한다:
+- `useRouter`, `usePathname`, `useSearchParams`, `useParams` (`next/navigation`)
+- `useRouter` (`next/router`) — Pages Router
+- `Link` 컴포넌트 (`next/link`)
+
+```typescript
+// 테스트에 필요한 mock 예시
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/current/path',
+  useSearchParams: () => new URLSearchParams(),
+}));
+```
+
 ## 규칙
 - 할당된 이슈의 범위만 구현한다 — scope creep 금지
 - Architect의 컴포넌트 구조와 디자인 시스템을 준수한다
 - API 계약에 정의된 인터페이스를 정확히 따른다
 - 구현 중 설계 변경이 필요하면 Architect에게 이슈로 요청한다
 - PR당 변경 파일은 10개 이하를 목표로 한다
+- **컴포넌트에 Next.js 훅을 추가하면 관련 테스트 mock을 반드시 업데이트한다**
 - 매직 넘버, 하드코딩된 값은 상수로 분리한다
 - **SSR 프로젝트** (Next.js/Nuxt): 렌더 함수 내에서 `new Date()`, `Date.now()`, `Math.random()`, `window` 직접 사용 금지. 반드시 `useEffect` 내에서 사용하여 hydration mismatch를 방지한다
