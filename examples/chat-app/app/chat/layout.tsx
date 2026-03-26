@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchRooms, createRoom as apiCreateRoom } from '@/lib/api-client';
@@ -13,8 +13,12 @@ import Avatar from '@/components/ui/Avatar';
 function ChatLayoutInner({ children }: { children: ReactNode }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showModal, setShowModal] = useState(false);
+
+  // 모바일: 채팅방 선택 시 사이드바 숨김
+  const isInRoom = pathname !== '/chat' && pathname.startsWith('/chat/');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -56,7 +60,7 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="chat-layout">
-      <aside className="chat-sidebar">
+      <aside className={`chat-sidebar ${isInRoom ? 'hidden' : ''}`}>
         <div className="sidebar-header">
           <h2 className="gradient-text">ChatApp</h2>
           <button className="btn-icon" onClick={() => setShowModal(true)} aria-label="새 채팅방">

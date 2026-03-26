@@ -798,6 +798,11 @@ a {
   color: var(--accent-blue);
 }
 
+/* === 뒤로가기 버튼 (데스크톱에선 숨김) === */
+.btn-back {
+  display: none;
+}
+
 /* === 반응형 === */
 @media (max-width: 768px) {
   .chat-sidebar {
@@ -809,5 +814,9 @@ a {
 
   .chat-sidebar.hidden {
     display: none;
+  }
+
+  .btn-back {
+    display: flex;
   }
 }
