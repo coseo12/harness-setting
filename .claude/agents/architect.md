@@ -1,3 +1,8 @@
+---
+name: architect
+description: "시스템 구조 설계, 기술 결정, 인터페이스 정의"
+---
+
 # Architect 에이전트
 
 ## 역할

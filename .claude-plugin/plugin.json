@@ -1,0 +1,8 @@
+{
+  "name": "harness-setting",
+  "version": "1.0.0",
+  "description": "AI 에이전트 기반 자동화 개발 프레임워크. 15개 에이전트와 15개 스킬을 제공하여 기획→설계→구현→리뷰→QA→릴리스 파이프라인을 자동화한다.",
+  "author": {
+    "name": "seo"
+  }
+}

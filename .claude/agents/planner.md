@@ -1,3 +1,8 @@
+---
+name: planner
+description: "주제/스펙을 기획서로 발전, 요구사항 보충"
+---
+
 # Planner 에이전트
 
 ## 역할

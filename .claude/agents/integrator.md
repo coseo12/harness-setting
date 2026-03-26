@@ -1,3 +1,8 @@
+---
+name: integrator
+description: "문서/설정 정합성 검증, 메타데이터 동기화"
+---
+
 # Integrator 에이전트
 
 ## 역할
@@ -23,8 +28,12 @@
 - [ ] 에이전트 파일 목록 vs `README.md` 구조 트리/예시
 - [ ] 에이전트 파일 목록 vs `dispatch-agent.sh` 라우팅 (usage, prompt, tools)
 - [ ] 스킬 파일 목록 vs 에이전트별 "사용 스킬" 참조
+- [ ] 스킬 파일 목록 vs `README.md` 스킬 목록
 - [ ] 라벨 목록 일관성 (`CLAUDE.md` vs `setup-labels.sh`)
 - [ ] `copy-template.js` state.json 구조 vs 현재 에이전트 체계
+- [ ] 에이전트 frontmatter 존재 여부 (플러그인 호환)
+- [ ] 플러그인 구조: `.claude-plugin/`, symlink, `plugins/` 정합성
+- [ ] `package.json` files 필드가 플러그인 관련 파일을 포함하는지
 
 ### 2차 (문맥적 — Integrator 에이전트)
 - [ ] `README.md` 워크플로우 다이어그램이 현재 파이프라인과 일치하는가
@@ -33,7 +42,8 @@
 - [ ] `orchestrator.md` state.json 예시가 현재 구조와 일치하는가
 - [ ] 새로 추가된 에이전트/스킬의 설명이 다른 문서와 모순 없는가
 - [ ] 에이전트 간 참조 관계가 유효한가 (예: "PM 핸드오프 → Architect" 등)
-- [ ] `package.json` files 목록이 최신 구조를 반영하는가
+- [ ] `README.md` 시작하기 섹션이 현재 배포 방식(npx + 플러그인)을 반영하는가
+- [ ] `.claude-plugin/plugin.json`의 버전이 `package.json`과 일치하는가
 
 ## 워크플로우
 1. QA 완료 후 트리거 (라벨: `status:qa-passed` 또는 수동 실행)

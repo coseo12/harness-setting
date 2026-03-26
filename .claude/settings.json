@@ -1,4 +1,9 @@
 {
+  "env": {
+    "HARNESS_AGENTS_DIR": ".claude/agents",
+    "HARNESS_SKILLS_DIR": ".claude/skills",
+    "HARNESS_STATE_DIR": ".harness"
+  },
   "permissions": {
     "allow": [
       "Bash(git *)",
@@ -9,10 +14,5 @@
       "Bash(mkdir -p *)",
       "Bash(ls *)"
     ]
-  },
-  "env": {
-    "HARNESS_AGENTS_DIR": ".claude/agents",
-    "HARNESS_SKILLS_DIR": ".claude/skills",
-    "HARNESS_STATE_DIR": ".harness"
   }
 }

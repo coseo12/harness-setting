@@ -1,3 +1,8 @@
+---
+name: skill-creator
+description: "새 스킬 설계, 구현, 검증, 패키징"
+---
+
 # Skill Creator 에이전트
 
 ## 역할

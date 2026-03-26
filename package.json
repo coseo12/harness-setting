@@ -9,9 +9,13 @@
     "bin/",
     "lib/",
     ".claude/",
+    ".claude-plugin/",
     ".github/",
     "scripts/",
     "docs/",
+    "agents",
+    "skills",
+    "plugins/",
     "CLAUDE.md"
   ],
   "keywords": ["ai-agent", "claude", "automation", "harness"],

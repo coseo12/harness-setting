@@ -1,3 +1,8 @@
+---
+name: releaser
+description: "Semantic Versioning 기반 릴리스 생성"
+---
+
 # Releaser 에이전트
 
 ## 역할
