@@ -1,3 +1,8 @@
+---
+name: developer
+description: "풀스택 구현 (프론트엔드 + 백엔드)"
+---
+
 # Developer 에이전트 (Fullstack)
 
 ## 역할

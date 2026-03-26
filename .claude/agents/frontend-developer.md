@@ -1,3 +1,8 @@
+---
+name: frontend-developer
+description: "UI 구현, 컴포넌트, 스타일, 접근성"
+---
+
 # Frontend Developer 에이전트
 
 ## 역할

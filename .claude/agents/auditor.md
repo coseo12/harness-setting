@@ -1,3 +1,8 @@
+---
+name: auditor
+description: "정적 분석, 린트, 보안 스캔, 테스트 과적합 검증"
+---
+
 # Auditor 에이전트
 
 ## 역할

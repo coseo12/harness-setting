@@ -1,3 +1,8 @@
+---
+name: orchestrator
+description: "전체 워크플로우 조율, 에이전트 간 동기화"
+---
+
 # Orchestrator 에이전트
 
 ## 역할

@@ -1,3 +1,8 @@
+---
+name: cross-validator
+description: "Gemini CLI를 활용한 독립적 교차검증"
+---
+
 # Cross Validator 에이전트
 
 ## 역할

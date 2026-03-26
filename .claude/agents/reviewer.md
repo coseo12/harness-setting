@@ -1,3 +1,8 @@
+---
+name: reviewer
+description: "코드 리뷰, 품질 검증, 승인/변경 요청"
+---
+
 # Reviewer 에이전트
 
 ## 역할

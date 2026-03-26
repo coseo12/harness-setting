@@ -143,6 +143,93 @@ fi
 
 echo ""
 
+# ─── 7. README.md 스킬 목록 검사 ───
+echo "7. README.md 스킬 목록 검사..."
+
+for skill in ${SKILL_DIRS}; do
+  if grep -q "${skill}" "${README_MD}" 2>/dev/null; then
+    ok "README.md에 스킬 '${skill}' 언급됨"
+  else
+    error "README.md에 스킬 '${skill}' 누락"
+  fi
+done
+
+# README의 에이전트 개수 표기 확인
+README_AGENT_COUNT=$(grep -oE "에이전트 정의 \([0-9]+개\)" "${README_MD}" 2>/dev/null | grep -oE "[0-9]+" || echo "0")
+if [ "${README_AGENT_COUNT}" = "${AGENT_COUNT}" ]; then
+  ok "README.md 에이전트 개수 (${README_AGENT_COUNT}개) 일치"
+else
+  error "README.md 에이전트 개수 불일치: README=${README_AGENT_COUNT}, 실제=${AGENT_COUNT}"
+fi
+
+echo ""
+
+# ─── 8. 에이전트 frontmatter 검사 ───
+echo "8. 에이전트 frontmatter 검사..."
+
+for f in "${AGENTS_DIR}"/*.md; do
+  agent=$(basename "$f" .md)
+  if head -1 "$f" | grep -q "^---"; then
+    ok "${agent}: frontmatter 존재"
+  else
+    warn "${agent}: frontmatter 없음 (플러그인 사용 시 필요)"
+  fi
+done
+
+echo ""
+
+# ─── 9. 플러그인 구조 검사 ───
+echo "9. 플러그인 구조 검사..."
+
+PLUGIN_JSON="${PROJECT_DIR}/.claude-plugin/plugin.json"
+MARKETPLACE_JSON="${PROJECT_DIR}/.claude-plugin/marketplace.json"
+
+if [ -f "${PLUGIN_JSON}" ]; then
+  ok ".claude-plugin/plugin.json 존재"
+else
+  warn ".claude-plugin/plugin.json 없음 (플러그인 배포 불가)"
+fi
+
+if [ -f "${MARKETPLACE_JSON}" ]; then
+  ok ".claude-plugin/marketplace.json 존재"
+else
+  warn ".claude-plugin/marketplace.json 없음 (마켓플레이스 배포 불가)"
+fi
+
+# 루트 symlink 확인
+if [ -L "${PROJECT_DIR}/agents" ] && [ -L "${PROJECT_DIR}/skills" ]; then
+  ok "루트 agents/skills symlink 존재"
+else
+  warn "루트 agents/skills symlink 없음 (--plugin-dir 사용 불가)"
+fi
+
+# plugins/ 구조 확인
+NESTED_PLUGIN="${PROJECT_DIR}/plugins/harness-setting/.claude-plugin/plugin.json"
+if [ -f "${NESTED_PLUGIN}" ]; then
+  ok "plugins/harness-setting 구조 존재"
+else
+  warn "plugins/harness-setting 구조 없음 (마켓플레이스 설치 불가)"
+fi
+
+echo ""
+
+# ─── 10. package.json files 필드 검사 ───
+echo "10. package.json files 필드 검사..."
+
+PACKAGE_JSON="${PROJECT_DIR}/package.json"
+if [ -f "${PACKAGE_JSON}" ]; then
+  REQUIRED_FILES=(".claude/" ".claude-plugin/" "bin/" "lib/" "scripts/" "agents" "skills" "plugins/" "CLAUDE.md")
+  for entry in "${REQUIRED_FILES[@]}"; do
+    if grep -q "\"${entry}\"" "${PACKAGE_JSON}" 2>/dev/null; then
+      ok "package.json files에 '${entry}' 포함"
+    else
+      warn "package.json files에 '${entry}' 누락"
+    fi
+  done
+fi
+
+echo ""
+
 # ─── 결과 요약 ───
 echo "=== 검증 결과 ==="
 echo "  에이전트: ${AGENT_COUNT}개"

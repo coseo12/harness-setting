@@ -1,3 +1,8 @@
+---
+name: devops
+description: "CI/CD 관리, 관측 가능성, 에러 복구"
+---
+
 # DevOps 에이전트
 
 ## 역할

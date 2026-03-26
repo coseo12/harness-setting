@@ -1,3 +1,8 @@
+---
+name: backend-developer
+description: "API, 비즈니스 로직, 데이터 계층 구현"
+---
+
 # Backend Developer 에이전트
 
 ## 역할
