@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
+import CategoryNav from "@/components/CategoryNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -67,23 +69,10 @@ export default function RootLayout({
             </div>
           </div>
 
-          {/* 하단: 카테고리 메뉴 */}
-          <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-8 h-10 text-sm tracking-wide">
-              <Link href="/" className="text-[var(--color-charcoal)] hover:text-[var(--color-gold)] transition-colors font-medium">
-                전체
-              </Link>
-              <Link href="/?category=전자기기" className="text-[var(--color-warm-gray)] hover:text-[var(--color-gold)] transition-colors">
-                전자기기
-              </Link>
-              <Link href="/?category=패션" className="text-[var(--color-warm-gray)] hover:text-[var(--color-gold)] transition-colors">
-                패션
-              </Link>
-              <Link href="/?category=생활용품" className="text-[var(--color-warm-gray)] hover:text-[var(--color-gold)] transition-colors">
-                생활용품
-              </Link>
-            </div>
-          </nav>
+          {/* 하단: 카테고리 메뉴 — 클라이언트 컴포넌트 (URL searchParams 동기화) */}
+          <Suspense fallback={null}>
+            <CategoryNav />
+          </Suspense>
         </header>
 
         {/* 메인 콘텐츠 */}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Product } from "@/types/product";
 import SearchBar from "@/components/SearchBar";
@@ -12,11 +13,24 @@ const CATEGORIES = ["전체", "전자기기", "패션", "생활용품"];
 // 정렬 옵션
 type SortOrder = "default" | "price-asc" | "price-desc";
 
+// Suspense 경계로 감싸는 래퍼 (useSearchParams는 Suspense 필요)
 export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
+  const searchParams = useSearchParams();
+  // URL의 category 파라미터를 초기값으로 사용 (네비게이션 메뉴 연동)
+  const categoryFromUrl = searchParams.get("category") || "전체";
+
   const [products, setProducts] = useState<Product[]>([]);
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl);
   const [sortOrder, setSortOrder] = useState<SortOrder>("default");
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +72,11 @@ export default function HomePage() {
     }
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // URL의 category 파라미터 변경 시 상태 동기화
+  useEffect(() => {
+    setSelectedCategory(categoryFromUrl);
+  }, [categoryFromUrl]);
 
   // 필터/정렬/검색 변경 시 제품 다시 로드
   useEffect(() => {
