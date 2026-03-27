@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+
+@theme inline {
+  /* 다크 글래스모피즘 디자인 시스템 */
+  --color-bg-base: #0D0D1A;
+  --color-bg-card: rgba(20, 20, 40, 0.85);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #9B9BB4;
+  --color-text-muted: #6B6B80;
+  --color-accent-blue: #4A7DFF;
+  --color-accent-green: #34C759;
+  --color-accent-red: #FF3B30;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 글로벌 스타일 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+body {
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* 글래스모피즘 패널 공통 스타일 */
+.glass-panel {
+  background: var(--color-bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--color-border-subtle);
+}
+
+/* 메시지 그래디언트 (내 메시지) */
+.msg-gradient {
+  background: linear-gradient(135deg, #4A7DFF 0%, #7B5EFF 100%);
+}
+
+/* 아바타 그래디언트 (사진 없을 때) */
+.avatar-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
