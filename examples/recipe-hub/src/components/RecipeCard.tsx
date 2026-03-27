@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import StarRating from './StarRating';
 import { Recipe } from '@/data/recipes';
 
@@ -12,14 +11,12 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   return (
     <Link href={`/recipes/${recipe.id}`}>
       <div className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-lg">
-        {/* 레시피 이미지 */}
+        {/* 레시피 이미지 — placeholder URL이므로 next/image 최적화 불필요 */}
         <div className="relative h-48 w-full overflow-hidden">
-          <Image
+          <img
             src={recipe.imageUrl}
             alt={recipe.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
         </div>
 

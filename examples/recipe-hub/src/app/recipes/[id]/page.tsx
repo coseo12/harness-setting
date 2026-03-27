@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { recipes, Recipe } from '@/data/recipes';
 import { notFound } from 'next/navigation';
@@ -22,14 +21,12 @@ export default async function RecipeDetailPage({
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* 왼쪽: 이미지 */}
         <div className="w-full lg:w-1/2">
+          {/* placeholder URL이므로 next/image 최적화 불필요 */}
           <div className="relative aspect-[3/2] w-full overflow-hidden rounded-xl">
-            <Image
+            <img
               src={recipe.imageUrl}
               alt={recipe.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority
+              className="h-full w-full object-cover"
             />
           </div>
         </div>
