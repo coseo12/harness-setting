@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
 
@@ -8,14 +8,9 @@ const geistSans = Geist({
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
 export const metadata: Metadata = {
-  title: 'RecipeHub - 나만의 레시피 플랫폼',
-  description: '레시피를 검색하고, 등록하고, 평가해보세요',
+  title: 'RecipeHub - 한식의 맛을 전합니다',
+  description: '정성을 담은 한식 레시피로 매일의 식탁을 특별하게',
 };
 
 export default function RootLayout({
@@ -24,34 +19,73 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-gray-50">
+    <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-[#FFFBF0]">
         {/* 상단 네비게이션 바 */}
-        <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-          <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <header className="sticky top-0 z-50 border-b border-[#E8DFD0] bg-[#FFFBF0]/95 backdrop-blur-sm">
+          <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
             {/* 로고 */}
             <Link
               href="/"
-              className="text-xl font-bold text-orange-600 sm:text-2xl"
+              className="font-serif-title text-2xl font-bold text-[#3D2B1F] tracking-tight"
             >
               RecipeHub
             </Link>
 
-            {/* 레시피 등록 버튼 */}
-            <Link
-              href="/recipes/new"
-              className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-orange-600 sm:px-4 sm:py-2 sm:text-base"
-            >
-              레시피 등록
-            </Link>
+            {/* 메뉴 링크 */}
+            <div className="flex items-center gap-8">
+              <Link
+                href="/"
+                className="text-sm font-medium text-[#3D2B1F] transition-colors hover:text-[#8B6914]"
+              >
+                홈
+              </Link>
+              <Link
+                href="/#recipes"
+                className="text-sm font-medium text-[#3D2B1F] transition-colors hover:text-[#8B6914]"
+              >
+                레시피
+              </Link>
+              <Link
+                href="/recipes/new"
+                className="text-sm font-medium text-[#3D2B1F] transition-colors hover:text-[#8B6914]"
+              >
+                레시피 등록
+              </Link>
+
+              {/* 검색 아이콘 */}
+              <Link href="/#recipes" className="text-[#9B8E7E] hover:text-[#8B6914] transition-colors">
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 4.5 4.5a7.5 7.5 0 0 0 12.15 12.15z"
+                  />
+                </svg>
+              </Link>
+            </div>
           </nav>
         </header>
 
         {/* 메인 콘텐츠 */}
         <main className="flex-1">{children}</main>
+
+        {/* 푸터 */}
+        <footer className="border-t border-[#E8DFD0] bg-[#F5F0E8]">
+          <div className="mx-auto max-w-6xl px-4 py-8 text-center">
+            <p className="font-serif-title text-lg font-semibold text-[#3D2B1F]">RecipeHub</p>
+            <p className="mt-2 text-sm text-[#9B8E7E]">
+              RecipeHub &copy; 2026 &mdash; 한식의 맛을 전합니다
+            </p>
+          </div>
+        </footer>
       </body>
     </html>
   );

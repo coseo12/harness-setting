@@ -3,16 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// 카테고리 옵션
+/* 카테고리 옵션 */
 const CATEGORY_OPTIONS = ['찌개', '볶음', '밥', '면', '구이', '기타'];
 
-// 레시피 등록 폼 컴포넌트
+/* 레시피 등록 폼 컴포넌트 — 어스톤 디자인 */
 export default function RecipeForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // 폼 필드 상태
+  /* 폼 필드 상태 */
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -22,7 +22,7 @@ export default function RecipeForm() {
   const [stepInput, setStepInput] = useState('');
   const [steps, setSteps] = useState<string[]>([]);
 
-  // 재료 추가
+  /* 재료 추가 */
   const addIngredient = () => {
     const trimmed = ingredientInput.trim();
     if (!trimmed) return;
@@ -30,12 +30,12 @@ export default function RecipeForm() {
     setIngredientInput('');
   };
 
-  // 재료 삭제
+  /* 재료 삭제 */
   const removeIngredient = (index: number) => {
     setIngredients((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 조리 단계 추가
+  /* 조리 단계 추가 */
   const addStep = () => {
     const trimmed = stepInput.trim();
     if (!trimmed) return;
@@ -43,12 +43,12 @@ export default function RecipeForm() {
     setStepInput('');
   };
 
-  // 조리 단계 삭제
+  /* 조리 단계 삭제 */
   const removeStep = (index: number) => {
     setSteps((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 폼 제출
+  /* 폼 제출 */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -87,7 +87,7 @@ export default function RecipeForm() {
         throw new Error(json.error || '레시피 등록에 실패했습니다.');
       }
 
-      // 등록 완료 후 홈으로 이동
+      /* 등록 완료 후 홈으로 이동 */
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
@@ -97,20 +97,20 @@ export default function RecipeForm() {
   };
 
   const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-shadow focus:border-orange-400 focus:ring-2 focus:ring-orange-200';
+    'w-full rounded-lg border border-[#E8DFD0] bg-[#FFFBF0] px-3 py-2 text-sm text-[#3D2B1F] outline-none transition-shadow placeholder:text-[#9B8E7E] focus:border-[#8B6914] focus:ring-2 focus:ring-[#8B6914]/30';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* 에러 메시지 */}
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
           {error}
         </div>
       )}
 
       {/* 제목 */}
       <div>
-        <label htmlFor="title" className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor="title" className="mb-1 block text-sm font-medium text-[#3D2B1F]">
           제목 *
         </label>
         <input
@@ -125,7 +125,7 @@ export default function RecipeForm() {
 
       {/* 설명 */}
       <div>
-        <label htmlFor="description" className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="mb-1 block text-sm font-medium text-[#3D2B1F]">
           설명 *
         </label>
         <textarea
@@ -140,7 +140,7 @@ export default function RecipeForm() {
 
       {/* 카테고리 */}
       <div>
-        <label htmlFor="category" className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor="category" className="mb-1 block text-sm font-medium text-[#3D2B1F]">
           카테고리 *
         </label>
         <select
@@ -160,7 +160,7 @@ export default function RecipeForm() {
 
       {/* 이미지 URL (선택) */}
       <div>
-        <label htmlFor="imageUrl" className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor="imageUrl" className="mb-1 block text-sm font-medium text-[#3D2B1F]">
           이미지 URL (선택)
         </label>
         <input
@@ -175,7 +175,7 @@ export default function RecipeForm() {
 
       {/* 재료 */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-[#3D2B1F]">
           재료 *
         </label>
         <div className="flex gap-2">
@@ -195,7 +195,7 @@ export default function RecipeForm() {
           <button
             type="button"
             onClick={addIngredient}
-            className="shrink-0 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+            className="shrink-0 rounded-lg bg-[#8B6914] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B5210]"
           >
             추가
           </button>
@@ -206,13 +206,13 @@ export default function RecipeForm() {
             {ingredients.map((item, index) => (
               <li
                 key={index}
-                className="flex items-center justify-between rounded-md bg-gray-100 px-3 py-1.5 text-sm"
+                className="flex items-center justify-between rounded-md bg-[#F5F0E8] px-3 py-1.5 text-sm text-[#3D2B1F]"
               >
                 <span>{item}</span>
                 <button
                   type="button"
                   onClick={() => removeIngredient(index)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-400 hover:text-red-600"
                 >
                   삭제
                 </button>
@@ -224,7 +224,7 @@ export default function RecipeForm() {
 
       {/* 조리 순서 */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-[#3D2B1F]">
           조리 순서 *
         </label>
         <div className="flex gap-2">
@@ -244,7 +244,7 @@ export default function RecipeForm() {
           <button
             type="button"
             onClick={addStep}
-            className="shrink-0 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+            className="shrink-0 rounded-lg bg-[#8B6914] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B5210]"
           >
             추가
           </button>
@@ -255,7 +255,7 @@ export default function RecipeForm() {
             {steps.map((step, index) => (
               <li
                 key={index}
-                className="flex items-center justify-between rounded-md bg-gray-100 px-3 py-1.5 text-sm"
+                className="flex items-center justify-between rounded-md bg-[#F5F0E8] px-3 py-1.5 text-sm text-[#3D2B1F]"
               >
                 <span>
                   <strong>{index + 1}.</strong> {step}
@@ -263,7 +263,7 @@ export default function RecipeForm() {
                 <button
                   type="button"
                   onClick={() => removeStep(index)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-400 hover:text-red-600"
                 >
                   삭제
                 </button>
@@ -277,7 +277,7 @@ export default function RecipeForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-lg bg-orange-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-300"
+        className="w-full rounded-lg bg-[#8B6914] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B5210] disabled:cursor-not-allowed disabled:bg-[#8B6914]/50"
       >
         {isSubmitting ? '등록 중...' : '레시피 등록'}
       </button>

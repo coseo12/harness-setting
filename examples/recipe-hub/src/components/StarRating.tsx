@@ -7,7 +7,7 @@ interface StarRatingProps {
   readonly?: boolean;
 }
 
-// 별점 표시 컴포넌트 - 채워진 별(노란색)과 빈 별(회색) 표시
+/* 별점 표시 컴포넌트 — 브라운 계열 별 */
 export default function StarRating({
   rating,
   ratingCount,
@@ -32,9 +32,8 @@ export default function StarRating({
           className={`text-lg ${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110 transition-transform'}`}
           aria-label={`${star}점`}
         >
-          {/* 현재 rating 이하이면 채워진 별, 초과이면 빈 별 */}
           <svg
-            className={`h-5 w-5 ${star <= Math.round(rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+            className={`h-5 w-5 ${star <= Math.round(rating) ? 'text-[#8B6914]' : 'text-[#E8DFD0]'}`}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
@@ -43,7 +42,7 @@ export default function StarRating({
           </svg>
         </button>
       ))}
-      <span className="ml-1 text-sm text-gray-500">({ratingCount}개 평가)</span>
+      <span className="ml-1 text-sm text-[#9B8E7E]">({ratingCount}개 평가)</span>
     </div>
   );
 }

@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* 뉴트럴톤 컬러 팔레트 */
+:root {
+  --color-offwhite: #F7F5F2;
+  --color-warm-gray: #A09890;
+  --color-charcoal: #2D2D2D;
+  --color-light-gray: #E8E4DF;
+  --color-gold: #C4983B;
+  --color-soft-beige: #F0EBE3;
+}
+
+/* 세리프 제목 유틸리티 */
+@layer utilities {
+  .font-serif-title {
+    font-family: Georgia, 'Noto Serif KR', serif;
+  }
+}
