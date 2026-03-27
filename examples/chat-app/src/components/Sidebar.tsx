@@ -7,6 +7,7 @@ interface SidebarProps {
   activeMenu: string;
   onMenuSelect: (menu: string) => void;
   onCreateRoom: () => void;
+  onSelectCommunity?: (name: string) => void;
 }
 
 /** 메뉴 아이템 정의 */
@@ -23,7 +24,7 @@ const COMMUNITIES = [
   { name: 'Frontend Dev', active: '1,458' },
 ];
 
-export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreateRoom }: SidebarProps) {
+export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreateRoom, onSelectCommunity }: SidebarProps) {
   return (
     <div className="w-[300px] h-full glass-panel rounded-2xl flex flex-col shrink-0">
       {/* 프로필 영역 */}
@@ -117,7 +118,10 @@ export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreat
           {COMMUNITIES.map((community) => (
             <button
               key={community.name}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
+              onClick={() => onSelectCommunity?.(community.name)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-left ${
+                activeMenu === `community:${community.name}` ? 'bg-white/10' : 'hover:bg-white/5'
+              }`}
             >
               {/* 커뮤니티 아이콘 */}
               <div className="w-10 h-10 rounded-xl bg-accent-blue/20 flex items-center justify-center shrink-0">
