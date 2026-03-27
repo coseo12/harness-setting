@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+/* 어스톤 컬러 팔레트 */
+:root {
+  --color-cream: #FFFBF0;
+  --color-beige: #F5F0E8;
+  --color-light-beige: #E8DFD0;
+  --color-brown: #8B6914;
+  --color-dark-brown: #3D2B1F;
+  --color-olive: #6B7B3A;
+  --color-warm-gray: #9B8E7E;
+}
+
+@layer base {
+  body {
+    font-family: -apple-system, 'Pretendard', sans-serif;
+    color: var(--color-dark-brown);
+  }
+
+  /* 세리프 제목용 유틸리티 */
+  .font-serif-title {
+    font-family: Georgia, 'Noto Serif KR', serif;
+  }
+}

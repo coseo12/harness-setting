@@ -9,7 +9,7 @@ interface RatingSectionProps {
   initialRatingCount: number;
 }
 
-// 별점 인터랙션 섹션 - 클릭 시 API로 별점 전송
+/* 별점 인터랙션 섹션 — 어스톤 디자인 */
 export default function RatingSection({
   recipeId,
   initialRating,
@@ -48,14 +48,14 @@ export default function RatingSection({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h2 className="mb-3 text-lg font-semibold text-gray-900">평가하기</h2>
+    <div className="rounded-xl border border-[#E8DFD0] bg-[#F5F0E8] p-6">
+      <h2 className="mb-3 font-serif-title text-lg font-semibold text-[#3D2B1F]">평가하기</h2>
       <StarRating rating={rating} ratingCount={ratingCount} onRate={handleRate} />
       {message && (
-        <p className="mt-2 text-sm text-green-600">{message}</p>
+        <p className="mt-2 text-sm text-[#6B7B3A]">{message}</p>
       )}
       {isSubmitting && (
-        <p className="mt-2 text-sm text-gray-500">처리 중...</p>
+        <p className="mt-2 text-sm text-[#9B8E7E]">처리 중...</p>
       )}
     </div>
   );
