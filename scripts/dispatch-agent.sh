@@ -16,13 +16,8 @@ usage() {
   echo "  frontend-developer - 프론트엔드 구현"
   echo "  backend-developer  - 백엔드 구현"
   echo "  developer      - 풀스택 구현"
-  echo "  reviewer       - 코드 리뷰"
+  echo "  evaluator      - 정적 분석 + 코드 리뷰"
   echo "  qa             - 테스트 수행"
-  echo "  auditor          - 정적 분석/보안 스캔"
-  echo "  skill-creator    - 스킬 생성/개선/검증"
-  echo "  cross-validator  - Gemini CLI 교차검증"
-  echo "  integrator       - 문서/설정 정합성 검증"
-  echo "  releaser         - 릴리스 생성"
   echo ""
   echo "예시:"
   echo "  $0 planner                 # Planner에게 기획 요청"
@@ -32,13 +27,8 @@ usage() {
   echo "  $0 frontend-developer 5  # Frontend Dev에게 이슈 #5 구현 요청"
   echo "  $0 backend-developer 5   # Backend Dev에게 이슈 #5 구현 요청"
   echo "  $0 developer 5           # Fullstack Dev에게 이슈 #5 구현 요청"
-  echo "  $0 auditor 12            # Auditor에게 PR #12 정적 분석 요청"
-  echo "  $0 reviewer 12           # Reviewer에게 PR #12 리뷰 요청"
+  echo "  $0 evaluator 12          # Evaluator에게 PR #12 평가 요청"
   echo "  $0 qa 12                 # QA에게 PR #12 테스트 요청"
-  echo "  $0 skill-creator         # 새 스킬 생성 시작"
-  echo "  $0 cross-validator       # 프로젝트 구조 교차검증"
-  echo "  $0 integrator            # 정합성 검증"
-  echo "  $0 releaser              # 릴리스 생성"
   exit 1
 }
 
@@ -119,41 +109,11 @@ build_prompt() {
     developer)
       echo "이슈 #${number}를 풀스택으로 구현해줘. .claude/agents/developer.md 의 규칙을 따라 feature 브랜치를 생성하고, 구현 후 PR을 생성해줘. 설계 문서가 있으면 참고해줘."
       ;;
-    reviewer)
-      echo "PR #${number}를 리뷰해줘. .claude/agents/reviewer.md 의 체크리스트에 따라 리뷰하고, 승인 또는 변경 요청을 해줘."
+    evaluator)
+      echo "PR #${number}에 대해 정적 분석과 코드 리뷰를 수행해줘. .claude/agents/evaluator.md 의 규칙을 따라 1단계 자동화 검증(린트, 보안, 과적합)과 2단계 판단 기반 검증(설계 준수, 품질, 테스트 충분성)을 수행해줘. 결과를 PR에 코멘트로 보고해줘."
       ;;
     qa)
       echo "PR #${number}의 변경 사항을 테스트해줘. .claude/agents/qa.md 의 규칙을 따라 테스트를 실행하고, 결과를 PR에 코멘트로 보고해줘."
-      ;;
-    skill-creator)
-      if [ -n "${number}" ]; then
-        echo "이슈 #${number}에 정의된 스킬을 생성해줘. .claude/agents/skill-creator.md 의 워크플로우를 따르고, .claude/skills/create-skill/SKILL.md 의 절차대로 진행해줘. 검증까지 완료해줘."
-      else
-        echo "새로운 스킬을 생성해줘. .claude/agents/skill-creator.md 의 워크플로우를 따르고, .claude/skills/create-skill/SKILL.md 의 절차대로 진행해줘. 먼저 사용자에게 어떤 스킬이 필요한지 물어봐줘."
-      fi
-      ;;
-    auditor)
-      echo "PR #${number}에 대해 정적 분석을 수행해줘. .claude/agents/auditor.md 의 규칙을 따르고, .claude/skills/static-analysis/SKILL.md 의 절차대로 린트, 보안 스캔을 실행해줘. 결과를 PR에 코멘트로 보고해줘."
-      ;;
-    cross-validator)
-      if [ -n "${number}" ]; then
-        echo "PR #${number}의 코드를 Gemini CLI로 교차검증해줘. .claude/agents/cross-validator.md 의 규칙을 따르고, .claude/skills/cross-validate/scripts/cross_validate.sh code ${number} 를 실행한 뒤 Gemini 피드백을 분석하여 교차검증 보고서를 작성해줘."
-      else
-        echo "이 프로젝트의 전체 구조를 Gemini CLI로 교차검증해줘. .claude/agents/cross-validator.md 의 규칙을 따르고, .claude/skills/cross-validate/scripts/cross_validate.sh structure 를 실행한 뒤 Gemini 피드백을 분석하여 교차검증 보고서를 작성해줘."
-      fi
-      ;;
-    integrator)
-      echo "프레임워크 전체의 문서/설정 정합성을 검증해줘. .claude/agents/integrator.md 의 규칙을 따라 먼저 scripts/validate-integrity.sh를 실행하고, 2차 문맥적 검증을 수행해줘. 불일치가 있으면 직접 수정하거나 이슈를 생성해줘."
-      ;;
-    devops)
-      if [ -n "${number}" ]; then
-        echo "이슈/PR #${number}에 대한 인프라 점검을 수행해줘. .claude/agents/devops.md 의 규칙을 따라 교착 상태 확인, 에이전트 로그 분석, 복구 조치를 수행해줘."
-      else
-        echo "프레임워크 전체의 인프라 건전성을 점검해줘. .claude/agents/devops.md 의 규칙을 따라 validate-integrity.sh, validate-setup.sh 실행, 교착 이슈 확인, 에이전트 상태 점검을 수행해줘."
-      fi
-      ;;
-    releaser)
-      echo "릴리스를 생성해줘. .claude/agents/releaser.md 의 규칙을 따르고, .claude/skills/create-release/SKILL.md 의 절차대로 버전 결정, CHANGELOG 갱신, GitHub Release 생성을 수행해줘."
       ;;
   esac
 }
@@ -171,7 +131,7 @@ fi
 ISSUE_CONTEXT=""
 if [ -n "${TASK_NUMBER}" ]; then
   case "${AGENT}" in
-    auditor|reviewer|qa)
+    evaluator|qa)
       ISSUE_BODY=$(gh pr view "${TASK_NUMBER}" --json body --jq '.body' 2>/dev/null || true)
       if [ -n "${ISSUE_BODY}" ]; then
         ISSUE_CONTEXT="관련 PR #${TASK_NUMBER} 내용:\n${ISSUE_BODY}\n\n"
@@ -232,37 +192,13 @@ get_allowed_tools() {
       # 전체 개발 도구 (Bash는 git/gh/빌드 관련)
       echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(gh issue *),Bash(npm *),Bash(make *),Bash(go *),Bash(cargo *),Bash(pytest *),Bash(python *),Bash(ls *),Bash(mkdir *)"
       ;;
-    reviewer)
-      # 읽기 + gh PR 리뷰 + 브라우저 스냅샷/스크린샷 (읽기 전용)
-      echo "Read,Glob,Grep,Bash(gh pr *),Bash(gh issue *),Bash(git diff *),Bash(git log *),Bash(agent-browser snapshot *),Bash(agent-browser screenshot *),Bash(agent-browser open *),Bash(agent-browser get *)"
+    evaluator)
+      # 읽기 + 린트/보안 도구 + gh PR 리뷰 + 브라우저 접근성/보안 테스트
+      echo "Read,Glob,Grep,Bash(npm run lint*),Bash(npx eslint *),Bash(flake8 *),Bash(ruff *),Bash(golangci-lint *),Bash(cargo clippy *),Bash(gitleaks *),Bash(npm audit*),Bash(pip audit*),Bash(gh pr *),Bash(gh issue *),Bash(git diff *),Bash(git log *),Bash(agent-browser *)"
       ;;
     qa)
       # 읽기 + 테스트 실행 + 결과 보고 + 브라우저 E2E 테스트
       echo "Read,Write,Edit,Glob,Grep,Bash(git *),Bash(gh pr *),Bash(npm test*),Bash(make test*),Bash(pytest *),Bash(go test *),Bash(cargo test *),Bash(agent-browser *)"
-      ;;
-    skill-creator)
-      # 읽기/쓰기 + 검증 스크립트
-      echo "Read,Write,Edit,Glob,Grep,Bash(python3 *),Bash(ls *),Bash(mkdir *),Bash(chmod *)"
-      ;;
-    auditor)
-      # 읽기 + 린트/보안 도구 + 브라우저 접근성/보안 테스트
-      echo "Read,Glob,Grep,Bash(npm run lint*),Bash(npx eslint *),Bash(flake8 *),Bash(ruff *),Bash(golangci-lint *),Bash(cargo clippy *),Bash(gitleaks *),Bash(npm audit*),Bash(pip audit*),Bash(gh pr *),Bash(gh issue *),Bash(agent-browser *)"
-      ;;
-    integrator)
-      # 읽기/쓰기 + 검증 스크립트 + gh 이슈
-      echo "Read,Write,Edit,Glob,Grep,Bash(bash *),Bash(ls *),Bash(mkdir *),Bash(git *),Bash(gh issue *),Bash(gh pr *)"
-      ;;
-    devops)
-      # 인프라 관리 — 검증 스크립트, 로그 분석, gh 이슈/PR, 프로세스 확인
-      echo "Read,Write,Edit,Glob,Grep,Bash(bash *),Bash(ls *),Bash(cat *),Bash(grep *),Bash(git *),Bash(gh issue *),Bash(gh pr *),Bash(gh run *),Bash(gh label *),Bash(ps *),Bash(lsof *)"
-      ;;
-    cross-validator)
-      # 읽기 + gemini/gh 실행
-      echo "Read,Glob,Grep,Bash(gemini *),Bash(gh pr *),Bash(gh issue *),Bash(git diff *),Bash(.claude/skills/cross-validate/scripts/*)"
-      ;;
-    releaser)
-      # 읽기/쓰기 + git 태그 + gh 릴리스
-      echo "Read,Write,Edit,Glob,Grep,Bash(git tag *),Bash(git push origin v*),Bash(git log *),Bash(gh release *),Bash(gh pr list *)"
       ;;
     *)
       echo "Read,Glob,Grep"

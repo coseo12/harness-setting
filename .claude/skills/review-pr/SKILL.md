@@ -3,7 +3,7 @@ name: review-pr
 description: |
   GitHub PR을 리뷰하고 승인 또는 변경 요청을 수행하는 스킬.
   TRIGGER when: PR 리뷰가 필요할 때, "리뷰해줘", "PR 확인", "코드 리뷰",
-  Reviewer 에이전트가 작업을 수행할 때, PR에 status:review 라벨이 있을 때.
+  Evaluator 에이전트가 작업을 수행할 때, PR에 status:evaluating 라벨이 있을 때.
   DO NOT TRIGGER when: PR을 생성하거나 테스트만 실행할 때.
 ---
 
@@ -66,8 +66,8 @@ LGTM
 EOF
 )"
 
-# 라벨 전환: review → qa
-gh pr edit <PR번호> --remove-label "status:review" --add-label "status:qa"
+# 라벨 전환: evaluating → qa
+gh pr edit <PR번호> --remove-label "status:evaluating" --add-label "status:qa"
 ```
 
 ```bash
@@ -84,8 +84,8 @@ gh pr review <PR번호> --request-changes --body "$(cat <<'EOF'
 EOF
 )"
 
-# 라벨 전환: review → in-progress
-gh issue edit <이슈번호> --remove-label "status:review" --add-label "status:in-progress"
+# 라벨 전환: evaluating → in-progress
+gh issue edit <이슈번호> --remove-label "status:evaluating" --add-label "status:in-progress"
 ```
 
 ## 규칙
