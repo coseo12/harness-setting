@@ -10,7 +10,7 @@ interface ProductCardProps {
   onWishlistToggle?: (productId: string, wishlisted: boolean) => void;
 }
 
-// 제품 카드 컴포넌트
+// 제품 카드 컴포넌트 — 매거진 스타일
 export default function ProductCard({
   product,
   isWishlisted,
@@ -18,15 +18,15 @@ export default function ProductCard({
 }: ProductCardProps) {
   return (
     <Link href={`/products/${product.id}`}>
-      <div className="bg-white rounded-xl overflow-hidden border border-gray-200 transition-shadow hover:shadow-lg cursor-pointer">
-        {/* 제품 이미지 */}
-        <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <div className="bg-[var(--color-offwhite)] border border-[var(--color-light-gray)] overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group">
+        {/* 제품 이미지 — 소프트베이지 배경 */}
+        <div className="relative aspect-square overflow-hidden bg-[var(--color-soft-beige)]">
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          {/* 위시리스트 버튼 — 이미지 우측 상단 */}
+          {/* 위시리스트 버튼 — 우상단 */}
           <div className="absolute top-2 right-2">
             <WishlistButton
               productId={product.id}
@@ -40,15 +40,16 @@ export default function ProductCard({
 
         {/* 제품 정보 */}
         <div className="p-4">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-gray-900 line-clamp-1">
-              {product.name}
-            </h3>
-            <span className="shrink-0 inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-              {product.category}
-            </span>
-          </div>
-          <p className="mt-2 text-lg font-bold text-gray-900">
+          {/* 카테고리 — 심플한 텍스트 */}
+          <p className="text-xs text-[var(--color-warm-gray)] tracking-wide mb-1">
+            {product.category}
+          </p>
+          {/* 제품명 — 세리프 */}
+          <h3 className="font-serif-title text-[var(--color-charcoal)] line-clamp-1 mb-2">
+            {product.name}
+          </h3>
+          {/* 가격 — 골드 */}
+          <p className="text-[var(--color-gold)] font-medium">
             {product.price.toLocaleString()}원
           </p>
         </div>

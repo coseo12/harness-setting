@@ -11,7 +11,7 @@ interface WishlistButtonProps {
   large?: boolean;
 }
 
-// 위시리스트 토글 버튼 (하트 아이콘)
+// 위시리스트 토글 버튼 — 골드 하트
 export default function WishlistButton({
   productId,
   initialWishlisted,
@@ -56,9 +56,9 @@ export default function WishlistButton({
       onClick={handleClick}
       disabled={loading}
       className={`${sizeClasses} rounded-full transition-colors
-        ${wishlisted ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-red-400"}
+        ${wishlisted ? "text-[var(--color-gold)]" : "text-[var(--color-warm-gray)] hover:text-[var(--color-gold)]"}
         ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-        hover:bg-gray-100`}
+        hover:bg-white/50`}
       aria-label={wishlisted ? "위시리스트에서 제거" : "위시리스트에 추가"}
     >
       <svg

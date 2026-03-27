@@ -34,7 +34,6 @@ export default function ProductDetailPage({
         const wishlistJson = await wishlistRes.json();
 
         setProduct(productJson.data);
-        // 위시리스트 API는 제품 객체 배열을 반환
         const wishlistProductIds = (wishlistJson.data as Product[]).map(
           (p) => p.id
         );
@@ -52,7 +51,7 @@ export default function ProductDetailPage({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-gray-500 text-lg">로딩 중...</div>
+        <div className="text-[var(--color-warm-gray)] text-lg font-serif-title">로딩 중...</div>
       </div>
     );
   }
@@ -60,10 +59,10 @@ export default function ProductDetailPage({
   if (error || !product) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-gray-500 text-lg">제품을 찾을 수 없습니다</p>
+        <p className="text-[var(--color-warm-gray)] text-lg">제품을 찾을 수 없습니다</p>
         <Link
           href="/"
-          className="text-blue-600 hover:text-blue-700 font-medium"
+          className="text-[var(--color-charcoal)] hover:text-[var(--color-gold)] font-medium border-b border-[var(--color-charcoal)]"
         >
           목록으로 돌아가기
         </Link>
@@ -71,38 +70,28 @@ export default function ProductDetailPage({
     );
   }
 
-  // 재고 상태 표시
+  // 재고 상태
   const stockLabel = product.stock > 0 ? `재고 ${product.stock}개` : "품절";
-  const stockColor = product.stock > 0 ? "text-green-600" : "text-red-500";
+  const stockColor = product.stock > 0 ? "text-green-700" : "text-red-600";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* 뒤로가기 버튼 */}
+      {/* 뒤로가기 — 차콜 텍스트 링크 */}
       <Link
         href="/"
-        className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+        className="inline-flex items-center gap-1 text-[var(--color-charcoal)] hover:text-[var(--color-gold)] mb-8 transition-colors text-sm"
       >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
         </svg>
-        <span className="font-medium">목록으로</span>
+        <span>목록으로</span>
       </Link>
 
-      {/* 제품 상세 — 모바일 세로, 데스크톱 좌우 분할 */}
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* 이미지 */}
+      {/* 제품 상세 — 좌우 분할 */}
+      <div className="flex flex-col md:flex-row gap-12">
+        {/* 좌측: 소프트베이지 배경 이미지 */}
         <div className="md:w-1/2">
-          <div className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+          <div className="aspect-square overflow-hidden bg-[var(--color-soft-beige)]">
             <img
               src={product.imageUrl}
               alt={product.name}
@@ -111,20 +100,20 @@ export default function ProductDetailPage({
           </div>
         </div>
 
-        {/* 정보 */}
-        <div className="md:w-1/2 flex flex-col">
-          {/* 카테고리 뱃지 */}
-          <span className="inline-block w-fit px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 mb-3">
+        {/* 우측: 제품 정보 */}
+        <div className="md:w-1/2 flex flex-col justify-center">
+          {/* 카테고리 */}
+          <p className="text-xs text-[var(--color-warm-gray)] tracking-wide uppercase mb-3">
             {product.category}
-          </span>
+          </p>
 
-          {/* 제품명 */}
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+          {/* 제품명 — 세리프 */}
+          <h1 className="font-serif-title text-2xl md:text-3xl text-[var(--color-charcoal)] mb-4">
             {product.name}
           </h1>
 
-          {/* 가격 */}
-          <p className="text-3xl font-bold text-gray-900 mb-4">
+          {/* 가격 — 골드 */}
+          <p className="text-2xl text-[var(--color-gold)] font-medium mb-4">
             {product.price.toLocaleString()}원
           </p>
 
@@ -134,7 +123,7 @@ export default function ProductDetailPage({
           </p>
 
           {/* 설명 */}
-          <p className="text-gray-600 leading-relaxed mb-8">
+          <p className="text-[var(--color-warm-gray)] leading-relaxed mb-8">
             {product.description}
           </p>
 
@@ -146,7 +135,7 @@ export default function ProductDetailPage({
               onToggle={(wishlisted) => setIsWishlisted(wishlisted)}
               large
             />
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-[var(--color-warm-gray)]">
               {isWishlisted ? "위시리스트에 추가됨" : "위시리스트에 추가"}
             </span>
           </div>
