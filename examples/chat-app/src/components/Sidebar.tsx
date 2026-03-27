@@ -4,6 +4,9 @@ import Avatar from './Avatar';
 
 interface SidebarProps {
   totalUnread: number;
+  activeMenu: string;
+  onMenuSelect: (menu: string) => void;
+  onCreateRoom: () => void;
 }
 
 /** 메뉴 아이템 정의 */
@@ -20,7 +23,7 @@ const COMMUNITIES = [
   { name: 'Frontend Dev', active: '1,458' },
 ];
 
-export default function Sidebar({ totalUnread }: SidebarProps) {
+export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreateRoom }: SidebarProps) {
   return (
     <div className="w-[300px] h-full glass-panel rounded-2xl flex flex-col shrink-0">
       {/* 프로필 영역 */}
@@ -42,10 +45,16 @@ export default function Sidebar({ totalUnread }: SidebarProps) {
 
       {/* 메뉴 목록 */}
       <nav className="px-2 py-2">
-        {MENU_ITEMS.map((item) => (
+        {MENU_ITEMS.map((item) => {
+          const menuKey = item.icon;
+          const isActive = activeMenu === menuKey;
+          return (
           <button
             key={item.label}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
+            onClick={() => onMenuSelect(menuKey)}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors text-left ${
+              isActive ? 'bg-white/10' : 'hover:bg-white/5'
+            }`}
           >
             <div className="flex items-center gap-3">
               <span className="text-text-secondary">
@@ -79,7 +88,21 @@ export default function Sidebar({ totalUnread }: SidebarProps) {
               </span>
             )}
           </button>
-        ))}
+          );
+        })}
+
+        {/* 새 채팅방 만들기 버튼 */}
+        <button
+          onClick={onCreateRoom}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left mt-1"
+        >
+          <span className="text-accent-blue">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </span>
+          <span className="text-sm text-accent-blue">새 채팅방</span>
+        </button>
       </nav>
 
       {/* 구분선 */}

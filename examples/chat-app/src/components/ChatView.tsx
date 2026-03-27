@@ -12,6 +12,7 @@ interface ChatViewProps {
   users: User[];
   onBack: () => void;
   onSelectUser: (user: User) => void;
+  onSendMessage: (content: string) => void;
 }
 
 export default function ChatView({
@@ -20,8 +21,24 @@ export default function ChatView({
   users,
   onBack,
   onSelectUser,
+  onSendMessage,
 }: ChatViewProps) {
   const [inputValue, setInputValue] = useState('');
+
+  // 메시지 전송 핸들러
+  const handleSend = () => {
+    if (!inputValue.trim()) return;
+    onSendMessage(inputValue);
+    setInputValue('');
+  };
+
+  // Enter 키로 전송
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   // 상대방 사용자 찾기 (1:1 대화의 경우)
   const otherMember = room.members.find((m) => m.id !== CURRENT_USER_ID);
@@ -129,11 +146,16 @@ export default function ChatView({
             placeholder="메시지 입력..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="flex-1 bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent-blue/40 transition-colors"
           />
 
           {/* 전송 버튼 */}
-          <button className="p-2 rounded-lg bg-accent-blue hover:bg-accent-blue/80 transition-colors text-white shrink-0">
+          <button
+            onClick={handleSend}
+            disabled={!inputValue.trim()}
+            className="p-2 rounded-lg bg-accent-blue hover:bg-accent-blue/80 transition-colors text-white shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
