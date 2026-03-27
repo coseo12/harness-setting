@@ -110,7 +110,7 @@ echo ""
 # ─── 6. state.json 스키마 정합성 검사 (init-project.sh + copy-template.js) ───
 echo "6. state.json 스키마 정합성 검사..."
 
-STATE_REQUIRED_KEYS=("planner" "frontend-developers" "backend-developers" "auditor" "integrator")
+STATE_REQUIRED_KEYS=("planner" "frontend-developers" "backend-developers" "evaluator" "qa")
 
 # 6-1. copy-template.js 검사
 COPY_TEMPLATE="${PROJECT_DIR}/lib/copy-template.js"

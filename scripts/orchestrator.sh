@@ -88,7 +88,7 @@ sync_github() {
 auto_dispatch() {
   log "자동 디스패치 확인..."
 
-  # 리뷰 대기 PR → Auditor 디스패치 (Auditor 통과 후 Reviewer로 진행)
+  # 리뷰 대기 PR → Evaluator 디스패치 (정적 분석 + 코드 리뷰 통합)
   local review_prs
   review_prs=$(gh pr list --label "status:review" --json number 2>/dev/null || echo "[]")
   local review_count
@@ -99,24 +99,9 @@ auto_dispatch() {
     local pr_num
     pr_num=$(echo "${review_prs}" | jq -r '.[0].number')
     # 중복 디스패치 방지: 즉시 라벨 전이
-    gh pr edit "${pr_num}" --remove-label "status:review" --add-label "status:reviewing" 2>/dev/null || true
-    log "리뷰 대기 PR #${pr_num} 감지 → Auditor 디스패치"
-    "${SCRIPT_DIR}/dispatch-agent.sh" auditor "${pr_num}" &
-  fi
-
-  # Auditor 통과 PR → Reviewer 디스패치
-  local audit_passed_prs
-  audit_passed_prs=$(gh pr list --label "status:audit-passed" --json number 2>/dev/null || echo "[]")
-  local audit_passed_count
-  audit_passed_count=$(echo "${audit_passed_prs}" | jq length 2>/dev/null || echo 0)
-
-  if [ "${audit_passed_count}" -gt 0 ]; then
-    wait_for_slot
-    local pr_num
-    pr_num=$(echo "${audit_passed_prs}" | jq -r '.[0].number')
-    gh pr edit "${pr_num}" --remove-label "status:audit-passed" --add-label "status:reviewing" 2>/dev/null || true
-    log "Auditor 통과 PR #${pr_num} 감지 → Reviewer 디스패치"
-    "${SCRIPT_DIR}/dispatch-agent.sh" reviewer "${pr_num}" &
+    gh pr edit "${pr_num}" --remove-label "status:review" --add-label "status:evaluating" 2>/dev/null || true
+    log "리뷰 대기 PR #${pr_num} 감지 → Evaluator 디스패치"
+    "${SCRIPT_DIR}/dispatch-agent.sh" evaluator "${pr_num}" &
   fi
 
   # QA 대기 PR → QA 디스패치
@@ -129,8 +114,6 @@ auto_dispatch() {
     wait_for_slot
     local pr_num
     pr_num=$(echo "${qa_prs}" | jq -r '.[0].number')
-    # 중복 디스패치 방지: 즉시 라벨 전이
-    gh pr edit "${pr_num}" --remove-label "status:qa" --add-label "status:testing" 2>/dev/null || true
     log "QA 대기 PR #${pr_num} 감지 → QA 디스패치"
     "${SCRIPT_DIR}/dispatch-agent.sh" qa "${pr_num}" &
   fi
@@ -187,21 +170,6 @@ auto_dispatch() {
       done
     fi
   done
-
-  # QA 통과 PR → Integrator 디스패치
-  local qa_passed_prs
-  qa_passed_prs=$(gh pr list --label "status:qa-passed" --json number 2>/dev/null || echo "[]")
-  local qa_passed_count
-  qa_passed_count=$(echo "${qa_passed_prs}" | jq length 2>/dev/null || echo 0)
-
-  if [ "${qa_passed_count}" -gt 0 ]; then
-    wait_for_slot
-    local pr_num
-    pr_num=$(echo "${qa_passed_prs}" | jq -r '.[0].number')
-    # 라벨은 Integrator 성공 후 전이 — 선제 전이하지 않음
-    log "QA 통과 PR #${pr_num} 감지 → Integrator 디스패치"
-    "${SCRIPT_DIR}/dispatch-agent.sh" integrator "${pr_num}" &
-  fi
 
   # 역방향 전이: 리뷰 반려된 PR → Developer에게 재할당
   local rejected_prs
@@ -303,28 +271,22 @@ run_pipeline() {
     return 1
   fi
 
-  # 4. Auditor 정적 분석
-  log "3/6 Auditor 정적 분석 중..."
-  update_phase "audit"
-  if ! dispatch_with_retry auditor "${pr_num}"; then
-    log "Auditor 실패 → Developer 재수정 필요"
-    # Auditor 실패 시 Developer에게 fix-error로 재수정 요청
+  # 4. Evaluator 정적 분석 + 코드 리뷰
+  log "3/5 Evaluator 평가 중..."
+  update_phase "evaluating"
+  if ! dispatch_with_retry evaluator "${pr_num}"; then
+    log "Evaluator 실패 → Developer 재수정 필요"
     dispatch_with_retry developer "${issue_num}" || true
     # 재시도
-    dispatch_with_retry auditor "${pr_num}" || log "경고: Auditor 재실패, Reviewer로 진행"
+    if ! dispatch_with_retry evaluator "${pr_num}"; then
+      log "파이프라인 중단: Evaluator 재실패"
+      update_phase "failed"
+      return 1
+    fi
   fi
 
-  # 5. Reviewer 리뷰
-  log "4/6 Reviewer 리뷰 중..."
-  update_phase "review"
-  if ! dispatch_with_retry reviewer "${pr_num}"; then
-    log "파이프라인 중단: Reviewer 실패"
-    update_phase "failed"
-    return 1
-  fi
-
-  # 6. QA 테스트 (피드백 루프 포함)
-  log "5/6 QA 테스트 중..."
+  # 5. QA 테스트 (피드백 루프 포함)
+  log "4/5 QA 테스트 중..."
   update_phase "testing"
 
   local fix_loop=0
@@ -354,24 +316,19 @@ run_pipeline() {
       return 1
     fi
 
-    # 변경 범위가 크면 Reviewer 재리뷰
+    # 변경 범위가 크면 Evaluator 재평가
     local changed_files
     changed_files=$(gh pr diff "${pr_num}" --name-only 2>/dev/null | wc -l | tr -d ' ')
     if [ "${changed_files}" -gt 5 ]; then
-      log "변경 파일 ${changed_files}개 → Reviewer 재리뷰"
-      update_phase "review"
-      dispatch_with_retry reviewer "${pr_num}" || true
+      log "변경 파일 ${changed_files}개 → Evaluator 재평가"
+      update_phase "evaluating"
+      dispatch_with_retry evaluator "${pr_num}" || true
     fi
 
     update_phase "testing"
   done
 
-  # 7. Integrator 정합성 검증
-  log "6/7 Integrator 정합성 검증 중..."
-  update_phase "integration"
-  dispatch_with_retry integrator "${pr_num}" || log "경고: Integrator 실패, 수동 확인 필요"
-
-  # 8. 완료
+  # 6. 완료
   update_phase "done"
   log "=== 파이프라인 완료: 이슈 #${issue_num} ==="
 }
