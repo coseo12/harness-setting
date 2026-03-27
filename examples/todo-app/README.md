@@ -1,59 +1,36 @@
-# To-Do App — 파이프라인 검증 예제
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Harness Engineering Framework의 전체 파이프라인을 검증하기 위한 예제 프로젝트.
-Next.js + TypeScript + Vitest 기반.
+## Getting Started
 
-## 실행
+First, run the development server:
 
 ```bash
-# 의존성 설치
-npm install
-
-# 개발 서버 (http://localhost:3000)
 npm run dev
-
-# 테스트
-npm test
-
-# 빌드
-npm run build
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## 구조
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-```
-todo-app/
-├── app/                         # Next.js App Router
-│   ├── layout.tsx               # 루트 레이아웃
-│   ├── page.tsx                 # 메인 페이지
-│   ├── globals.css
-│   └── api/                     # Route Handlers
-│       ├── health/route.ts
-│       └── todos/
-│           ├── route.ts         # GET, POST
-│           └── [id]/route.ts    # PATCH, DELETE
-├── components/                  # React 클라이언트 컴포넌트
-│   ├── TodoApp.tsx
-│   ├── AddTodo.tsx
-│   ├── TodoList.tsx
-│   └── TodoItem.tsx
-├── lib/                         # 공유 로직
-│   ├── types.ts                 # TypeScript 타입
-│   ├── todo-repository.ts       # 파일 기반 DB
-│   ├── validation.ts            # 입력 검증
-│   └── api-client.ts            # fetch 래퍼
-├── data/todos.json              # 파일 DB
-├── __tests__/                   # Vitest 테스트
-│   ├── api/                     # Route Handler 테스트 (9개)
-│   └── components/              # 컴포넌트 테스트 (14개)
-├── docs/                        # 설계 문서
-└── PIPELINE-SIMULATION.md       # 파이프라인 시뮬레이션 결과
-```
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## 테스트 결과
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-23개 테스트 전부 통과 (API 9 + 컴포넌트 14)
+## Learn More
 
-## 파이프라인 시뮬레이션 결과
+To learn more about Next.js, take a look at the following resources:
 
-상세: [PIPELINE-SIMULATION.md](./PIPELINE-SIMULATION.md)
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
