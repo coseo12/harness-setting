@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { User } from '@/lib/types';
+import { registerUser, loginUser } from '@/lib/api-client';
 
 interface AuthState {
   user: User | null;
@@ -18,6 +19,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
+  guestLogin: (nickname: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -26,6 +28,7 @@ export const AuthContext = createContext<AuthContextValue>({
   loading: true,
   login: () => {},
   logout: () => {},
+  guestLogin: async () => {},
 });
 
 const TOKEN_KEY = 'chat-app-token';
@@ -68,8 +71,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, token: null, loading: false });
   }, []);
 
+  // 게스트 로그인: 회원가입 시도 → 실패 시 로그인
+  const guestLogin = useCallback(async (nickname: string) => {
+    const GUEST_PASSWORD = 'guest-password';
+    const email = `${nickname.toLowerCase().replace(/\s/g, '-')}@guest.local`;
+
+    try {
+      const data = await registerUser(email, GUEST_PASSWORD, nickname);
+      login(data.user, data.token);
+    } catch {
+      const data = await loginUser(email, GUEST_PASSWORD);
+      login(data.user, data.token);
+    }
+  }, [login]);
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>
+    <AuthContext.Provider value={{ ...state, login, logout, guestLogin }}>
       {children}
     </AuthContext.Provider>
   );

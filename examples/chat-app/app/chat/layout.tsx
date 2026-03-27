@@ -22,7 +22,7 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace('/login');
+      router.replace('/');
     }
   }, [user, loading, router]);
 
@@ -53,31 +53,20 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
 
   function handleLogout() {
     logout();
-    router.replace('/login');
+    router.replace('/');
   }
 
   if (loading || !user) return null;
 
   return (
     <div className="chat-layout">
-      <aside className={`chat-sidebar ${isInRoom ? 'hidden' : ''}`}>
-        {/* 사이드바 상단: 로고 + 새 채팅방 버튼 */}
-        <div className="sidebar-header">
-          <h2 className="gradient-text">ChatApp</h2>
-          <button className="btn-icon" onClick={() => setShowModal(true)} aria-label="새 채팅방">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 사용자 프로필 영역 */}
+      {/* 좌측 사이드바 (280px) */}
+      <aside className={`chat-sidebar ${isInRoom ? 'hidden' : ''}`} style={{ width: '280px' }}>
+        {/* 상단: 프로필 영역 */}
         <div className="sidebar-user">
           <Avatar nickname={user.nickname} online />
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{user.nickname}</div>
-            <div className="sidebar-user-email">{user.email}</div>
           </div>
           <button className="btn-icon" onClick={handleLogout} aria-label="로그아웃">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -88,12 +77,28 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
           </button>
         </div>
 
+        {/* 메뉴: Chats 제목 + 새 채팅방 */}
+        <div className="sidebar-header">
+          <span style={{ fontWeight: 600, fontSize: '14px' }}>Chats</span>
+          <button className="btn-icon" onClick={() => setShowModal(true)} aria-label="새 채팅방">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+
         {/* 채팅방 목록 */}
-        <RoomList rooms={rooms} />
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <RoomList rooms={rooms} />
+        </div>
       </aside>
+
+      {/* 중앙 채팅 영역 (flex-1) */}
       <main className="chat-main">
         {children}
       </main>
+
       {showModal && (
         <CreateRoomModal
           onClose={() => setShowModal(false)}

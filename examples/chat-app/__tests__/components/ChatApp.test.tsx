@@ -29,7 +29,9 @@ describe('ChatApp', () => {
   it('방 이름을 헤더에 표시한다', async () => {
     render(<ChatApp roomId="r1" roomName="테스트 채팅방" />);
     // 메시지 로딩 후 헤더 표시
-    expect(await screen.findByText('테스트 채팅방')).toBeInTheDocument();
+    // 우측 패널에도 방 이름이 표시되므로 getAllByText 사용
+    const elements = await screen.findAllByText('테스트 채팅방');
+    expect(elements.length).toBeGreaterThan(0);
   });
 
   it('메시지가 없으면 안내 문구를 표시한다', async () => {
