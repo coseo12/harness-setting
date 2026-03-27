@@ -127,7 +127,7 @@ if [ -f "${PROJECT_DIR}/.harness/context.md" ]; then
 fi
 
 # 이슈/PR 본문을 프롬프트에 사전 로드
-# PR 기반 에이전트(auditor, reviewer, qa)는 gh pr view, 나머지는 gh issue view
+# PR 기반 에이전트(evaluator, qa)는 gh pr view, 나머지는 gh issue view
 ISSUE_CONTEXT=""
 if [ -n "${TASK_NUMBER}" ]; then
   case "${AGENT}" in
