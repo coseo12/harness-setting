@@ -53,16 +53,16 @@ export default function NicknameModal() {
   }
 
   return (
-    <div className="modal-overlay" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
-      <div className="glass-card modal-content" style={{ textAlign: 'center' }}>
+    <div className="modal-overlay" style={{ background: 'rgba(15, 15, 26, 0.95)' }}>
+      <div className="modal-content" style={{ textAlign: 'center', maxWidth: '400px' }}>
         {/* 채팅 아이콘 */}
-        <div style={{ marginBottom: '8px' }}>
+        <div style={{ marginBottom: '12px' }}>
           <svg
-            width="48"
-            height="48"
+            width="52"
+            height="52"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--accent-blue)"
+            stroke="var(--accent)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -71,16 +71,16 @@ export default function NicknameModal() {
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </div>
-        <h2 className="gradient-text" style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>
+        <h2 className="gradient-text" style={{ fontSize: '26px', fontWeight: 700, marginBottom: '6px' }}>
           ChatApp
         </h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '28px', lineHeight: 1.5 }}>
           닉네임을 입력하고 채팅을 시작하세요
         </p>
 
         <form onSubmit={handleSubmit}>
-          {error && <div className="form-error" style={{ marginBottom: '12px', textAlign: 'left' }}>{error}</div>}
-          <div className="form-group" style={{ marginBottom: '16px' }}>
+          {error && <div className="form-error" style={{ marginBottom: '14px', textAlign: 'left' }}>{error}</div>}
+          <div className="form-group" style={{ marginBottom: '18px' }}>
             <input
               name="nickname"
               type="text"

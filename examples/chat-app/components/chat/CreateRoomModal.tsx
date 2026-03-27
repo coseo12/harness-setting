@@ -29,7 +29,7 @@ export default function CreateRoomModal({ onClose, onCreate }: CreateRoomModalPr
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="glass-card modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h3>새 채팅방 만들기</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">

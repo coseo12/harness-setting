@@ -102,31 +102,23 @@ export default function ChatApp({ roomId, roomName }: ChatAppProps) {
 
       {/* 우측 패널 (lg 이상에서만 표시) */}
       <aside className="chat-right-panel">
-        <div style={{ padding: '24px 16px', textAlign: 'center', borderBottom: '1px solid var(--border-color)' }}>
-          <Avatar nickname={roomName} size="lg" />
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginTop: '12px' }}>{roomName}</h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            참여자 {onlineUsers.length}명 접속 중
-          </p>
+        <div className="right-panel-header">
+          <Avatar nickname={roomName} size="xl" />
+          <h3>{roomName}</h3>
+          <p>{onlineUsers.length}명 접속 중</p>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-          <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
-            참여자 목록
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="right-panel-list">
+          <div className="right-panel-list-title">참여자</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {onlineUsers.map((u) => (
-              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
+              <div key={u.id} className="right-panel-user">
                 <Avatar nickname={u.nickname} size="sm" online />
-                <span style={{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {u.nickname}
-                </span>
+                <span>{u.nickname}</span>
               </div>
             ))}
           </div>
           {onlineUsers.length === 0 && (
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '16px' }}>
-              접속 중인 사용자 없음
-            </p>
+            <p className="right-panel-empty">접속 중인 사용자 없음</p>
           )}
         </div>
       </aside>

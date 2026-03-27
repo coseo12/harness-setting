@@ -2,7 +2,7 @@
 
 interface AvatarProps {
   nickname: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   online?: boolean;
 }
 

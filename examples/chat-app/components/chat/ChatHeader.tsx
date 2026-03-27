@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import Avatar from '@/components/ui/Avatar';
 
 interface ChatHeaderProps {
   roomName: string;
@@ -14,6 +13,7 @@ export default function ChatHeader({ roomName, onlineCount }: ChatHeaderProps) {
   return (
     <div className="chat-header">
       <div className="chat-header-left">
+        {/* 모바일 뒤로가기 */}
         <button
           className="btn-icon btn-back"
           onClick={() => router.push('/chat')}
@@ -23,12 +23,11 @@ export default function ChatHeader({ roomName, onlineCount }: ChatHeaderProps) {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <Avatar nickname={roomName} size="sm" />
         <div className="chat-header-info">
           <h3>{roomName}</h3>
-          <div className="online-count">
+          <div className="chat-header-status">
             <span className="online-dot" />
-            {onlineCount}명 접속 중
+            <span>{onlineCount}명 접속 중</span>
           </div>
         </div>
       </div>

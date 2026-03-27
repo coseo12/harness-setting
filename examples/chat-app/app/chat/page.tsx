@@ -6,7 +6,10 @@ export default function ChatHomePage() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </div>
-      <p>채팅방을 선택하거나 새로 만들어보세요</p>
+      <p>
+        채팅방을 선택하거나<br />
+        새로 만들어보세요
+      </p>
     </div>
   );
 }

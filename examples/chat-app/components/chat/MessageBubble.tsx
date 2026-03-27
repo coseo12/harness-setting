@@ -19,6 +19,7 @@ export default function MessageBubble({ message, isMine, showSender = true }: Me
 
   return (
     <div className={`message-group ${isMine ? 'mine' : 'other'}`}>
+      {/* 상대 메시지: 아바타 표시 (연속 메시지면 빈 공간) */}
       {!isMine && (
         <div className="message-avatar-col">
           {showSender && <Avatar nickname={nickname} size="sm" />}
