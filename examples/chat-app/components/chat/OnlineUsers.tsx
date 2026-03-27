@@ -17,7 +17,7 @@ export default function OnlineUsers({ users }: OnlineUsersProps) {
         {users.map((user) => (
           <div key={user.id} className="online-user">
             <Avatar nickname={user.nickname} size="sm" online />
-            <span>{user.nickname}</span>
+            <span className="online-user-name">{user.nickname}</span>
           </div>
         ))}
       </div>

@@ -2,36 +2,36 @@
 
 :root {
   /* 배경 */
-  --bg-primary: #0A0E27;
-  --bg-secondary: #111638;
-  --bg-card: rgba(22, 26, 55, 0.85);
-  --bg-input: #0D1130;
-  --bg-hover: rgba(74, 125, 255, 0.08);
+  --bg-primary: #0F0F1A;
+  --bg-secondary: #1A1A2E;
+  --bg-card: #1E1E35;
+  --bg-input: #151528;
+  --bg-hover: #252545;
   --bg-bubble-mine: linear-gradient(135deg, #4A7DFF 0%, #6C63FF 100%);
-  --bg-bubble-other: #1A1E42;
+  --bg-bubble-other: #1E1E35;
 
   /* 텍스트 */
-  --text-primary: #E8ECF4;
-  --text-secondary: #7B8CA6;
-  --text-muted: #4A5568;
+  --text-primary: #FFFFFF;
+  --text-secondary: #9B9BB4;
+  --text-muted: #6B6B80;
   --text-bubble-mine: #FFFFFF;
-  --text-bubble-other: #D0D7E2;
+  --text-bubble-other: #E0E0F0;
 
   /* 액센트 */
   --accent-blue: #4A7DFF;
   --accent-purple: #6C63FF;
   --accent-gradient: linear-gradient(135deg, #4A7DFF 0%, #6C63FF 100%);
-  --online-green: #44D7B6;
-  --error-red: #FF6B6B;
+  --online-green: #34C759;
+  --error-red: #FF3B30;
   --warning-yellow: #FFD93D;
 
   /* 글래스모피즘 */
-  --glass-bg: rgba(22, 26, 55, 0.6);
-  --glass-border: rgba(74, 125, 255, 0.12);
-  --glass-blur: 16px;
+  --glass-bg: rgba(30, 30, 53, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
 
   /* 보더 */
-  --border-color: rgba(74, 125, 255, 0.1);
+  --border-color: rgba(255, 255, 255, 0.08);
   --border-active: rgba(74, 125, 255, 0.4);
 
   /* 레이아웃 */
@@ -150,17 +150,17 @@ a {
   width: 100%;
   padding: 14px 16px;
   background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 15px;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .form-input:focus {
-  border-color: var(--border-active);
-  box-shadow: var(--shadow-glow);
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(74, 125, 255, 0.15);
 }
 
 .form-input::placeholder {
@@ -210,9 +210,9 @@ a {
   color: var(--error-red);
   font-size: 13px;
   padding: 10px 14px;
-  background: rgba(255, 107, 107, 0.08);
+  background: rgba(255, 59, 48, 0.08);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 59, 48, 0.15);
 }
 
 /* === 채팅 레이아웃 === */
@@ -339,17 +339,18 @@ a {
 
 .room-item.active {
   background: rgba(74, 125, 255, 0.12);
+  border-left: 2px solid var(--accent-blue);
 }
 
 .room-icon {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--accent-gradient);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
+  font-weight: 600;
   color: white;
   flex-shrink: 0;
 }
@@ -396,6 +397,17 @@ a {
   border-radius: var(--radius-full);
 }
 
+.room-unread-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: var(--accent-blue);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  min-width: 20px;
+  text-align: center;
+}
+
 .room-list-empty {
   display: flex;
   flex-direction: column;
@@ -415,8 +427,9 @@ a {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -427,7 +440,10 @@ a {
 .modal-content {
   width: 100%;
   max-width: 400px;
-  padding: 24px;
+  padding: 28px;
+  background: var(--bg-card) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: var(--radius-xl) !important;
 }
 
 .modal-content h3 {
@@ -445,8 +461,8 @@ a {
 .btn-secondary {
   flex: 1;
   padding: 12px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 14px;
@@ -455,8 +471,9 @@ a {
 }
 
 .btn-secondary:hover {
-  border-color: var(--border-active);
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .btn-modal-primary {
@@ -483,6 +500,12 @@ a {
   flex-shrink: 0;
 }
 
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .chat-header-info h3 {
   font-size: 16px;
   font-weight: 600;
@@ -493,11 +516,17 @@ a {
   color: var(--text-secondary);
 }
 
+.chat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .online-count {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--online-green);
 }
 
@@ -570,7 +599,7 @@ a {
 
 .message-bubble {
   padding: 10px 14px;
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   font-size: 14px;
   line-height: 1.5;
   word-break: break-word;
@@ -580,12 +609,16 @@ a {
   background: var(--bg-bubble-mine);
   color: var(--text-bubble-mine);
   border-bottom-right-radius: 4px;
+  border-top-left-radius: 18px;
+  border-bottom-left-radius: 18px;
 }
 
 .message-bubble.other {
   background: var(--bg-bubble-other);
   color: var(--text-bubble-other);
   border-bottom-left-radius: 4px;
+  border-top-right-radius: 18px;
+  border-bottom-right-radius: 18px;
 }
 
 .message-time {
@@ -596,6 +629,23 @@ a {
 
 .message-group.mine .message-time {
   text-align: right;
+}
+
+/* 메시지 버블 내부 시간 표시 */
+.message-time-inline {
+  display: block;
+  font-size: 10px;
+  margin-top: 4px;
+  text-align: right;
+  opacity: 0.6;
+}
+
+.message-time-inline.mine {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-time-inline.other {
+  color: var(--text-muted);
 }
 
 /* 날짜 구분선 */
@@ -711,6 +761,7 @@ a {
   position: relative;
 }
 
+.avatar.xs { width: 24px; height: 24px; font-size: 10px; }
 .avatar.sm { width: 28px; height: 28px; font-size: 11px; }
 .avatar.lg { width: 44px; height: 44px; font-size: 16px; }
 
@@ -721,13 +772,14 @@ a {
   width: 10px;
   height: 10px;
   background: var(--online-green);
-  border: 2px solid var(--bg-secondary);
+  border: 2px solid var(--bg-primary);
   border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-primary);
 }
 
-/* === 접속자 패널 === */
+/* === 접속자 패널 (가로 스크롤 아바타) === */
 .online-users-panel {
-  padding: 16px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -737,24 +789,43 @@ a {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .online-users-list {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 16px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.online-users-list::-webkit-scrollbar {
+  display: none;
 }
 
 .online-user {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 4px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-full);
-  font-size: 12px;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 48px;
+  max-width: 56px;
+}
+
+.online-user-name {
+  font-size: 11px;
   color: var(--text-secondary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.2;
+  word-break: break-all;
 }
 
 /* === 빈 메인 영역 === */
@@ -765,15 +836,35 @@ a {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  gap: 12px;
+  gap: 16px;
 }
 
-.chat-empty span:first-child {
-  font-size: 64px;
+.chat-empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: gentlePulse 3s ease-in-out infinite;
+}
+
+.chat-empty-icon svg {
+  width: 40px;
+  height: 40px;
+  color: var(--accent-blue);
+  opacity: 0.7;
 }
 
 .chat-empty p {
   font-size: 16px;
+  color: var(--text-secondary);
+}
+
+@keyframes gentlePulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
 }
 
 /* === 이전 메시지 로딩 === */

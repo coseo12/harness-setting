@@ -30,8 +30,10 @@ export default function MessageBubble({ message, isMine, showSender = true }: Me
         )}
         <div className={`message-bubble ${isMine ? 'mine' : 'other'}`}>
           {message.content}
+          <span className={`message-time-inline ${isMine ? 'mine' : 'other'}`}>
+            {formatTime(message.createdAt)}
+          </span>
         </div>
-        <span className="message-time">{formatTime(message.createdAt)}</span>
       </div>
     </div>
   );
