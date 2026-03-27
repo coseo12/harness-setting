@@ -1,20 +1,46 @@
 #!/usr/bin/env bash
 # 프로젝트 내 외부 이미지 URL을 추출하여 HTTP 접근성을 검증하는 스크립트
 # 사용법: ./scripts/verify-images.sh [디렉토리]
+#
+# 개선사항:
+# - 데이터 파일(src/data/)을 우선 스캔하고, 컴포넌트는 imageUrl/src 패턴만 추출
+# - example.com, placeholder 힌트 등 코드 예시 URL 자동 제외
+# - 템플릿 리터럴(${ }) 포함 URL 제외
 set -euo pipefail
 
 TARGET_DIR="${1:-.}"
 ERRORS=0
 TOTAL=0
 
+# 무시 패턴 — 코드 예시, placeholder 힌트, 템플릿 리터럴
+IGNORE_PATTERNS="example\.com|placeholder\.com|localhost|\\\$\{|encodeURI"
+
 echo "=== 이미지 URL 검증 ==="
 echo "대상: ${TARGET_DIR}"
 echo ""
 
-# 소스 코드에서 이미지 URL 추출 (https:// 로 시작하는 이미지 URL)
-URLS=$(grep -rhoE "https://[^\"')\`]+" "${TARGET_DIR}/src" 2>/dev/null \
-  | grep -iE '\.(jpg|jpeg|png|gif|svg|webp)|unsplash|placehold|placeholder' \
-  | sort -u || true)
+# 1순위: 데이터 파일(src/data/)에서 이미지 URL 추출
+DATA_URLS=""
+if [ -d "${TARGET_DIR}/src/data" ]; then
+  DATA_URLS=$(grep -rhoE "https://[^\"')\`]+" "${TARGET_DIR}/src/data" 2>/dev/null \
+    | grep -iE '\.(jpg|jpeg|png|gif|svg|webp)|unsplash|placehold' \
+    | grep -vE "${IGNORE_PATTERNS}" \
+    | sort -u || true)
+fi
+
+# 2순위: 페이지/컴포넌트에서 img src 또는 배경 이미지 URL 추출
+COMPONENT_URLS=""
+if [ -d "${TARGET_DIR}/src/app" ] || [ -d "${TARGET_DIR}/src/components" ]; then
+  COMPONENT_URLS=$(grep -rhE '(src=|imageUrl|backgroundImage|background-image)' \
+    "${TARGET_DIR}/src/app" "${TARGET_DIR}/src/components" 2>/dev/null \
+    | grep -oE "https://[^\"')\`]+" \
+    | grep -iE '\.(jpg|jpeg|png|gif|svg|webp)|unsplash|placehold' \
+    | grep -vE "${IGNORE_PATTERNS}" \
+    | sort -u || true)
+fi
+
+# 합치고 중복 제거
+URLS=$(echo -e "${DATA_URLS}\n${COMPONENT_URLS}" | grep -v '^$' | sort -u || true)
 
 if [ -z "${URLS}" ]; then
   echo "이미지 URL을 찾을 수 없습니다."
