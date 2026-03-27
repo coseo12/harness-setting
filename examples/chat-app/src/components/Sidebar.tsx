@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Avatar from './Avatar';
 
 interface SidebarProps {
@@ -25,8 +26,13 @@ const COMMUNITIES = [
 ];
 
 export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreateRoom, onSelectCommunity }: SidebarProps) {
+  const [toast, setToast] = useState<string | null>(null);
+  const showComingSoon = (feature: string) => {
+    setToast(`${feature} 기능은 준비 중입니다`);
+    setTimeout(() => setToast(null), 2000);
+  };
   return (
-    <div className="w-[300px] h-full glass-panel rounded-2xl flex flex-col shrink-0">
+    <div className="w-[300px] h-full glass-panel rounded-2xl flex flex-col shrink-0 relative">
       {/* 프로필 영역 */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-border-subtle">
         <div className="flex items-center gap-3">
@@ -35,8 +41,8 @@ export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreat
             내 프로필
           </span>
         </div>
-        {/* 설정 아이콘 (장식용) */}
-        <button className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-text-secondary">
+        {/* 설정 아이콘 */}
+        <button onClick={() => showComingSoon('설정')} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-text-secondary">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -141,6 +147,13 @@ export default function Sidebar({ totalUnread, activeMenu, onMenuSelect, onCreat
           ))}
         </div>
       </div>
+
+      {/* 준비 중 토스트 */}
+      {toast && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-border-subtle text-sm text-text-primary whitespace-nowrap z-10">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
