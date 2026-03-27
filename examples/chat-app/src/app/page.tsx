@@ -21,7 +21,7 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeMenu, setActiveMenu] = useState('chats');
+  const [activeMenu, setActiveMenu] = useState('chat');
 
   // 가변 상태: 채팅방 목록과 메시지 (목 데이터를 복사하여 수정 가능하게)
   const [rooms, setRooms] = useState<ChatRoom[]>(() => [...mockRooms]);
@@ -170,7 +170,12 @@ export default function Home() {
       <Sidebar
         totalUnread={totalUnread}
         activeMenu={activeMenu}
-        onMenuSelect={setActiveMenu}
+        onMenuSelect={(menu) => {
+          setActiveMenu(menu);
+          // 메뉴 전환 시 대화 선택 초기화
+          setSelectedRoomId(null);
+          setShowProfile(false);
+        }}
         onCreateRoom={() => setShowCreateRoom(true)}
       />
 
@@ -185,7 +190,8 @@ export default function Home() {
             onSelectUser={handleSelectUser}
             onSendMessage={handleSendMessage}
           />
-        ) : (
+        ) : activeMenu === 'chat' ? (
+          /* Chats 메뉴: 대화 목록 */
           <>
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <OnlineAvatars
@@ -200,7 +206,48 @@ export default function Home() {
               onSelectRoom={handleSelectRoom}
             />
           </>
-        )}
+        ) : activeMenu === 'shop' ? (
+          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-accent-blue/10 flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">Marketplace</h2>
+            <p className="text-sm text-text-muted max-w-xs">
+              친구들이 판매 중인 아이템을 둘러보세요. 중고 거래, 핸드메이드 제품 등 다양한 아이템을 만날 수 있습니다.
+            </p>
+            <p className="text-xs text-text-muted mt-6">준비 중입니다</p>
+          </div>
+        ) : activeMenu === 'request' ? (
+          /* Message requests 메뉴 */
+          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-accent-blue/10 flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">메시지 요청</h2>
+            <p className="text-sm text-text-muted max-w-xs">
+              아직 수락하지 않은 메시지 요청이 여기에 표시됩니다. 모르는 사람의 메시지를 검토할 수 있습니다.
+            </p>
+            <p className="text-xs text-text-muted mt-6">요청이 없습니다</p>
+          </div>
+        ) : activeMenu === 'archive' ? (
+          /* Archive 메뉴 */
+          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-accent-blue/10 flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">보관함</h2>
+            <p className="text-sm text-text-muted max-w-xs">
+              보관된 대화가 여기에 표시됩니다. 보관된 대화는 목록에서 숨겨지지만 언제든 다시 열 수 있습니다.
+            </p>
+            <p className="text-xs text-text-muted mt-6">보관된 대화가 없습니다</p>
+          </div>
+        ) : null}
       </div>
 
       {/* 우측 프로필 패널 */}
