@@ -128,7 +128,7 @@ export let recipes: Recipe[] = [
       '당면과 채소를 한데 모아 간장, 참기름으로 양념한다.',
       '고루 섞어 접시에 담아낸다.',
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1580651214613-f4692d6d138f?w=600&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1583032015879-e5022cb87c3b?w=600&h=400&fit=crop',
     category: '볶음',
     rating: 4.4,
     ratingCount: 150,
