@@ -9,8 +9,14 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('http://localhost:3000'),
   title: 'RecipeHub - 한식의 맛을 전합니다',
   description: '정성을 담은 한식 레시피로 매일의 식탁을 특별하게',
+  openGraph: {
+    title: 'RecipeHub - 한식의 맛을 전합니다',
+    description: '정성을 담은 한식 레시피로 매일의 식탁을 특별하게',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

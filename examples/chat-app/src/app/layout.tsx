@@ -13,8 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('http://localhost:3000'),
   title: 'ChatApp - 메신저',
   description: '다크 글래스모피즘 채팅 애플리케이션',
+  openGraph: {
+    title: 'ChatApp - 메신저',
+    description: '다크 글래스모피즘 채팅 애플리케이션',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

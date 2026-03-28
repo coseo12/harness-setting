@@ -13,8 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://localhost:3000"),
   title: "Todo Dashboard",
   description: "타임라인 기반 할 일 관리 대시보드",
+  openGraph: {
+    title: "Todo Dashboard",
+    description: "타임라인 기반 할 일 관리 대시보드",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
