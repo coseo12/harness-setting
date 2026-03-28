@@ -324,7 +324,12 @@ function HomePageContent() {
           <ProductList
             products={products}
             wishlist={wishlistIds}
+            searchQuery={searchQuery}
             onWishlistToggle={handleWishlistToggle}
+            onClearSearch={() => {
+              setSearchQuery("");
+              setSelectedCategory("전체");
+            }}
           />
         )}
       </section>
