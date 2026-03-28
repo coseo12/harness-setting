@@ -1,7 +1,7 @@
 {
   "name": "@seo/harness-setting",
-  "version": "1.0.0",
-  "description": "AI 에이전트 기반 자동화 개발 프레임워크",
+  "version": "2.0.0",
+  "description": "Claude Code 워크플로우 템플릿 — 1인 개발자-AI 페어 프로그래밍 최적화",
   "bin": {
     "harness": "./bin/harness.js"
   },
@@ -11,14 +11,14 @@
     ".claude/",
     ".claude-plugin/",
     ".github/",
-    "scripts/",
     "docs/",
     "agents",
     "skills",
     "plugins/",
-    "CLAUDE.md"
+    "CLAUDE.md",
+    "README.md"
   ],
-  "keywords": ["ai-agent", "claude", "automation", "harness"],
+  "keywords": ["ai-agent", "claude", "automation", "workflow-template"],
   "license": "MIT",
   "engines": {
     "node": ">=16.7.0"
