@@ -4,7 +4,7 @@ description: |
   agent-browser 기반 브라우저 테스트 및 시각적 검증 스킬.
   TRIGGER when: E2E 테스트, UI 시각적 검증, 브라우저 테스트, 스크린샷 캡처,
   "브라우저 테스트", "E2E", "화면 확인", "스크린샷", 반응형 검증, 접근성 검사,
-  QA 에이전트의 브라우저 기반 테스트, Frontend Developer의 구현 결과 확인.
+  브라우저 기반 테스트, 구현 결과 확인.
   DO NOT TRIGGER when: 단위 테스트, API 테스트, 정적 분석, 코드 리뷰(코드만 볼 때),
   브라우저가 필요 없는 백엔드 작업일 때.
 ---
@@ -106,7 +106,7 @@ agent-browser errors                          # 페이지 에러
 
 ## 테스트 워크플로우
 
-### 1. E2E 시나리오 테스트 (QA 에이전트)
+### 1. E2E 시나리오 테스트
 
 ```bash
 # 1. 페이지 열기
@@ -128,7 +128,7 @@ agent-browser --session qa-test screenshot test-result.png
 agent-browser --session qa-test get text "#welcome-message"
 ```
 
-### 2. 구현 결과 시각적 확인 (Frontend Developer)
+### 2. 구현 결과 시각적 확인
 
 ```bash
 # 개발 서버에서 구현 결과 확인
@@ -147,7 +147,7 @@ agent-browser --viewport 1920 1080 open http://localhost:3000/new-page
 agent-browser screenshot desktop.png
 ```
 
-### 3. UI 변경 검증 (Reviewer)
+### 3. UI 변경 검증
 
 ```bash
 # PR의 프리뷰 환경 확인
@@ -156,7 +156,7 @@ agent-browser snapshot -i
 agent-browser screenshot pr-review.png
 ```
 
-### 4. 접근성 감사 (Auditor)
+### 4. 접근성 감사
 
 ```bash
 # 접근성 트리 전체 분석
@@ -173,7 +173,7 @@ agent-browser snapshot -i --json
 # - 키보드 내비게이션이 가능한가
 ```
 
-### 5. React SSR Hydration 검증 (QA/Frontend Developer)
+### 5. React SSR Hydration 검증
 
 SSR 앱에서 서버/클라이언트 렌더링 불일치(hydration mismatch)를 감지한다.
 
@@ -201,7 +201,7 @@ agent-browser errors
 - `window`, `document`, `localStorage` — 서버에 존재하지 않는 API
 - 브라우저 확장 프로그램이 주입하는 DOM 요소
 
-### 6. XSS 동적 테스트 (Auditor)
+### 6. XSS 동적 테스트
 
 ```bash
 # 입력 필드에 XSS 페이로드 주입
@@ -259,7 +259,7 @@ agent-browser auth login staging
 
 ## 알려진 제한 및 Playwright 폴백
 
-아래 상황에서는 `playwright-test` 스킬로 전환한다:
+아래 상황에서는 Playwright로 전환한다:
 
 | 상황 | agent-browser 증상 | Playwright 해결 |
 |------|-------------------|----------------|
@@ -267,7 +267,7 @@ agent-browser auth login staging
 | React controlled input | `fill` 후 state 미갱신 | input/change 이벤트 순차 발생 |
 | form submit | `click` 후 서버에 요청 미도달 | 정상적 form submission 이벤트 체인 |
 
-**폴백 판단 기준**: agent-browser로 액션 수행 후 `snapshot`으로 결과를 확인했을 때 상태 변화가 없으면 동일 목표를 `playwright-test`로 재시도한다.
+**폴백 판단 기준**: agent-browser로 액션 수행 후 `snapshot`으로 결과를 확인했을 때 상태 변화가 없으면 Playwright로 재시도한다.
 
 ## 규칙
 

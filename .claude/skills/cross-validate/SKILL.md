@@ -5,7 +5,7 @@ description: |
   TRIGGER when: 교차검증이 필요할 때, "검증해줘", "cross-validate", "교차 리뷰",
   "gemini로 확인", "다른 시각", "두 번째 의견", 설계 리뷰, PR의 독립적 검토,
   스킬 품질 검증, 프레임워크 구조 점검이 필요할 때.
-  DO NOT TRIGGER when: 일반 코드 리뷰(Reviewer 담당), 테스트 실행(QA 담당),
+  DO NOT TRIGGER when: 일반 코드 리뷰, 테스트 실행,
   Gemini와 무관한 작업일 때.
 ---
 
@@ -182,6 +182,6 @@ Gemini 응답을 받은 후 Claude가 수행하는 분석:
 
 - Gemini는 항상 `--approval-mode plan` (읽기 전용)으로 실행한다. 코드 변경을 허용하지 않는다.
 - Gemini 출력을 맹목적으로 수용하지 않는다. Claude가 반드시 재분석한다.
-- 검증 결과는 `.harness/logs/cross-validate-*.log`에 기록한다.
+- 검증 결과는 로그 파일에 기록한다.
 - 민감한 정보(시크릿, 인증 토큰)가 포함된 파일은 Gemini에 전달하지 않는다.
 - 두 모델의 합의된 문제는 우선적으로 해결한다.
