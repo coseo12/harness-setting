@@ -44,41 +44,36 @@ log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "${LOG_FILE}"
 }
 
-# Gemini 모델 폴백 순서
-GEMINI_MODELS=("${GEMINI_MODEL:-gemini-2.5-pro}" "gemini-2.5-flash" "gemini-2.0-flash")
-MAX_GEMINI_RETRIES=3
+# Gemini 모델 설정 — 경량 모델 폴백 없음 (교차검증 품질 보존)
+GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-pro}"
+MAX_GEMINI_RETRIES=2
 
-# Gemini 실행 (읽기 전용, 재시도 + 모델 폴백)
+# Gemini 실행 (읽기 전용, 실패 시 스킵)
 run_gemini() {
   local prompt="$1"
+  local attempt=1
 
-  for model in "${GEMINI_MODELS[@]}"; do
-    local attempt=1
-    while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
-      log "Gemini 실행 중 (모델: ${model}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."
-      local output
-      output=$(gemini -m "${model}" -p "${prompt}" --approval-mode plan 2>&1) && {
-        echo "${output}" | tee -a "${LOG_FILE}"
-        return 0
-      }
+  while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
+    log "Gemini 실행 중 (모델: ${GEMINI_MODEL}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."
+    local output
+    output=$(gemini -m "${GEMINI_MODEL}" -p "${prompt}" --approval-mode plan 2>&1) && {
+      echo "${output}" | tee -a "${LOG_FILE}"
+      return 0
+    }
 
-      # 429/5xx 에러인지 확인
-      if echo "${output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
-        log "경고: ${model} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
-        attempt=$((attempt + 1))
-        sleep $((attempt * 5))
-      else
-        # 다른 에러면 로그 남기고 다음 모델로
-        log "경고: ${model} 실패 — $(echo "${output}" | head -3)"
-        echo "${output}" >> "${LOG_FILE}"
-        break
-      fi
-    done
-    log "모델 ${model} 실패 → 다음 모델로 폴백"
+    if echo "${output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
+      log "경고: ${GEMINI_MODEL} 용량 부족 (시��� ${attempt}/${MAX_GEMINI_RETRIES})"
+      attempt=$((attempt + 1))
+      sleep $((attempt * 5))
+    else
+      log "경고: ${GEMINI_MODEL} 실패 — $(echo "${output}" | head -3)"
+      echo "${output}" >> "${LOG_FILE}"
+      break
+    fi
   done
 
-  log "에러: 모든 Gemini 모델이 실패했습니다."
-  echo "교차검증 스킵: Gemini API 사용 불가. 수동 검증을 진행하세요." | tee -a "${LOG_FILE}"
+  log "교차검증 스킵: Gemini API 사용 불가. Claude 단독 분석으로 전환합니다."
+  echo "⚠ 교차검증 불가 — Claude 단독 분석. Gemini ${GEMINI_MODEL} 응답 없음." | tee -a "${LOG_FILE}"
   return 1
 }
 
