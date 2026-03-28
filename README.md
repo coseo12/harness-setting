@@ -53,8 +53,11 @@ claude --plugin-dir ./.harness-plugin
 이 템플릿이 제공하는 것:
 
 1. **실전 교훈 기반 규칙** — "빌드 성공 ≠ 동작하는 앱", "HTTP 200 ≠ 올바른 리소스" 등
-2. **교차검증** — Gemini의 독립적 시각으로 설계/코드 의사결정 검증
-3. **3단계 브라우저 검증** — 정적 → 인터랙션 → 흐름 (display-only 버그 방지)
+2. **스프린트 계약** — 구현 전 검증 가능한 완료 기준 합의 ([Anthropic 하네스 설계](docs/anthropic-harness-design.md) 기반)
+3. **교차검증** — Gemini의 독립적 시각으로 설계/코드 의사결정 검증
+4. **3단계 브라우저 검증** — 정적 → 인터랙션 → 흐름 (display-only 버그 방지)
+5. **디자인 품질 루브릭** — Design Quality / Originality / Craft / Functionality 4축 평가
+6. **자가 평가 경고** — AI의 과도한 긍정 평가 편향 방지
 
 ## 커스터마이징
 
