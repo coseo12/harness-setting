@@ -16,8 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://localhost:3000"),
   title: "SimpleShop",
   description: "일상을 디자인하다",
+  openGraph: {
+    title: "SimpleShop",
+    description: "일상을 디자인하다",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
