@@ -4,6 +4,7 @@
 const path = require('node:path');
 const { copyTemplate } = require('../lib/copy-template');
 const { runScript } = require('../lib/run-script');
+const { runDoctor, formatReport } = require('../lib/doctor');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -14,6 +15,7 @@ function printUsage() {
 
 Commands:
   init [경로]              새 프로젝트에 harness 프레임워크 초기화
+  doctor                   셋업 규칙 자체 점검 (CRITICAL DIRECTIVES, hook, 브랜치 등)
   validate                 프로젝트 설정 검증
   integrity                문서/설정 정합성 검증
   orchestrator <cmd>       오케스트레이터 실행 (start|pipeline|parallel)
@@ -28,6 +30,13 @@ switch (command) {
     const targetDir = args[1] || '.';
     copyTemplate(targetDir);
     break;
+  }
+
+  case 'doctor': {
+    const report = runDoctor();
+    console.log(formatReport(report));
+    const { fail } = report.summary();
+    process.exit(fail > 0 ? 1 : 0);
   }
 
   case 'validate':

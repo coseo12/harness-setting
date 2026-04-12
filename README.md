@@ -41,6 +41,16 @@ git clone https://github.com/coseo12/harness-setting.git .harness-plugin
 claude --plugin-dir ./.harness-plugin
 ```
 
+### 셋업 자체 점검
+
+초기화 후 프레임워크 규칙과 구성이 올바른지 확인:
+
+```bash
+npx @seo/harness-setting doctor
+```
+
+점검 항목: CLAUDE.md CRITICAL DIRECTIVES 블록, SessionStart hook, 한글 인코딩, `.claude/agents`·`.claude/skills` 디렉토리, 현재 브랜치(main/master 직접 작업 경고).
+
 ## 사전 요구사항
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
