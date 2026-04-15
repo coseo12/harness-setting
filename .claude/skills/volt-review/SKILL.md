@@ -41,8 +41,9 @@ gh issue list -R coseo12/volt --state all --limit 20 \
 | `CLAUDE.md` (프로젝트) | 워크플로 규칙/금지사항/원칙 추가·수정 |
 | `CLAUDE.md` CRITICAL DIRECTIVES | 재발 위험이 크고 세션 초기에 각인이 필요한 규칙 |
 | `~/.claude/CLAUDE.md` (글로벌) | 언어·스타일 등 전 프로젝트 공통 취향 |
-| `plugins/harness-setting/agents/*` | 에이전트의 역할·체크리스트·출력 포맷 |
-| `~/.claude/skills/*/SKILL.md` | 스킬 트리거·절차·금지사항 |
+| `.claude/agents/*` | 에이전트의 역할·체크리스트·출력 포맷 |
+| `.claude/skills/*/SKILL.md` | 스킬 트리거·절차·금지사항 |
+| `.claude/commands/*.md` | 슬래시 커맨드 |
 | `docs/*` | 배경·사례·튜토리얼 (규칙은 CLAUDE.md로) |
 | 신규 스킬/에이전트 | 기존에 없는 반복 패턴이 관찰된 경우에만 |
 
