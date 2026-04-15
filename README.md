@@ -80,6 +80,19 @@ npx @seo/harness-setting doctor
 
 점검 항목: CLAUDE.md CRITICAL DIRECTIVES 블록, SessionStart hook, 한글 인코딩, `.claude/agents`·`.claude/skills` 디렉토리, 현재 브랜치(main/master 직접 작업 경고).
 
+## 슬래시 커맨드 (Claude Code 세션 내)
+
+9개 슬래시 커맨드 — 페르소나(`/pm /architect /dev /review /qa /next`) + 운영(`/team-status /harness-update`) + 지식 루프(`/capture-merge /volt-review`).
+
+전체 인덱스 + 자주 쓰는 흐름: **[docs/commands-index.md](docs/commands-index.md)**
+
+## 지식 컴파일 규약
+
+volt 이슈(맥락) ↔ CLAUDE.md/스킬(행위 제약)의 양방향 컴파일 모델:
+**[docs/knowledge-compilation.md](docs/knowledge-compilation.md)**
+
+페르소나/라벨/정책 상세: **[docs/agents-guide.md](docs/agents-guide.md)**
+
 ## 사전 요구사항
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
