@@ -16,7 +16,7 @@ function printUsage() {
 
 Commands:
   init [경로]              새 프로젝트에 harness 프레임워크 초기화
-  update [옵션]            업데이트 확인/적용
+  update [옵션]            harness 프레임워크 업데이트 확인/적용
                            --check           : 변경 요약만 (비파괴)
                            --bootstrap       : 현재 상태를 baseline으로 박제
                            --apply-all-safe  : frozen + pristine + added 자동 적용
@@ -29,10 +29,11 @@ Commands:
   doctor                   셋업 규칙 자체 점검 (CRITICAL DIRECTIVES, hook, 브랜치 등)
   validate                 프로젝트 설정 검증
   integrity                문서/설정 정합성 검증
-  orchestrator <cmd>       오케스트레이터 실행 (start|pipeline|parallel)
-  dispatch <agent> [n]     에이전트 디스패치
-  labels                   GitHub 라벨 설정
+  labels                   GitHub 기본 라벨 설정 (stage:* 는 scripts/setup-stage-labels.sh)
   version                  버전 출력
+
+페르소나 호출은 Claude Code 세션 내 슬래시 커맨드 사용:
+  /pm  /architect  /dev  /review  /qa  /next        (docs/agents-guide.md 참조)
 `);
 }
 
@@ -85,12 +86,12 @@ switch (command) {
     break;
 
   case 'orchestrator':
-    runScript('orchestrator.sh', args.slice(1));
-    break;
-
   case 'dispatch':
-    runScript('dispatch-agent.sh', args.slice(1));
-    break;
+    console.error(`'${command}' 명령은 v2.3.0에서 제거됐습니다.`);
+    console.error('페르소나 호출은 Claude Code 세션 내 슬래시 커맨드를 사용하세요:');
+    console.error('  /pm  /architect  /dev  /review  /qa  /next');
+    console.error('상세: docs/agents-guide.md');
+    process.exit(1);
 
   case 'labels':
     runScript('setup-labels.sh', args.slice(1));
