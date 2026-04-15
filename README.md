@@ -41,6 +41,32 @@ git clone https://github.com/coseo12/harness-setting.git .harness-plugin
 claude --plugin-dir ./.harness-plugin
 ```
 
+### 업데이트 확인/적용
+
+설치된 harness의 업데이트를 확인하고 적용:
+
+```bash
+# 1. 변경 요약만 보기 (비파괴)
+npx @seo/harness-setting@latest update --check
+
+# 2. 파일별 diff 표시 + 적용 가이드 (자동 쓰기 안 함)
+npx @seo/harness-setting@latest update
+
+# 3. CI/스크립트 등 frozen 카테고리만 자동 덮어쓰기
+npx @seo/harness-setting@latest update --apply-frozen
+
+# 4. 매니페스트 부재 시 — 현재 상태를 baseline으로 박제
+npx @seo/harness-setting@latest update --bootstrap
+```
+
+**Phase B 한계**: 사용자 수정과 패키지 변경이 동시에 발생한 파일(`divergent`)은 **자동 머지하지 않습니다**. 표시된 `diff -u` 명령으로 직접 비교하고 Edit 도구로 머지한 뒤, `harness update --bootstrap` 으로 매니페스트를 갱신하세요.
+
+파일 카테고리:
+- **frozen** (`scripts/`, `.github/workflows/`) — 자동 덮어쓰기 안전
+- **atomic** (스킬/에이전트/커맨드/템플릿) — 사용자 수정 시 충돌
+- **managed-block** (`CLAUDE.md`) — Phase A에서 센티널 블록 도입 예정
+- **user-only** (`.harness/`, `docs/decisions/`, `docs/retrospectives/` 사용자 추가분) — harness가 손대지 않음
+
 ### 셋업 자체 점검
 
 초기화 후 프레임워크 규칙과 구성이 올바른지 확인:

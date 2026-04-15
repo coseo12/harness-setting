@@ -5,6 +5,7 @@ const path = require('node:path');
 const { copyTemplate } = require('../lib/copy-template');
 const { runScript } = require('../lib/run-script');
 const { runDoctor, formatReport } = require('../lib/doctor');
+const updater = require('../lib/update');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -15,6 +16,7 @@ function printUsage() {
 
 Commands:
   init [경로]              새 프로젝트에 harness 프레임워크 초기화
+  update [--check|--bootstrap|--apply-frozen]  업데이트 확인/적용
   doctor                   셋업 규칙 자체 점검 (CRITICAL DIRECTIVES, hook, 브랜치 등)
   validate                 프로젝트 설정 검증
   integrity                문서/설정 정합성 검증
@@ -30,6 +32,21 @@ switch (command) {
     const targetDir = args[1] || '.';
     copyTemplate(targetDir);
     break;
+  }
+
+  case 'update': {
+    const sub = args.slice(1);
+    let result;
+    if (sub.includes('--bootstrap')) {
+      result = updater.bootstrap();
+    } else if (sub.includes('--check')) {
+      result = updater.check();
+    } else {
+      result = updater.update(process.cwd(), { applyFrozen: sub.includes('--apply-frozen') });
+    }
+    if (result.output) console.log(result.output);
+    if (result.message) console.log(result.message);
+    process.exit(result.ok ? 0 : 1);
   }
 
   case 'doctor': {
