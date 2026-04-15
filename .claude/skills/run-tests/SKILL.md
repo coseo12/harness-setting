@@ -113,6 +113,23 @@ UI/마일스톤 종료 시 단순 단위 테스트로는 부족하다. CRITICAL 
 - 개별 verify 스크립트 실패 = 종합 실패 (게이팅)
 - `bench:scene` 등 성능 측정 → baseline 대비 회귀율 비교 (허용 기준은 마일스톤 성격에 따라 동적, 스프린트 계약에 명시)
 
+### fps 벤치마크 — vsync cap 해제 필수 (volt #11)
+
+Playwright/Chromium 헤드리스에서 fps를 측정할 때 vsync cap(60/120Hz)에 걸리면 **모든 시나리오가 동률이 되어 baseline 비교가 무력화**된다. 절대 throughput 가시화를 위해 반드시 launch args에 해제 flag:
+
+```js
+// Chromium launch args
+[
+  '--disable-gpu-vsync',
+  '--disable-frame-rate-limit',
+  '--disable-renderer-backgrounding',
+  '--disable-background-timer-throttling',
+]
+```
+
+증상: 여러 엔진/시나리오가 정확히 120fps(또는 60fps)로 동률 → vsync cap 도달. 의심 즉시 위 flag 추가 재측정.
+근거: https://github.com/coseo12/volt/issues/11
+
 ## E2E 테스트 (UI 프로젝트)
 
 UI가 포함된 프로젝트에서는 단위/통합 테스트 후 **반드시 E2E 테스트를 실행**한다.
