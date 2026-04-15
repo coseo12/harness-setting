@@ -97,7 +97,13 @@ gh issue list -R coseo12/volt --state all --limit 20 \
 - 동일 volt 이슈를 여러 번 반영하지 않도록, 제안 단계에서 harness git log / CLAUDE.md 를 grep 해 **중복 반영 여부를 확인**한다 (예: `git log --all --grep="volt #7"`).
 - 스킵 판정한 이슈는 사용자에게 이유를 함께 제시 — 반영/스킵 결정의 투명성이 다음 리뷰의 기준이 된다.
 
+## 컴파일 규약
+
+승격(volt → CLAUDE.md/스킬) 판단은 `docs/knowledge-compilation.md` 의 결정 트리/승격 기준을 따른다.
+요지: **3회 이상 관찰 또는 재발 시 손실 큰 종류만 행위 규칙으로 박제**. 1회 관찰을 즉시 규칙화 금지.
+
 ## 참고
 
 - volt 저장소: https://github.com/coseo12/volt
 - 캡처는 `capture-volt` 스킬, 반영은 이 스킬로 역할 분리.
+- 컴파일 규약: `docs/knowledge-compilation.md`
