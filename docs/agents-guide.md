@@ -13,12 +13,12 @@
 
 | 명령 | 페르소나 | 입력 | 출력 |
 |---|---|---|---|
-| `/pm` *(Phase 3 예정)* | 적응적 질답 → 스프린트 계약 | 사용자 요구 (모호 가능) | 이슈 본문 = 완료 기준 목록 |
+| `/pm` | 적응적 질답 → 스프린트 계약 | 사용자 요구 (모호 가능) | 이슈 본문 = 완료 기준 목록 |
 | `/architect` | 설계 결정 + ADR | 이슈 + 코드베이스 | 이슈 코멘트 + `docs/decisions/*.md` |
 | `/dev` *(developer.md 기존)* | 구현 | 이슈 + architect 산출 | feature 브랜치 + PR |
 | `/review` | 정적 리뷰 (5축) | PR diff + 이슈 | PR 코멘트 + 라벨 전이 |
 | `/qa` | 동적 검증 (3단계) | PR + 이슈 | PR 코멘트(증거 포함) + 라벨 전이 |
-| `/next` *(Phase 3 예정)* | thin orchestrator | 이슈 라벨 | 정책에 따라 다음 페르소나 추천/호출 |
+| `/next` | thin orchestrator | 이슈 라벨 | 정책에 따라 다음 페르소나 추천/호출 |
 
 ## 라벨 전이 모델
 
@@ -80,8 +80,9 @@ bash scripts/setup-stage-labels.sh owner/repo  # 명시 저장소
 ## 단계적 도입 (Phase)
 
 - **Phase 1** — `/review`, `/qa` + 라벨 + 정책 인프라 ✓
-- **Phase 2 (현재)** — `/architect` + ADR 통합 (record-adr 스킬 호출, force_review_on 트리거)
-- **Phase 3** — `/pm` (적응적 질답) + `/next` (thin orchestrator)
+- **Phase 2** — `/architect` + ADR 통합 ✓
+- **Phase 3 (현재)** — `/pm` (적응적 질답, 명확도 점수) + `/next` (thin orchestrator, 라벨→다음 페르소나)
+- **후속** — doctor 라벨 무결성 점검 강화, 페르소나별 산출물 대시보드
 
 ## 한계 / 알려진 위험
 
