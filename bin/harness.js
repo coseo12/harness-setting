@@ -23,6 +23,7 @@ Commands:
                            --apply-frozen    : frozen 카테고리만
                            --apply-pristine  : 사용자 미수정 파일만
                            --apply-added     : 신규 파일만
+                           --apply-merge     : divergent atomic을 3-way merge로 자동 시도
                            --interactive,-i  : divergent/removed 파일별 결정
                            --dry-run         : 적용 없이 시뮬레이션
   doctor                   셋업 규칙 자체 점검 (CRITICAL DIRECTIVES, hook, 브랜치 등)
@@ -56,6 +57,7 @@ switch (command) {
           applyPristine: sub.includes('--apply-pristine'),
           applyAdded: sub.includes('--apply-added'),
           applyAllSafe: sub.includes('--apply-all-safe'),
+          applyMerge: sub.includes('--apply-merge'),
           interactive: sub.includes('--interactive') || sub.includes('-i'),
           dryRun: sub.includes('--dry-run'),
         });
