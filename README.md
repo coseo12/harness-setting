@@ -49,17 +49,27 @@ claude --plugin-dir ./.harness-plugin
 # 1. 변경 요약만 보기 (비파괴)
 npx @seo/harness-setting@latest update --check
 
-# 2. 파일별 diff 표시 + 적용 가이드 (자동 쓰기 안 함)
-npx @seo/harness-setting@latest update
+# 2. 충돌 없는 모든 변경 자동 적용 (frozen + pristine + added)
+npx @seo/harness-setting@latest update --apply-all-safe
 
-# 3. CI/스크립트 등 frozen 카테고리만 자동 덮어쓰기
-npx @seo/harness-setting@latest update --apply-frozen
+# 3. 카테고리별 세분화 적용
+npx @seo/harness-setting@latest update --apply-frozen     # CI/스크립트만
+npx @seo/harness-setting@latest update --apply-pristine   # 사용자 미수정 파일만
+npx @seo/harness-setting@latest update --apply-added      # 신규 파일만
 
-# 4. 매니페스트 부재 시 — 현재 상태를 baseline으로 박제
+# 4. divergent/removed 파일별 결정 (TTY 필수)
+npx @seo/harness-setting@latest update --interactive
+
+# 5. 적용 없이 시뮬레이션
+npx @seo/harness-setting@latest update --apply-all-safe --dry-run
+
+# 6. 매니페스트 부재 시 — 현재 상태를 baseline으로 박제
 npx @seo/harness-setting@latest update --bootstrap
 ```
 
-**Phase B 한계**: 사용자 수정과 패키지 변경이 동시에 발생한 파일(`divergent`)은 **자동 머지하지 않습니다**. 표시된 `diff -u` 명령으로 직접 비교하고 Edit 도구로 머지한 뒤, `harness update --bootstrap` 으로 매니페스트를 갱신하세요.
+적용 후 매니페스트는 **자동 갱신**됩니다 (별도 `--bootstrap` 불필요).
+
+**Phase C 한계**: `divergent` 파일의 자동 3-way merge는 지원하지 않습니다. `--interactive` 모드에서 [k]eep/[n]ew/[d]iff/[s]kip 중 선택하거나, 표시된 `diff -u` 로 직접 비교 후 Edit 도구로 머지하세요. (Phase A에서 CLAUDE.md 센티널 + 자동 머지 도입 예정.)
 
 파일 카테고리:
 - **frozen** (`scripts/`, `.github/workflows/`) — 자동 덮어쓰기 안전

@@ -16,7 +16,15 @@ function printUsage() {
 
 Commands:
   init [경로]              새 프로젝트에 harness 프레임워크 초기화
-  update [--check|--bootstrap|--apply-frozen]  업데이트 확인/적용
+  update [옵션]            업데이트 확인/적용
+                           --check           : 변경 요약만 (비파괴)
+                           --bootstrap       : 현재 상태를 baseline으로 박제
+                           --apply-all-safe  : frozen + pristine + added 자동 적용
+                           --apply-frozen    : frozen 카테고리만
+                           --apply-pristine  : 사용자 미수정 파일만
+                           --apply-added     : 신규 파일만
+                           --interactive,-i  : divergent/removed 파일별 결정
+                           --dry-run         : 적용 없이 시뮬레이션
   doctor                   셋업 규칙 자체 점검 (CRITICAL DIRECTIVES, hook, 브랜치 등)
   validate                 프로젝트 설정 검증
   integrity                문서/설정 정합성 검증
@@ -36,17 +44,27 @@ switch (command) {
 
   case 'update': {
     const sub = args.slice(1);
-    let result;
-    if (sub.includes('--bootstrap')) {
-      result = updater.bootstrap();
-    } else if (sub.includes('--check')) {
-      result = updater.check();
-    } else {
-      result = updater.update(process.cwd(), { applyFrozen: sub.includes('--apply-frozen') });
-    }
-    if (result.output) console.log(result.output);
-    if (result.message) console.log(result.message);
-    process.exit(result.ok ? 0 : 1);
+    (async () => {
+      let result;
+      if (sub.includes('--bootstrap')) {
+        result = updater.bootstrap();
+      } else if (sub.includes('--check')) {
+        result = updater.check();
+      } else {
+        result = await updater.update(process.cwd(), {
+          applyFrozen: sub.includes('--apply-frozen'),
+          applyPristine: sub.includes('--apply-pristine'),
+          applyAdded: sub.includes('--apply-added'),
+          applyAllSafe: sub.includes('--apply-all-safe'),
+          interactive: sub.includes('--interactive') || sub.includes('-i'),
+          dryRun: sub.includes('--dry-run'),
+        });
+      }
+      if (result.output) console.log(result.output);
+      if (result.message) console.log(result.message);
+      process.exit(result.ok ? 0 : 1);
+    })();
+    break;
   }
 
   case 'doctor': {
