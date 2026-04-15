@@ -61,9 +61,27 @@
 
 | 대안 | 상태 |
 |---|---|
-| **파일 분리** (이 문서) | ✅ 즉시 적용, 구조적 차단 |
-| managed-block 센티널 YAML 지원 | ❌ 현재 CLAUDE.md만 지원 — harness 개선 필요 |
-| `.harnessignore` 선언적 오버라이드 | ❌ 현재 `lib/categorize.js` 미지원 — harness 개선 후보 |
+| **파일 분리 + `.harnessignore`** (권장) | ✅ v2.5.0부터 지원. 선언적 제외 |
+| **파일 분리 + manifest 수동 편집** | ✅ 이전 방식, 여전히 유효하나 번거로움 |
+| managed-block 센티널 YAML 지원 | ❌ 현재 CLAUDE.md만 지원 — 후속 개선 후보 |
+
+## `.harnessignore` 사용법 (v2.5.0+)
+
+프로젝트 루트에 `.harnessignore` 파일을 두면 매칭 패턴이 **manifest 추적에서 제외**된다. gitignore 스타일(glob + `#` 주석).
+
+```
+# .harnessignore
+# 프로젝트 고유 워크플로는 harness 업데이트 대상 아님
+.github/workflows/ci-physics-wasm.yml
+.github/workflows/ci-*.yml
+
+# 프로젝트별 스크립트 디렉토리
+scripts/project-*/
+```
+
+- `harness update --check` 출력에서 노이즈(added/removed)로 잡히지 않음
+- 기존 manifest에 포함된 파일이 새로 ignore 되면 `harness update --bootstrap` 으로 manifest 재생성하면 자동 제거됨
+- 지원 문법: `*`, `**`, `?`, 디렉토리 접미사 `/`, `#` 주석. 미지원: `!` 네거티브(필요 시 후속)
 
 후속 harness 개선 제안은 별도 이슈로 논의.
 
