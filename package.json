@@ -9,12 +9,9 @@
     "bin/",
     "lib/",
     ".claude/",
-    ".claude-plugin/",
     ".github/",
     "docs/",
-    "agents",
-    "skills",
-    "plugins/",
+    "scripts/",
     "CLAUDE.md",
     "README.md"
   ],

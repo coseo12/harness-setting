@@ -28,17 +28,10 @@ CLAUDE.md                          # 워크플로우 규칙 + 실전 교훈
 
 ## 시작하기
 
-### 방법 1. npx 설치 (파일 복사)
+### 설치 (npx)
 
 ```bash
 npx @seo/harness-setting init ./my-project
-```
-
-### 방법 2. 플러그인으로 사용 (파일 복사 없이)
-
-```bash
-git clone https://github.com/coseo12/harness-setting.git .harness-plugin
-claude --plugin-dir ./.harness-plugin
 ```
 
 ### 업데이트 확인/적용
@@ -107,8 +100,9 @@ npx @seo/harness-setting doctor
 
 ## 커스터마이징
 
-- **규칙 수정**: `CLAUDE.md` 편집
-- **에이전트 수정**: `.claude/agents/developer.md` 편집
+- **규칙 수정**: `CLAUDE.md` 편집 (센티널 외부는 자유 영역, 내부는 update 시 갱신됨)
+- **에이전트 수정**: `.claude/agents/<이름>.md` 편집
 - **스킬 추가**: `.claude/skills/<스킬명>/SKILL.md` 형식으로 추가
+- **슬래시 커맨드 추가**: `.claude/commands/<이름>.md` 형식으로 추가
 
-> 플러그인 방식 사용 시: 프로젝트 `.claude/agents/`에 동일 이름 파일을 생성하면 플러그인 에이전트를 오버라이드할 수 있다.
+설치 후 모든 파일은 사용자 소유. 업데이트는 `harness update` 의 카테고리별 정책으로 안전하게 반영한다.
