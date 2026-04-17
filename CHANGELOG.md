@@ -7,6 +7,25 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.7.2] — 2026-04-18
+
+volt [#27](https://github.com/coseo12/volt/issues/27) 반영 — 매니페스트 기반 패키지 관리자 부분 실패 교착 복구 교훈 박제.
+
+### Added
+
+- **CLAUDE.md 실전 교훈** "매니페스트 최신 ≠ 파일 적용 완료" 섹션 — `harness update --apply-all-safe` 가 lint-staged 부분 실패와 연쇄될 때 `.harness/manifest.json` 은 최신 해시로 기록되지만 파일은 롤백되어 재시도가 스킵되는 **복구 불가능한 교착 상태** 와 즉시 복구 스니펫을 박제. 선행 원인 volt [#13](https://github.com/coseo12/volt/issues/13) 과 연결.
+- Gemini cross-validate 피드백 반영 — 복구 스니펫에 `git log --oneline --merges -n 5` 로 이전 머지 커밋 해시를 찾는 법 주석 추가.
+
+### Behavior Changes
+
+- None — 문서/교훈만. 에이전트 자동 행동 변화 없음. 사용자 복구 루틴 가이드 문서화.
+- harness 코드 레벨 원자성 개선(manifest 갱신 시점 재설계)은 별개 설계 이슈 [#89](https://github.com/coseo12/harness-setting/issues/89) 로 분리.
+
+### Notes
+
+- 스킵한 volt 이슈: #8 (harness 가 원본), #9 #10 #16 #19 #20 #25 (Babylon/WGSL/WebGPU 도메인), #18 (앱 bench 도메인), #22 (이미 v2.6.2/v2.6.3 에 반영)
+- 근거: volt [#27](https://github.com/coseo12/volt/issues/27) (PR [#90](https://github.com/coseo12/harness-setting/pull/90))
+
 ## [2.7.1] — 2026-04-18
 
 `cross_validate.sh` 한국어 로그 메시지 U+FFFD 복구 ([#87](https://github.com/coseo12/harness-setting/issues/87)).
