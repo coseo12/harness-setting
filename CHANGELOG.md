@@ -2,6 +2,22 @@
 
 이 파일은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 포맷을 따르며, 버전은 [Semantic Versioning](https://semver.org/lang/ko/) 을 사용한다.
 
+## [2.6.2] — 2026-04-17
+
+SemVer 분류 기준 명시 — 문서/규약 추가는 PATCH 로 확정.
+
+### Changed
+
+- **SemVer 분류 기준 명시** (CLAUDE.md 릴리스 섹션)
+  - MAJOR/MINOR/PATCH 각 범주의 구체적 예시 명시
+  - 볼트 반영/규약 추가는 기본 **PATCH** 로 확정
+  - "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 공식 폐기 — 패치성 변경 누적 시 과도한 버전 상승 유발
+
+### Notes
+
+- Backward compatible — 문서/규약만, 코드 동작 변화 없음
+- 새 기준의 첫 적용 릴리스 (정책 변경 자체도 PATCH)
+
 ## [2.6.1] — 2026-04-17
 
 volt #21 반영 — 신규 함수 작성 전 기존 유사 함수 탐색 규칙 추가.
