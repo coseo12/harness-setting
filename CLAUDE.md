@@ -135,7 +135,8 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
 - 증상: `harness update --apply-all-safe` 재실행이 롤백된 파일을 "사용자 임의 수정"으로 간주해 건너뜀
 - 즉시 복구: 이전 머지 커밋에서 `.harness/manifest.json` 을 복구 후 재-apply
   ```bash
-  git checkout <이전-머지-커밋> -- .harness/manifest.json
+  # 이전 머지 커밋 찾기: git log --oneline --merges -n 5
+  git checkout <이전-머지-커밋-해시> -- .harness/manifest.json
   npx github:coseo12/harness-setting update --apply-all-safe
   # 롤백된 파일이 다시 pristine 으로 감지되어 재적용됨
   ```
