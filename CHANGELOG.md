@@ -2,6 +2,21 @@
 
 이 파일은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 포맷을 따르며, 버전은 [Semantic Versioning](https://semver.org/lang/ko/) 을 사용한다.
 
+## [2.6.1] — 2026-04-17
+
+volt #21 반영 — 신규 함수 작성 전 기존 유사 함수 탐색 규칙 추가.
+
+### Added
+
+- **신규 함수 ≠ 신규 구현** (volt [#21](https://github.com/coseo12/volt/issues/21))
+  - CLAUDE.md 실전 교훈 섹션에 편향 경고 + 대응 절차 (Grep / `index.ts` export 훑기 / sunk cost 경계)
+  - developer 에이전트 워크플로에 "기존 유사 함수 사전 탐색" 단계 주입 (번호 재정렬)
+
+### Notes
+
+- Backward compatible — 문서/규약 추가만, 코드 동작 변화 없음
+- 스킵: volt #4 #5 #6 #8 #9 #10 #16 #18 #19 #20 — 프로젝트별 도메인 지식 또는 harness 기보유 콘텐츠
+
 ## [2.6.0] — 2026-04-16
 
 volt #14 #15 #17 반영 — 에이전트 편향/벤치 함정/Stack PR 함정 가드 추가.
