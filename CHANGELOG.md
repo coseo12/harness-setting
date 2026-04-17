@@ -7,6 +7,31 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.6.3] — 2026-04-17
+
+Gemini 교차검증 리포트 반영 — SemVer 정책 세분화.
+
+### Changed
+
+- **CLAUDE.md `### 릴리스` 세분화**
+  - 에이전트 지시어·스킬 절차·체크리스트의 행동 변화는 **MINOR** 로 승격 (기존 일괄 PATCH 에서 분리)
+  - PATCH 는 "행동 변화 없는 문서/문구/오타/버그 수정" 으로 한정
+  - 판정 질문 추가: "이 변경으로 에이전트가 같은 입력에 다르게 동작하는가?"
+- **CHANGELOG 작성 규칙**
+  - MINOR/MAJOR 는 `### Behavior Changes` 섹션 필수
+  - PATCH 도 frozen 파일(`.claude/`) 변경 시 `Behavior Changes: None — 문서/문구만` 명시 → 자동 업데이트 신뢰 모델 보호
+- **README/CHANGELOG 상단 NOTICE** 블록 추가 — v2.6.2 정책 전환 소급 공지
+
+### Behavior Changes
+
+- **None — 문서/정책만**. 본 릴리스는 정책 문서만 갱신하며 에이전트·스킬의 실행 절차 자체는 변경 없음.
+- 다음 릴리스부터 버전 분류가 새 기준으로 적용된다. 에이전트 지시어 변경이 포함된 커밋은 MINOR 로 올라가므로 체감상 마이너 버전 주기가 짧아질 수 있다.
+
+### Notes
+
+- Backward compatible
+- 근거: Gemini 교차검증 피드백 (harness-setting PR #83)
+
 ## [2.6.2] — 2026-04-17
 
 SemVer 분류 기준 명시 — 문서/규약 추가는 PATCH 로 확정.
