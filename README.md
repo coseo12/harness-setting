@@ -3,6 +3,11 @@
 1인 개발자-AI 페어 프로그래밍에 최적화된 Claude Code 워크플로우 템플릿.
 실전 프로젝트(portfolio-26, simple-shop 등) 경험에서 추출한 규칙과 교훈을 포함한다.
 
+> **NOTICE — 버저닝 정책 변경 (v2.6.2~)**
+>
+> "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 를 폐기하고 SemVer 분류 기준을 재정의했다. v2.6.3 에서 한 번 더 세분화되어 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화가 없는 문서/문구/오타는 PATCH** 로 분기한다.
+> MINOR/MAJOR 릴리스는 `CHANGELOG.md` 의 `### Behavior Changes` 섹션에서 `harness update` 후 관찰 가능한 행동 변화를 명시한다. 자세한 규칙은 [CLAUDE.md `### 릴리스`](CLAUDE.md) 섹션 참조.
+
 ## 구조
 
 ```

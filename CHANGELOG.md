@@ -2,6 +2,11 @@
 
 이 파일은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 포맷을 따르며, 버전은 [Semantic Versioning](https://semver.org/lang/ko/) 을 사용한다.
 
+> **NOTICE — 버저닝 정책 변경 (v2.6.2~)**
+>
+> "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
+> 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
+
 ## [2.6.2] — 2026-04-17
 
 SemVer 분류 기준 명시 — 문서/규약 추가는 PATCH 로 확정.
