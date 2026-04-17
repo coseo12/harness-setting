@@ -7,6 +7,18 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.7.1] — 2026-04-18
+
+`cross_validate.sh` 한국어 로그 메시지 U+FFFD 복구 ([#87](https://github.com/coseo12/harness-setting/issues/87)).
+
+### Fixed
+
+- **`.claude/skills/cross-validate/scripts/cross_validate.sh:65`** — `시` + `U+FFFD × 3` → `시도` 복구. RESOURCE_EXHAUSTED 재시도 로그 메시지의 의미 깨짐을 해소.
+
+### Behavior Changes
+
+- None — 문구/인코딩만. 로그 출력 문자열만 교체되며 에이전트/스킬 동작 로직 변화 없음. `atomic` 카테고리 파일이라 다음 `harness update` 때 다운스트림에 자동 반영된다.
+
 ## [2.7.0] — 2026-04-18
 
 volt #23 #24 #26 반영 — cross-validate 박제 후 루틴 + sub-agent 마무리 체크리스트 + ADR 변형 박제.
