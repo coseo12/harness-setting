@@ -24,6 +24,18 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
 9. 커밋 (컨벤션 준수)
 10. **커밋 후 검증** — `git show --stat HEAD` 또는 `git diff <base> HEAD -- <예상 파일>` 로 의도한 파일이 실제로 반영됐는지 확인. lint-staged `[FAILED]` 출력 시 필수 (volt #13)
 11. PR 생성
+12. **마무리 체크리스트 JSON 반환** — sub-agent 종료 전 반드시 아래 필드를 포함한 JSON을 반환한다. 누락 field 는 `null` 로 명시 (생략 금지). 메인 오케스트레이터가 GitHub 상태와 대조 검증한다 (volt #24)
+    ```json
+    {
+      "commit_sha": "abc1234",
+      "pr_url": "https://github.com/.../pull/123",
+      "branch": "feature/...",
+      "files_changed": ["path/a", "path/b"],
+      "tests": {"passed": 12, "failed": 0},
+      "browser_verified_levels": [1, 2, 3],
+      "remaining_todos": []
+    }
+    ```
 
 ## 브라우저 검증 (UI 포함 이슈 필수)
 

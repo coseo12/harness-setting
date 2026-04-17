@@ -69,6 +69,26 @@ gh pr checkout <PR번호>
 - 통과: `gh pr edit --remove-label "stage:qa" --add-label "stage:done"`
 - 차단: `gh pr edit --remove-label "stage:qa" --add-label "stage:dev"` + 차단 사유 코멘트
 
+## 마무리 체크리스트 JSON 반환 (필수)
+
+sub-agent 종료 전 반드시 아래 JSON을 반환한다. 메인 컨텍스트 구두 보고만으로 종료 금지 — **PR 본문 박제**가 QA 산출의 SSoT. 누락 시 메인이 직접 박제 후 본 에이전트를 감점 처리 (volt #24).
+
+```json
+{
+  "pr_url": "https://github.com/.../pull/123",
+  "pr_comment_url": "https://github.com/.../pull/123#issuecomment-...",
+  "label_transition": {"from": "stage:qa", "to": "stage:done"},
+  "build_ok": true,
+  "tests": {"passed": 12, "failed": 0},
+  "browser_levels_passed": [1, 2, 3],
+  "contract_unmet": [],
+  "verdict": "pass"
+}
+```
+
+- `pr_comment_url` 이 `null` 이면 **박제 누락** — 종료 금지, `gh pr comment <번호>` 재실행
+- `verdict` 가 `"block"` 이면 `contract_unmet` 에 실패 기준을 나열하고 원인+수정점 명시
+
 ## 자가 점검
 
 - ❌ "스크린샷 = 동작 증거"가 아님 (Level 1만으로 통과 금지)
