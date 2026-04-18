@@ -11,16 +11,18 @@ description: |
 
 구현 완료된 feature 브랜치에서 develop 브랜치로의 PR을 생성한다.
 
-## Base 선택 (gitflow)
+## Base 선택 + 머지 방식 (gitflow)
 
-| PR 타입 | base | head | 비고 |
-|---|---|---|---|
-| 일반 feature/fix | `develop` | `feature/*` 또는 `fix/*` | **기본값** — 99% 의 PR 이 이 형태 |
-| Release PR | `main` | `develop` | develop 의 누적 변경을 릴리스 시점에 main 에 1회 머지 |
-| Hotfix PR | `main` | `hotfix/*` | prod 긴급 패치. 머지 직후 merge-back PR 별도 생성 의무 |
-| Hotfix merge-back | `develop` | `main` | hotfix 머지 직후 동기화 전용 |
+| PR 타입 | base | head | 머지 방식 | 비고 |
+|---|---|---|---|---|
+| 일반 feature/fix | `develop` | `feature/*` 또는 `fix/*` | `--squash` | **기본값** — 99% 의 PR 이 이 형태 |
+| Release PR | `main` | `develop` | **`--merge` (merge commit)** | `--squash` 금지. merge-back 원천 방지 (ADR 20260419-release-merge-strategy) |
+| Hotfix PR | `main` | `hotfix/*` | `--squash` 또는 `--merge` | prod 긴급 패치. 머지 직후 merge-back PR 별도 생성 의무 |
+| Hotfix merge-back | `develop` | `main` | `--merge` | hotfix 머지 직후 동기화 전용 |
 
-**금지**: 일반 feature/fix PR 의 `base=main`. 과거 dual PR drift 재발 방지 (ADR 20260419).
+**금지**:
+- 일반 feature/fix PR 의 `base=main` — 과거 dual PR drift 재발 방지 (ADR 20260419-gitflow-main-develop)
+- Release PR 의 `--squash` 머지 — develop drift 유발 (v2.13.0 에서 관찰, v2.14.0 에서 merge commit 으로 전환)
 
 ## 절차
 
