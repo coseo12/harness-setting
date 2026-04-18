@@ -7,6 +7,31 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.10.0] — 2026-04-18
+
+harness [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 2 — `harness doctor` 해시 정합성 리포트가 **`previousSha256` 매치 건을 "외부 롤백 의심"** 으로 별도 분류. managed-block 센티널 외부 편집 오탐 방지 계약을 회귀 가드 테스트로 박제.
+
+### Added
+
+- **doctor 해시 정합성 분류 세분화** — 기존 단일 warn 항목을 다음과 같이 3분기:
+  - **"매니페스트 해시 정합성 — 외부 롤백 의심"** — `actual === previousSha256` 매치. `--apply-all-safe` 로 자가 복구 가능함을 안내
+  - **"매니페스트 해시 정합성 — 기타"** — 분류 불가능한 불일치(사용자 수정 또는 근원 불명). `update --check` 안내
+  - 단일 카테고리만 있는 경우 subtitle 생략하여 가독성 유지
+- **sentinels.managedSha256 불변성 테스트** (`test/sentinels-invariance.test.js`) — 센티널 외부 편집이 해시에 영향을 주지 않음을 3케이스로 가드. managed-block 카테고리 파일의 외부 편집이 post-apply 검증/doctor 정합성에서 오탐을 일으키지 않는 계약을 박제.
+- **`lib/update.js` post-apply 검증 계약 주석 보강** — merge/delete 스킵 조건과 managed-block 오탐 방지 원리를 코드 옆에 박제.
+
+### Behavior Changes
+
+- `harness doctor` 가 매니페스트 해시 정합성 결과를 외부 롤백 의심 / 기타 / 파일 누락으로 분리 리포트
+- 외부 롤백 의심 항목은 "`harness update --apply-all-safe` 로 자가 복구 가능" 안내 문구 포함
+- 기타 분기는 기존과 동일 동작 (사용자 수정 케이스)
+
+### Notes
+
+- **merge type 스킵 경로 테스트**는 `applyMerge` 의 `git show v<version>:<rel>` 의존성으로 단위 테스트 구축 비용이 높아 이번 릴리스에서 제외. 대신 `lib/update.js:400` 에 계약을 주석으로 박제하여 회귀 가드 역할을 분담. 필요 시 후속 이슈로 fixture git repo 기반 통합 테스트를 다룰 수 있음.
+- 이슈 [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 2 완료 기준 3개 중 2개 충족 + 1개는 주석 계약으로 대체.
+- 근거: harness [#92](https://github.com/coseo12/harness-setting/issues/92) (#89 교차검증 지적 반영)
+
 ## [2.9.0] — 2026-04-18
 
 harness [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 1 — 매니페스트 `previousSha256` 필드 도입으로 **커밋 시점 외부 롤백의 자가 복구**. v2.8.0 의 post-apply 게이트가 잡지 못하던 timing (lint-staged pre-commit 훅 롤백) 을 `harness update --check` 가 스스로 분류한다.

@@ -114,3 +114,73 @@ test('doctor: 매니페스트에 기록된 파일이 디스크에 없으면 warn
     cleanup(cwd);
   }
 });
+
+test('doctor: previousSha256 매치 시 "외부 롤백 의심" 별도 항목으로 분류 (Phase 2)', () => {
+  const cwd = makeTmpCwd('rollback-classify');
+  try {
+    seedMinimalProject(cwd);
+    const targetRel = 'docs/fixture.md';
+    fs.mkdirSync(path.join(cwd, 'docs'), { recursive: true });
+    const rolledBackContent = '# old (rolled back)\n';
+    fs.writeFileSync(path.join(cwd, targetRel), rolledBackContent);
+
+    writeManifest(cwd, {
+      harnessVersion: '0.0.1',
+      installedAt: '2020-01-01T00:00:00Z',
+      files: {
+        [targetRel]: {
+          sha256: shaOf('# new upstream\n'),
+          previousSha256: shaOf(rolledBackContent),
+          category: 'pristine',
+        },
+      },
+    });
+
+    const report = runDoctor(cwd);
+    const rollback = report.items.find((i) => i.name === '매니페스트 해시 정합성 — 외부 롤백 의심');
+    assert.ok(rollback, '외부 롤백 의심 항목이 별도로 표시돼야 함');
+    assert.strictEqual(rollback.status, 'warn');
+    assert.match(rollback.detail, /1건 \(previousSha256 매치\)/);
+    assert.match(rollback.detail, /자가 복구 가능/);
+
+    // 기타 항목은 없어야 함
+    const other = report.items.find((i) => i.name === '매니페스트 해시 정합성 — 기타');
+    assert.strictEqual(other, undefined, '분류 안 된 불일치는 없어야 함');
+  } finally {
+    cleanup(cwd);
+  }
+});
+
+test('doctor: 롤백 + 사용자 수정 혼재 시 두 항목 모두 warn', () => {
+  const cwd = makeTmpCwd('mixed');
+  try {
+    seedMinimalProject(cwd);
+    fs.mkdirSync(path.join(cwd, 'docs'), { recursive: true });
+    // 파일 A: 외부 롤백 (previousSha256 매치)
+    const relA = 'docs/a.md';
+    const rolledA = '# old A\n';
+    fs.writeFileSync(path.join(cwd, relA), rolledA);
+    // 파일 B: 사용자 수정 (아무 해시와도 매치 안 됨)
+    const relB = 'docs/b.md';
+    fs.writeFileSync(path.join(cwd, relB), '# user edited B\n');
+
+    writeManifest(cwd, {
+      harnessVersion: '0.0.1',
+      installedAt: '2020-01-01T00:00:00Z',
+      files: {
+        [relA]: { sha256: shaOf('# new A\n'), previousSha256: shaOf(rolledA), category: 'pristine' },
+        [relB]: { sha256: shaOf('# new B\n'), previousSha256: shaOf('# old B\n'), category: 'pristine' },
+      },
+    });
+
+    const report = runDoctor(cwd);
+    const rollback = report.items.find((i) => i.name === '매니페스트 해시 정합성 — 외부 롤백 의심');
+    const other = report.items.find((i) => i.name === '매니페스트 해시 정합성 — 기타');
+    assert.ok(rollback);
+    assert.ok(other);
+    assert.match(rollback.detail, /1건/);
+    assert.match(other.detail, /해시 불일치 1건/);
+  } finally {
+    cleanup(cwd);
+  }
+});
