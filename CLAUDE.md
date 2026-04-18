@@ -48,24 +48,29 @@ develop
 ```
 develop   (충분히 쌓이면)
    ↓ 단일 release PR (base=main, head=develop)
+   ↓ merge commit 방식으로 머지 — gh pr merge <PR> --merge
 main   ← 머지 + 태그 + gh release create
 ```
 - release PR 본문에 CHANGELOG 범위, Behavior Changes, 태그 계획 명시
+- **release PR 은 반드시 `--merge` (merge commit) 방식으로 머지** — `--squash` 금지. squash 로 머지하면 main 에 새 커밋이 생겨 develop 과 diverge 하며 매 릴리스마다 merge-back PR 이 강제된다. merge commit 은 main tip 이 develop tip 을 직계 조상으로 포함하게 하여 **merge-back 이 불필요**해진다. 결정 근거: [ADR 20260419-release-merge-strategy](docs/decisions/20260419-release-merge-strategy.md)
 - **dual PR 재발 방지**: feature/fix PR 은 `base=main` 을 사용하지 않는다 (PR 템플릿 가드)
 
 **3. 핫픽스 (prod 이슈)**
 ```
 hotfix/99-critical   (main 에서 분기)
-   ↓ PR (base=main)
+   ↓ PR (base=main, squash 또는 merge commit 가능)
 main   ← 머지 + 태그 vX.Y.Z+1
    ↓ 즉시 merge-back PR (base=develop, head=main)
 develop   ← 동기화 유지 (누락 시 drift)
 ```
+- hotfix 는 release 경로를 우회하므로 main 이 develop 보다 앞서게 되어 **merge-back 필수**. 이 경우만 merge-back PR 로 develop 을 동기화
+- merge commit 으로 release 를 해온 정상 운영에서는 hotfix 빈도가 적으므로 merge-back 오버헤드도 최소
 
 ### drift 감지
 - `harness doctor` 의 "gitflow 브랜치 정합성" 항목이 `origin/main` vs `origin/develop` 커밋 격차를 점검한다
-- 경고 조건: (a) `develop < main` 상태 (hotfix merge-back 누락 신호), (b) 둘 사이에 공통 조상이 없거나 fetch 실패
+- 경고 조건: `develop < main` 상태 (hotfix merge-back 누락 신호 — release PR 을 merge commit 으로 처리하면 원칙적으로 발생하지 않음)
 - 정상: `develop` 이 `main` 보다 앞섬 (다음 릴리스 대기) 또는 동일 커밋 (릴리스 직후)
+- 경고가 release 직후에 발생하면 **release PR 을 실수로 `--squash` 로 머지** 했을 가능성. `git show main --format=%P | wc -w` 로 merge commit 여부 확인 (2 이면 merge commit, 1 이면 squash)
 
 ## 커밋 컨벤션
 ```

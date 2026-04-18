@@ -7,6 +7,33 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.14.0] — 2026-04-19
+
+Release PR merge 전략 전환 — `--merge` (merge commit) 로 고정하여 매 릴리스마다 강제되던 merge-back PR 을 원천 제거. v2.13.0 (#102) 에서 관찰한 "release 1회 = 3 PR + doctor drift 경고" 구조의 근본 해결. 후속 이슈 [#104](https://github.com/coseo12/harness-setting/issues/104) 해결.
+
+### Added
+
+- **`docs/decisions/20260419-release-merge-strategy.md` ADR** — 옵션 A (merge commit) / B (Action 자동화) / C (현재 유지) 비교 + merge commit 선택 근거 + 재검토 조건 (squash 실수 머지 3회 누적, 또는 대형 stabilization window 필요 시 옵션 재고).
+- **CLAUDE.md 릴리스 워크플로 업데이트** — release PR 에 `gh pr merge <PR> --merge` 사용 명시. `--squash` 금지 + 원리 설명 (main tip 이 develop tip 을 직계 조상으로 포함 → drift 원천 제거). drift 감지 섹션에 "squash 실수 머지" 힌트 추가 (`git show main --format=%P | wc -w` 로 부모 커밋 수 확인).
+- **PR 템플릿 Release PR 섹션 업데이트** — "`gh pr merge <PR> --merge` 로 머지, `--squash` 절대 사용 금지" 체크박스 추가 (ADR 근거 인라인).
+- **`.claude/skills/create-pr/SKILL.md` Base 선택 표 확장** — 머지 방식 컬럼 추가 (일반 feature/fix=squash, Release=merge commit, Hotfix=squash 또는 merge commit, Hotfix merge-back=merge commit). 금지 규칙에 "Release PR 의 squash 머지 금지" 명시.
+- **`harness doctor` drift 경고 문구 세분화** — "hotfix merge-back 누락" + "release PR 직후라면 `--squash` 로 실수 머지한 가능성" + 복구 방법 (merge-back PR 또는 release revert+재머지) 안내.
+
+### Behavior Changes
+
+- Release PR 은 **반드시 `--merge` (merge commit) 방식으로 머지**된다 (이전: `--squash` 사용으로 매 릴리스 drift 발생)
+- Release 후 merge-back PR 이 **불필요**해진다 — main tip 이 develop tip 을 직계 조상으로 포함 (이전: 매 릴리스 1회 sync-only PR 강제)
+- `harness doctor` 의 gitflow drift 경고 문구가 hotfix 누락과 release squash 실수를 구분 안내 (이전: 두 원인이 동일 메시지)
+- `create-pr` 스킬이 PR 타입별 머지 방식을 명시적으로 안내 (이전: 일반 feature/fix 기준 squash 만 안내)
+
+### Notes
+
+- **후속 이슈 해결**: [#104](https://github.com/coseo12/harness-setting/issues/104) 본 PR 로 close. [#106](https://github.com/coseo12/harness-setting/issues/106) 은 release merge-back 이 사라지므로 용어 일반화 불필요 — close 예정.
+- **후속 이슈 유지**: [#105](https://github.com/coseo12/harness-setting/issues/105) (drift 로직 unrelated histories 방어) 는 merge commit 전환과 독립 — 별도 처리. [#107](https://github.com/coseo12/harness-setting/issues/107) 은 Gemini API 복구 후 재시도.
+- **본 릴리스 자체가 새 전략의 첫 적용 사례** — release PR 을 `gh pr merge --merge` 로 머지. 기존 v2.13.0 squash merge 기전의 정반대로 첫 실 운영.
+- 재검토 조건: 6개월 후 (2026-10-19) 1인 + AI 운영에서 실수로 squash 머지한 사례가 3회 이상이면 옵션 B (Action 자동화) 재고.
+- 근거: ADR [20260419-release-merge-strategy.md](docs/decisions/20260419-release-merge-strategy.md), 상위 gitflow 결정 [20260419-gitflow-main-develop.md](docs/decisions/20260419-gitflow-main-develop.md)
+
 ## [2.13.0] — 2026-04-19
 
 gitflow 복원 — `main=배포 / develop=개발` 정석 워크플로로 전환. v2.12.0 이전 dual PR 변형 + 고빈도 작업 압박으로 develop 이 56 커밋 뒤처지는 drift 를 놓친 사례([ADR 20260419](docs/decisions/20260419-gitflow-main-develop.md))의 재발 방지. `harness doctor` 가 main vs develop 격차를 자동 점검한다.

@@ -35,6 +35,7 @@ PR 타입에 맞는 한 줄만 체크. `base=main` 은 release/hotfix PR 만 허
 - [ ] CHANGELOG `[vX.Y.Z]` entry 작성 (Added / Behavior Changes / Notes)
 - [ ] `package.json` version bump
 - [ ] 태그 계획: `vX.Y.Z` (SemVer 분류 근거 명시)
+- [ ] **`gh pr merge <PR> --merge` (merge commit) 로 머지** — `--squash` 절대 사용 금지 (develop drift 유발, ADR 20260419-release-merge-strategy)
 - [ ] 머지 후 `git tag vX.Y.Z` + `gh release create` 수행 예정
 
 ### Hotfix PR 전용 (base=main, head=hotfix/*)
