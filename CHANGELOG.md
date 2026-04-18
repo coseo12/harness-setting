@@ -7,6 +7,36 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.13.0] — 2026-04-19
+
+gitflow 복원 — `main=배포 / develop=개발` 정석 워크플로로 전환. v2.12.0 이전 dual PR 변형 + 고빈도 작업 압박으로 develop 이 56 커밋 뒤처지는 drift 를 놓친 사례([ADR 20260419](docs/decisions/20260419-gitflow-main-develop.md))의 재발 방지. `harness doctor` 가 main vs develop 격차를 자동 점검한다.
+
+### Added
+
+- **CLAUDE.md 브랜치 전략 섹션 재작성** — 4개 브랜치 역할 표(`main` / `develop` / `feature/*` / `fix/*` / `hotfix/*`) + 워크플로 3단계(일상 개발 / 릴리스 / 핫픽스) + drift 감지 규칙 명시.
+- **CLAUDE.md 금지 사항 2줄 추가** — (a) feature/fix PR 의 `base=main` 금지 (release/hotfix 만 허용), (b) hotfix 머지 후 `main → develop` merge-back 누락 금지.
+- **`docs/decisions/20260419-gitflow-main-develop.md` ADR** — 과거 dual PR drift 타임라인 분석(PR #37~#99), 후보 A/B/C 비교, 결정 근거, 재검토 조건 박제.
+- **`.github/PULL_REQUEST_TEMPLATE.md` Base 확인 가드** — 4종 PR 타입 체크박스(일반 / release / hotfix / merge-back) + release/hotfix 전용 섹션(CHANGELOG / 태그 계획 / merge-back PR 링크).
+- **`harness doctor` — "gitflow 브랜치 정합성" 항목** — `origin/main` vs `origin/develop` 커밋 격차로 drift 조기 탐지. main 이 develop 보다 앞서면 warn (hotfix merge-back 누락 또는 release squash 미동기화 의심). pure function `classifyGitflowDrift(mainAhead, devAhead)` 로 분리해 단위 테스트 6건 커버.
+- **`.claude/skills/create-pr/SKILL.md` Base 선택 표** — 4종 PR 타입별 base/head 조합 명시 + `base=main` 사용 시 release/hotfix PR 인지 재확인 규칙.
+
+### Behavior Changes
+
+- 모든 신규 feature/fix PR 은 `base=develop` 을 사용한다 (이전: dual PR 또는 `base=main` 혼재)
+- 릴리스는 `develop → main` 단일 release PR 로 수행 (이전: feature 별 `base=main` 직접 PR)
+- hotfix 는 `main` 에서 분기 → `base=main` PR → 머지 직후 `main → develop` merge-back PR 생성이 의무 (이전: 핫픽스 프로세스 미정의)
+- `harness doctor` 가 매 실행마다 `main` vs `develop` 격차를 점검하여 drift 조기 경보 (이전: 점검 없음 — 6일 drift 를 브랜치 정리 중 수동 발견)
+- `create-pr` 스킬이 base 선택 시 일반/release/hotfix 를 구분 안내하며, `base=main` 시도 시 release/hotfix 확인을 명시적으로 수행 (이전: `--base develop` 하드코딩)
+- PR 템플릿이 체크박스 형태로 PR 타입을 선언하도록 요구하여 dual PR 재발 시 구조적 감지 가능 (이전: 체크 부재)
+
+### Notes
+
+- 본 PR 이 새 워크플로의 첫 적용 사례 — `base=develop` 으로 머지 후 즉시 `develop → main` release PR 로 v2.13.0 태그 발행.
+- 재검토 조건: develop 이 6개월 이상 main 과 동일 해시를 유지하면 main-only (trunk-based) 전환을 재고 (2026-10-19 1차 리뷰).
+- 과거 drift 타임라인: PR #37~#58 dual PR 시기 → PR #59~#99 develop 방치 → v2.12.0 (#99) 릴리스 후 발견 → 본 PR 복원.
+- 테스트 22 → 28 (+6 drift 분류 테스트).
+- 근거: ADR [20260419-gitflow-main-develop.md](docs/decisions/20260419-gitflow-main-develop.md), 타임라인 분석은 ADR 본문 참조.
+
 ## [2.12.0] — 2026-04-18
 
 volt [#30](https://github.com/coseo12/volt/issues/30) / [#32](https://github.com/coseo12/volt/issues/32) / [#33](https://github.com/coseo12/volt/issues/33) / [#35](https://github.com/coseo12/volt/issues/35) 반영 — Phase 분리 릴리스 리듬 + 수치 DoD 미달 시 측정법 우선 + headless 3D/WebGPU 부분 freeze 대응 + 다운스트림 prettier drift 경계를 에이전트 행동 규칙·교훈으로 박제.
