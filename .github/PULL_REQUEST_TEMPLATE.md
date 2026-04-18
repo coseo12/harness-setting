@@ -3,6 +3,13 @@
 ### 변경 사항
 -
 
+### 브랜치 / Base 확인 (gitflow)
+PR 타입에 맞는 한 줄만 체크. `base=main` 은 release/hotfix PR 만 허용 (CLAUDE.md 금지 사항).
+- [ ] **일반 feature/fix**: `base=develop`, `head=feature/*` 또는 `fix/*`
+- [ ] **Release PR**: `base=main`, `head=develop` (CHANGELOG 범위 + 태그 계획 하단 release 섹션에 기재)
+- [ ] **Hotfix PR**: `base=main`, `head=hotfix/*` (머지 직후 `main → develop` merge-back PR 생성 의무)
+- [ ] **Hotfix merge-back**: `base=develop`, `head=main` (hotfix 직후 동기화 전용)
+
 ### 스프린트 계약
 - [ ] 구현 전 완료 기준 합의 완료
 - [ ] 모든 완료 기준 충족
@@ -21,6 +28,20 @@
 
 ### 마일스톤 회고 (마일스톤 종료 PR만)
 - [ ] `docs/retrospectives/<phase>-retrospective.md` 작성 (달성도/잘된것/어려웠던것/인수인계)
+
+### Release PR 전용 (base=main, head=develop)
+일반 PR 이면 건너뛴다.
+- [ ] 포함된 PR 번호 범위: #xxx ~ #yyy
+- [ ] CHANGELOG `[vX.Y.Z]` entry 작성 (Added / Behavior Changes / Notes)
+- [ ] `package.json` version bump
+- [ ] 태그 계획: `vX.Y.Z` (SemVer 분류 근거 명시)
+- [ ] 머지 후 `git tag vX.Y.Z` + `gh release create` 수행 예정
+
+### Hotfix PR 전용 (base=main, head=hotfix/*)
+일반 PR 이면 건너뛴다.
+- [ ] 패치 버전 bump (vX.Y.Z+1)
+- [ ] **머지 직후 `main → develop` merge-back PR 생성 의무** (누락 시 develop drift 발생)
+- [ ] merge-back PR 링크:
 
 ### 체크리스트
 - [ ] 커밋 컨벤션 준수
