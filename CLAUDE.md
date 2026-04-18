@@ -66,6 +66,7 @@ AI는 자기 작업을 과도하게 긍정 평가하는 경향이 있으므로, 
    - **CHANGELOG Notes** — 미래 관찰자용 기록 (재발견 시 "누락"으로 오인 방지)
 8. 반대 함정: "완료 기준에 있으니 무조건 테스트 작성" (의존성 복잡도 무시한 단발성 부채) vs "ROI 낮다고 조용히 스킵" (재조정 박제 누락). 둘 다 금지.
 9. 근거: volt [#31](https://github.com/coseo12/volt/issues/31) — harness #92 Phase 2 merge 스킵 테스트에서 git fixture 구축 비용이 검증 대상 1줄 대비 역전되어 주석 계약 + 인접 속성 테스트로 대체한 사례
+10. **수치 DoD 미달 시 측정 방법 검증 우선** — DoD 수치가 미달이면 **(0) 측정 방법 검증 → (1) 식/구현 수정 → (2) 알고리즘 교체** 순으로 접근한다. 샘플링/윈도우/노이즈 특성이 미달의 진짜 원인인 경우가 잦다. 특히 신호가 약할 때(측정 대상 ≪ baseline) noise 가 이론값 방향으로 우연히 pull 되어 선행 Phase 의 "우연 성공" 기록으로 남아 있을 수 있다. 측정법 전환 전 식부터 수정하면 이미 올바른 식을 "틀렸다" 고 오진하는 역방향 손실이 발생한다. 근거: volt [#32](https://github.com/coseo12/volt/issues/32) — 지구 GR 세차 측정에서 EIH 식 structural bias 로 오진한 현상이 실제로는 `min_r` 샘플링 노이즈였고, LRL 벡터 + Newton baseline subtraction 측정법 전환으로 드러남.
 
 ### 마일스톤 회고 루틴
 
@@ -154,6 +155,7 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
   ```
 - 예방 루틴: 패키지 업데이트 커밋 시 매니페스트와 파일을 **동일 커밋**에 묶고, 부분 실패 감지 시 전체 revert + 재시도를 부분 보수보다 우선한다
 - 선행 원인 lint-staged silent partial commit (volt [#13](https://github.com/coseo12/volt/issues/13)) 과 연쇄될 때 가장 자주 관찰됨
+- **다운스트림 formatter 재포맷 경계 drift** — lint-staged / pre-commit 의 `prettier --write` 류가 파일 적용 **직후** 실행되면 upstream 파일 스타일(따옴표·빈 줄·공백 정렬 등)을 로컬 컨벤션으로 되돌려, 매니페스트엔 upstream 해시가 기록됐어도 디스크 파일은 재포맷 상태로 drift. `--check` 재실행 시 "안전 업데이트 N개" 노이즈가 반복돼 실질 upstream 변경을 놓칠 위험. **예방**: 다운스트림 `.prettierignore` 에 harness-managed 경로(`.claude/`, `.github/ISSUE_TEMPLATE/`, 관리 `docs/*.md` 등) 추가. **탐지**: 커밋 직후 `git show --stat HEAD` 로 실제 반영된 파일 수가 의도와 일치하는지 확인. 근거: volt [#35](https://github.com/coseo12/volt/issues/35) — astro-simulator 에서 v2.7.0 → v2.11.0 적용 시 35 파일이 prettier 재포맷으로 drift. volt [#13](https://github.com/coseo12/volt/issues/13) (staging 성공 ≠ 커밋 내용) 의 formatter 파이프라인 버전
 - v2.8.0 (harness [#89](https://github.com/coseo12/harness-setting/issues/89)) 부터 **post-apply 검증 게이트** 도입: 파일 적용 직후 upstream 패키지 해시와 디스크 실측 해시를 비교하여 불일치 파일의 매니페스트 해시는 이전 값으로 유지(재-apply 시 pristine 재감지). 부분 실패 시 exit code 1 + stderr 경고. `harness doctor` 는 "매니페스트 해시 정합성" 항목으로 해시 위조를 감지한다.
 - v2.9.0 (harness [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 1) 부터 매니페스트에 **`previousSha256`** 필드 자동 기록: `userSha === previousSha256` 인 파일은 `modified-pristine` 으로 재분류되어 `--apply-all-safe` 가 자가 복구한다. v2.8.0 이 못 잡던 타이밍(커밋 시점 lint-staged 롤백) 도 코드 레벨에서 해소.
 - 근거: volt [#27](https://github.com/coseo12/volt/issues/27). harness 코드 레벨 원자성 개선은 [#89](https://github.com/coseo12/harness-setting/issues/89)(v2.8.0) 과 [#92](https://github.com/coseo12/harness-setting/issues/92)(v2.9.0~) 에서 반영
@@ -173,6 +175,15 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 - SendMessage 로 라운드를 이어갈 때 **이전 라운드 매트릭스를 본문에 인라인 재첨부**한다 — 참조 레이블("권고 A")만으론 부족. 요약 2~3줄로라도 원문 재첨부
 - 이탈 발견 시 라운드 N+1 결과를 폐기하고 **사용자에게 불일치 보고 + 이전 라운드 재확인**. 이탈 산출물은 손실로 간주하지 말고 후속 확장(예: P17+ 후보) 로 별도 메모리에 박제해 보너스 자산화
 - 근거: volt [#34](https://github.com/coseo12/volt/issues/34) — astro-simulator P8~P16 로드맵 설계 3라운드 중 라운드 3 에서 권고 A(내행성계 위성 / 목성계 / 토성계) 매트릭스가 J2/Yarkovsky/중력파 등 전혀 다른 주제로 이탈. volt [#24](https://github.com/coseo12/volt/issues/24) 의 "sub-agent 신뢰 한계" 계열 확장
+
+### headless 브라우저 검증 ≠ 실 브라우저 동작
+`agent-browser` / Playwright headless(특히 `--use-webgpu-adapter=swiftshader` 같은 software adapter)는 3D/WebGPU/카메라 조작 경로에서 **부분 freeze** 가 발생해 coarse assertion(비검정 canvas / fps 유지 / 컴파일 성공) 만으론 기능 실패를 탐지하지 못한다. 한 pipeline(예: background lensing 왜곡) 은 성공하고 다른 pipeline(예: accretion disk mask) 은 실패하는 **부분 성공** 케이스가 "headless 8/8 PASS" false positive 로 "채택" 판정될 수 있다. CRITICAL #3 "3단계 브라우저 검증"의 확장.
+
+- 시각 효과(3D/WebGPU/camera 조작/shader-bound 렌더)를 포함하는 작업은 **실 Chrome GUI 수동 검증 최소 1회**. `status:review` 전이 전 체크리스트에 명시
+- browser-verify 스크립트에 **도메인 특화 pixel 검증**(특정 색상 존재, scene object visibility, 카메라 회전 응답 diff)을 추가하되, 단독으론 충분하지 않다 — swiftshader freeze 상황에서 여전히 false positive 가능
+- 완전 실패가 아닌 partial 자산은 `?feature=1` 류 옵트인 경로로 보존하고 ADR 에 "향후 디버깅 자산" 명시. 자동 폐기 금지
+- PM 계약에 **"M1 백업 경로"** (실패 시 대체안) 을 사전 박제하면 sub-agent 가 실패 판정 후 재승인 없이 대체안으로 자동 전환 가능
+- 근거: volt [#33](https://github.com/coseo12/volt/issues/33) — astro-simulator P7-C 에서 5차 재시도 중 3차(Frustum Corner Interpolation) 가 headless 8/8 PASS + fps=23 + 비검정 canvas 로 "채택" 판정받았으나 실 Chrome 에서 accretion disk 렌더 실패 확인, 5차 D' 로 전환
 <!-- harness:managed:real-lessons:end -->
 
 ---
@@ -222,6 +233,13 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
   - PATCH 릴리스도 frozen 파일(`.claude/`)이 변경됐다면 `### Behavior Changes: None — 문서/문구만` 을 명시해 자동 업데이트 신뢰 모델을 보호한다
 - 볼트 반영은 변경 성격에 따라 분류 — 에이전트·스킬 행동 변경이면 MINOR, 단순 교훈·문서 보강이면 PATCH
 - 의미 있는 마일스톤마다 `git tag` + `gh release create`로 릴리스
+- **Phase 분리 릴리스 리듬** — 완료 기준이 많은 이슈는 한 스프린트에 몰아 처리하지 말고, 각 Phase 가 **독립 릴리스 가능한 관찰 단위**가 되도록 나눈다. 적용 조건(3가지 전부 필요):
+  - **backward-compat** — 앞 Phase 만 배포돼도 시스템이 정상 동작
+  - 각 Phase 가 **완결 Behavior Change 집합** — 중간 Phase 가 부분 구현 상태가 아님
+  - 사용자가 **점진 릴리스 리듬에 동의** — 주간 단위로 여러 릴리스 허용
+- 적용 불가: Phase 간 필수 의존(앞 Phase 단독 배포 시 불안정), 파이프라인 변경이 전체를 통째로 요구. 판정 애매 시 단일 릴리스로 통합
+- 분할 시 CHANGELOG 는 Phase 별 별도 entry + 상호 링크 박제 (사용자에게 "왜 쪼개졌는지"가 drift 되지 않도록). 원 이슈는 마지막 Phase 완료 시 한 번에 close
+- 근거: volt [#30](https://github.com/coseo12/volt/issues/30) — harness [#92](https://github.com/coseo12/harness-setting/issues/92) (`previousSha256` 자가 복구) 를 Phase 1 (로직, v2.9.0) / Phase 2 (가시성 + 회귀 가드, v2.10.0) 로 분할. 리뷰 분산 + 중간 관찰 + 롤백 독립성 확보
 
 ### 문서 동기화
 - 에이전트/스킬/설정을 삭제하거나 변경할 때, docs/ 하위 관련 문서를 확인하고 업데이트한다
