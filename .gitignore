@@ -1,5 +1,6 @@
 # Harness 로그 (상태 파일은 추적)
 .harness/logs/
+.claude/logs/
 
 # OS
 .DS_Store
@@ -18,3 +19,7 @@ Thumbs.db
 
 # Node.js
 node_modules/
+
+# 테스트 산출물 (Playwright, Vitest 등)
+test-results/
+playwright-report/
