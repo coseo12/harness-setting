@@ -51,6 +51,8 @@ PR #39 develop → PR #40 main
 2. dual PR 은 금지로 명시 (feature PR 은 main 대상 불가). 구조적 재발 방지
 3. release 브랜치 생략은 1인 운영 단순성 확보. 필요 시 추후 도입 가능 (재검토 조건에 명시)
 4. hotfix merge-back 의무화로 2단계 drift 재발 방지
+5. **통합 스테이징 수요** — 여러 feature 가 상호작용하는 기능일 때 각자 main 에 머지하면 상호작용 버그 가능. `develop` 은 이 통합 검증 공간 역할. 이 수요는 **tag trigger 로 대체 불가능** (배포 타이밍 제어와 다른 축). v2.14.0 검토에서 사용자 지적으로 근거 확정
+6. **하네스 사용자 프로젝트의 PaaS 현실** — 이 하네스를 쓰는 프로젝트 대부분은 웹 앱이며 Vercel/Netlify/AWS Amplify/Cloudflare Pages/Railway/Render 등 **브랜치 기반 push 트리거** PaaS 를 사용한다. 이런 도구는 tag trigger 를 네이티브 지원하지 않아 `main push = 즉시 배포`가 강제된다. gitflow 의 `main=production / develop=staging` 매핑이 PaaS 환경에서 자연스럽게 작동한다. 상세: [docs/deployment-patterns.md](../deployment-patterns.md)
 
 ## 결과 / Behavior Changes
 
@@ -61,7 +63,10 @@ PR #39 develop → PR #40 main
 
 ## 재검토 조건
 
-- **옵션 B (main-only) 재고 시점**: develop 이 6개월 이상 연속으로 main 과 동일 해시를 유지하는 경우 (release cut-over 가 실질 무용). 2026-10-19 1차 리뷰.
+- **옵션 B (main-only) 재고 시점**: 아래 **두 조건 모두 만족**시에만 재고 (v2.14.0 에서 통합 스테이징 + PaaS 근거 추가로 조건 강화):
+  - develop 이 6개월 이상 연속으로 main 과 동일 해시를 유지 (release cut-over 가 실질 무용)
+  - **통합 스테이징 수요 소멸** — 프로젝트 단일 feature 모델로 전환되어 feature 간 상호작용 검증이 필요 없음
+  - 1차 리뷰: 2026-10-19
 - **release 브랜치 도입 시점**: 릴리스 준비 기간이 1주일 이상 걸리는 대형 변경이 늘어나는 경우 (`release/vX.Y.Z` 브랜치로 stabilization window 분리)
 - **hotfix 프로세스 실측**: 첫 hotfix 발생 시 merge-back 자동화 여부를 재평가 (수동 merge-back 누락이 1회라도 발생하면 doctor drift 체크로 복구 가능한지 확인)
 

@@ -7,6 +7,38 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.15.0] — 2026-04-19
+
+gitflow 정책 보강 릴리스 — v2.14.0 관찰로 드러난 fast-forward 단계 누락 + Gemini 2차 cross-validate 고유 발견 (doctor 거짓 양성 제거) + 후속 이슈 #105 (drift 로직 unrelated histories 방어 + hotfix 문맥 인식) 통합. ADR 2개 근거 보강 + 배포 패턴 가이드 신설. 후속 이슈 [#105](https://github.com/coseo12/assetsrc-setting/issues/105) [#110](https://github.com/coseo12/harness-setting/issues/110) 해결.
+
+### Added
+
+- **`lib/doctor.js` `classifyGitflowDrift` 확장** — 3번째 인자 `opts = { developIsAncestorOfMain, hasHotfixBranch }` 추가. 분류 우선순위: null 입력 (unrelated histories) → mainAhead===0 pass → developIsAncestorOfMain pass (fast-forward 대기) → hasHotfixBranch warn (hotfix 진행 중) → 기타 warn (hotfix 누락/release squash 실수)
+- **doctor 호출부에 `git merge-base --is-ancestor` + `git branch -r --list origin/hotfix/*` 체크 추가** — merge commit 직후 fast-forward 전 상태를 pass 로 정확히 분류
+- **테스트 +6 건** (`test/doctor-gitflow-drift.test.js`): fast-forward 대기 pass / 동기+ancestor / null 입력 warn (unrelated histories) / hotfix 진행 중 warn + 브랜치명 / ancestor+hotfix 모순 안전망
+- **CLAUDE.md 브랜치 전략 앞머리에 develop 의 두 역할 명시** — (1) 통합 스테이징 (여러 feature 상호작용 검증, tag trigger 로 대체 불가), (2) PaaS staging environment 매핑 + "하네스 자체 vs 사용자 프로젝트 릴리스 구분" 문단
+- **CLAUDE.md 릴리스 워크플로 4단계로 확장** — `gh pr merge --merge` → `git push origin main:develop` fast-forward → `git tag` → `gh release create`. drift 감지 섹션에 fast-forward 대기 pass 조건 명시
+- **ADR [20260419-gitflow-main-develop](docs/decisions/20260419-gitflow-main-develop.md) 결정 근거 +2 항목** — 통합 스테이징 수요 (tag trigger 대체 불가) + 하네스 사용자 프로젝트 PaaS 현실 (브랜치 기반 배포 강제). 재검토 조건 강화 (두 조건 동시 만족 시에만 main-only 전환 재고)
+- **ADR [20260419-release-merge-strategy](docs/decisions/20260419-release-merge-strategy.md) fast-forward 단계 명시** — v2.14.0 운영에서 누락됐던 `git push origin main:develop` 단계 박제
+- **`docs/deployment-patterns.md` 신규** — 원칙 + Vercel 최소 예시 + 6개 PaaS 일반화 표 + tag 기반 예외 + 하네스 자체 vs 사용자 프로젝트 비교
+- **`docs/decisions/README.md` ADR 인덱스 갱신** — 같은 날짜 ADR 파일명 접미사 규칙 + 현재 ADR 상하 관계 표
+- **PR 템플릿 Release PR 섹션 확장** — 4단계 워크플로 체크박스 (merge commit / fast-forward push / tag / gh release) + 사후 `harness doctor` 확인
+
+### Behavior Changes
+
+- `harness doctor` 가 release PR merge commit 직후 fast-forward 전 상태를 **pass (fast-forward 동기화 대기 중)** 로 분류 (이전: warn 거짓 양성)
+- `harness doctor` 가 `hotfix/*` 브랜치 존재 시 "hotfix 진행 중 — merge-back PR 필요" 로 문맥 인식 (이전: 일반 drift warn)
+- `harness doctor` 가 unrelated histories / ref 부재 시 명시적 warn + 공통 조상 확인 안내 (이전: 거짓 음성 — parseInt("0")=0 으로 수렴)
+- 릴리스 워크플로에 **`git push origin main:develop` fast-forward 단계 추가** — v2.14.0 에서 실수로 누락됐던 규칙 박제. 에이전트가 release PR 머지 후 이 단계를 자동 실행하도록 안내
+- CLAUDE.md / ADR / 템플릿에 "develop = 통합 스테이징 + PaaS staging env 매핑" 근거 박제 — 재검토 시점에 이 수요 소멸 확인 필요
+
+### Notes
+
+- **후속 이슈 해결**: [#105](https://github.com/coseo12/harness-setting/issues/105), [#110](https://github.com/coseo12/harness-setting/issues/110) 본 릴리스로 close.
+- 본 릴리스는 Gemini 2차 cross-validate 결과 (`classifyGitflowDrift` 에 `--is-ancestor` 체크 추가 제안) + 사용자 토론 결과 (통합 스테이징 근거 + PaaS 현실 반영) 의 통합 결과. Gemini 이견 "1회 실수 시 즉시 Action 자동화" 는 반려 유지 (차후 실운영 재논의).
+- 테스트 22 → 28 (+6 drift 세분화 분류 테스트).
+- 근거: ADR [20260419-release-merge-strategy.md](docs/decisions/20260419-release-merge-strategy.md) 보강, 상위 ADR [20260419-gitflow-main-develop.md](docs/decisions/20260419-gitflow-main-develop.md) 근거 +2, 신규 [docs/deployment-patterns.md](docs/deployment-patterns.md)
+
 ## [2.14.0] — 2026-04-19
 
 Release PR merge 전략 전환 — `--merge` (merge commit) 로 고정하여 매 릴리스마다 강제되던 merge-back PR 을 원천 제거. v2.13.0 (#102) 에서 관찰한 "release 1회 = 3 PR + doctor drift 경고" 구조의 근본 해결. 후속 이슈 [#104](https://github.com/coseo12/harness-setting/issues/104) 해결.

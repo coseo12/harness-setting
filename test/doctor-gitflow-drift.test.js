@@ -57,3 +57,56 @@ test('drift: warn 메시지에 복구 명령 힌트 포함', () => {
     '복구 방법이 detail 에 포함되어야 함'
   );
 });
+
+// v2.15.0 (#105 #110) 추가 테스트 — --is-ancestor / unrelated histories / hotfix 문맥
+
+test('drift(v2.15): merge commit 직후 fast-forward 대기 → pass (거짓 양성 제거, Gemini 고유 발견)', () => {
+  // release PR 을 --merge 로 머지한 직후 상태. main 에 merge commit 1개 생성,
+  // develop 은 그 merge commit 의 부모 중 하나 = main 의 직계 조상.
+  // 이전: warn (거짓 양성). v2.15.0: pass (fast-forward 동기화 대기).
+  const result = classifyGitflowDrift(1, 0, { developIsAncestorOfMain: true });
+  assert.strictEqual(result.status, 'pass');
+  assert.match(result.detail, /fast-forward 동기화 대기 중/);
+  assert.match(result.detail, /git push origin main:develop/);
+});
+
+test('drift(v2.15): develop 이 main 조상이어도 mainAhead === 0 이면 단순 pass (merge 없이 동기)', () => {
+  const result = classifyGitflowDrift(0, 0, { developIsAncestorOfMain: true });
+  assert.strictEqual(result.status, 'pass');
+  assert.match(result.detail, /동기/);
+  // ancestor 경로로 빠지지 않고 일반 동기 detail 사용 확인
+  assert.ok(!result.detail.includes('fast-forward'));
+});
+
+test('drift(v2.15): unrelated histories — mainAhead null → warn', () => {
+  // git rev-list 실패 (공통 조상 없음 등) 시 tryExec 가 null 반환
+  const result = classifyGitflowDrift(null, 0);
+  assert.strictEqual(result.status, 'warn');
+  assert.match(result.detail, /unrelated histories|격차 계산 실패/);
+  assert.match(result.detail, /merge-base/);
+});
+
+test('drift(v2.15): unrelated histories — devAhead null → warn', () => {
+  const result = classifyGitflowDrift(0, null);
+  assert.strictEqual(result.status, 'warn');
+  assert.match(result.detail, /unrelated histories|격차 계산 실패/);
+});
+
+test('drift(v2.15): hotfix 진행 중 → warn + 브랜치명 포함', () => {
+  const result = classifyGitflowDrift(2, 3, { hasHotfixBranch: 'origin/hotfix/99-critical' });
+  assert.strictEqual(result.status, 'warn');
+  assert.match(result.detail, /hotfix 진행 중/);
+  assert.match(result.detail, /99-critical/);
+  assert.match(result.detail, /merge-back PR 필요/);
+});
+
+test('drift(v2.15): hotfix 진행 중이면서 develop 이 main 조상인 모순 상태 — ancestor 우선 (fast-forward pass)', () => {
+  // 이론상 발생 드물지만 안전망. merge commit 으로 이미 머지된 release + hotfix 브랜치 잔존.
+  // ancestor 성립하면 이미 해소 가능한 상태이므로 pass.
+  const result = classifyGitflowDrift(1, 0, {
+    developIsAncestorOfMain: true,
+    hasHotfixBranch: 'origin/hotfix/old',
+  });
+  assert.strictEqual(result.status, 'pass');
+  assert.match(result.detail, /fast-forward/);
+});
