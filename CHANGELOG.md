@@ -7,6 +7,30 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.9.0] — 2026-04-18
+
+harness [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 1 — 매니페스트 `previousSha256` 필드 도입으로 **커밋 시점 외부 롤백의 자가 복구**. v2.8.0 의 post-apply 게이트가 잡지 못하던 timing (lint-staged pre-commit 훅 롤백) 을 `harness update --check` 가 스스로 분류한다.
+
+### Added
+
+- **매니페스트 엔트리에 `previousSha256` optional 필드** — `harness update` 완료 시 각 파일의 이전 `sha256` 값을 자동 기록. backward-compatible (필드 부재 매니페스트도 정상 동작, 다음 update 시 자연 채워짐).
+- **`diffAgainstPackage` 자가 복구 분기** — `userSha === previousSha256` 인 파일은 `modified-pristine` 으로 재분류하여 재-apply 허용. 기존 로직에서는 `divergent` (사용자 임의 수정) 로 오분류되어 교착 상태가 되던 케이스를 해소.
+- **테스트 5케이스 추가** — previousSha256 자동 기록 / userSha 매칭 재분류 / 자가 복구 통합 시나리오 / legacy 매니페스트 호환 / sha256 무변화 시 필드 비기록.
+
+### Behavior Changes
+
+- `harness update` 가 완료 시 sha256 이 변경된 파일의 매니페스트 엔트리에 `previousSha256` 필드를 기록한다
+- `harness update --check` 가 `userSha === previousSha256` 인 파일을 **`modified-pristine`** 으로 재분류 (기존: `divergent`)
+- `--apply-all-safe` 가 외부 롤백된 파일을 자동 감지하여 재적용 — **교착 상태가 코드 레벨에서 원천 해소**
+- legacy 매니페스트(필드 부재) 는 별도 migration 스텝 없이 다음 update 에서 자연 채워짐
+
+### Notes
+
+- Phase 2 (후속): `harness doctor` 가 previousSha256 매칭 건을 "외부 롤백 의심" 으로 별도 분류. merge type 스킵 / managed-block 외부 편집 오탐 방지 테스트 보강.
+- 이슈 [#89](https://github.com/coseo12/harness-setting/issues/89) (v2.8.0 post-apply 게이트) 과 상호보완 — v2.8.0 은 update 도중 개입 방어, v2.9.0 은 update 이후 롤백 자가 복구.
+- Gemini 교차검증에서 제안된 근본 해결책을 이슈 [#92](https://github.com/coseo12/harness-setting/issues/92) 로 분리 후 Phase 1 구현.
+- 근거: harness [#92](https://github.com/coseo12/harness-setting/issues/92), volt [#27](https://github.com/coseo12/volt/issues/27)
+
 ## [2.8.0] — 2026-04-18
 
 harness [#89](https://github.com/coseo12/harness-setting/issues/89) 반영 — `harness update --apply-all-safe` post-apply 검증 게이트 + `harness doctor` 매니페스트 해시 정합성 검증. v2.7.2 에서 박제한 "매니페스트 최신 ≠ 파일 적용 완료" 교착 상태를 코드 레벨에서 방어.
