@@ -7,6 +7,32 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.12.0] — 2026-04-18
+
+volt [#30](https://github.com/coseo12/volt/issues/30) / [#32](https://github.com/coseo12/volt/issues/32) / [#33](https://github.com/coseo12/volt/issues/33) / [#35](https://github.com/coseo12/volt/issues/35) 반영 — Phase 분리 릴리스 리듬 + 수치 DoD 미달 시 측정법 우선 + headless 3D/WebGPU 부분 freeze 대응 + 다운스트림 prettier drift 경계를 에이전트 행동 규칙·교훈으로 박제.
+
+### Added
+
+- **CLAUDE.md 스프린트 계약 항목 10: 수치 DoD 미달 시 측정 방법 검증 우선** — DoD 수치 미달 시 (0) 측정 방법 검증 → (1) 식/구현 수정 → (2) 알고리즘 교체 순. 약한 신호에서 noise 가 이론값 방향으로 우연히 pull 되는 "우연 성공" 트랩 경계 (volt #32).
+- **CLAUDE.md 릴리스: Phase 분리 릴리스 리듬** — 적용 조건 3가지(backward-compat / 완결 Behavior Change / 사용자 동의) + 적용 불가 조건 + CHANGELOG Phase 별 entry 박제 규칙 (volt #30).
+- **CLAUDE.md 매니페스트 섹션: 다운스트림 formatter 재포맷 경계 drift** — lint-staged `prettier --write` 가 파일 적용 직후 upstream 스타일을 로컬 컨벤션으로 되돌리는 drift 패턴. `.prettierignore` 에 harness-managed 경로 추가 + `git show --stat HEAD` 로 커밋 후 검증 (volt #35).
+- **CLAUDE.md 실전 교훈: headless 브라우저 검증 ≠ 실 브라우저 동작** — swiftshader WebGPU adapter 부분 freeze + 부분 성공 pipeline false positive 경계. 실 Chrome GUI 수동 검증 최소 1회 + partial 자산 보존 + PM 계약 M1 백업 경로 패턴 (volt #33).
+- **`.claude/skills/browser-test/SKILL.md` §7 "3D / WebGPU / shader-bound 렌더 검증 (headless 한계 대응)"** — `status:review` 전이 전 필수 5단계 체크리스트: headless 기본 검증 / 도메인 특화 pixel 검증 / 카메라 회전 응답 diff / **실 Chrome GUI 수동 검증 최소 1회** / 부분 성공 보존. 규칙 섹션에 "headless 단독을 채택 근거로 사용 금지" 규칙 추가.
+
+### Behavior Changes
+
+- `browser-test` 스킬이 3D/WebGPU/camera/shader-bound 렌더 포함 작업에 대해 실 Chrome GUI 수동 검증을 최소 1회 요구하며, 누락 시 `status:review` 전이를 차단한다 (이전: headless 자동 검증만으로 "채택" 판정 허용)
+- `browser-test` 스킬의 워크플로 §7 체크리스트(5단계) 가 신규 추가되어 시각 효과 포함 작업의 검증 하한선이 상향된다 (이전: 워크플로 6개까지만 정의)
+- PM/Architect 에이전트가 완료 기준이 많은 이슈를 설계할 때 Phase 분리 릴리스 리듬을 명시적으로 검토한다 (이전: 단일 스프린트로 일괄 처리 편향)
+- 스프린트 계약 수치 DoD 미달 시 측정 방법 검증을 0번 단계로 명시적으로 수행한다 (이전: 식 수정 → 알고리즘 교체 순 자동 반사)
+
+### Notes
+
+- volt #33 은 CLAUDE.md 교훈(PATCH 성격) + browser-test SKILL 체크리스트(MINOR 성격) 를 동시 반영. SKILL 체크리스트가 행동 변화를 만들기 때문에 전체 릴리스는 MINOR.
+- volt #28 (상태 기록 원자성 3계층 방어 패턴 일반화) 는 현재 PR 범위 밖으로 판단하여 후속 `docs/architecture/` 문서화 이슈로 분리.
+- 스킵한 volt 이슈 (7건, 주로 WebGPU/Babylon 특화 도메인 지식) 는 astro-simulator CLAUDE.md 범위로 귀속. 기 반영 케이스는 #22 / #27.
+- 근거: volt [#30](https://github.com/coseo12/volt/issues/30) / [#32](https://github.com/coseo12/volt/issues/32) / [#33](https://github.com/coseo12/volt/issues/33) / [#35](https://github.com/coseo12/volt/issues/35)
+
 ## [2.11.0] — 2026-04-18
 
 volt [#29](https://github.com/coseo12/volt/issues/29) / [#31](https://github.com/coseo12/volt/issues/31) / [#34](https://github.com/coseo12/volt/issues/34) 반영 — 교차검증 수용/분리 3단 프로토콜 + 스프린트 계약 재조정 시 테스트 ROI 체크 + PM sub-agent multi-turn 라운드 이탈 검증을 에이전트 행동 규칙으로 박제.
