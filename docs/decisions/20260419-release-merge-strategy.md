@@ -35,12 +35,22 @@ v2.13.0 gitflow 복원 후 첫 릴리스 (PR #102 develop → main) 에서 **rel
 
 ## 결정
 
-**A. Release PR 을 merge commit 방식으로 머지** 채택.
+**A. Release PR 을 merge commit 방식으로 머지 + 직후 fast-forward push** 채택.
 
 - `gh pr merge <PR> --merge` 사용 (repo 기본 merge 전략은 squash 유지 — feature PR 에만 적용)
+- **`gh pr merge --merge` 직후 `git push origin main:develop` (fast-forward) 필수** — main 의 merge commit 자체가 develop 에 없어 doctor 가 일시 warn. fast-forward push 로 즉시 해소 (force-push 아님, main 이 develop 의 후손)
 - 일반 feature/fix PR 은 변경 없이 squash 유지
 - hotfix 는 기존 방식 유지 (main 분기 → main PR → merge-back PR). hotfix 는 main 이 develop 을 선행하는 정상 사례이므로 merge-back 불가피
-- PR 템플릿 / CLAUDE.md / create-pr 스킬 / doctor 경고 문구에 "release PR 은 merge commit" 규칙 박제
+- PR 템플릿 / CLAUDE.md / create-pr 스킬 / doctor 경고 문구에 "release PR 은 merge commit + fast-forward push" 규칙 박제
+
+### 릴리스 워크플로 4단계 (v2.14.0 → v2.15.0 확정)
+
+```
+1. gh pr merge <PR> --merge              # release PR 을 merge commit 으로 머지
+2. git push origin main:develop          # fast-forward (main → develop mirror)
+3. git tag vX.Y.Z + git push origin vX.Y.Z
+4. gh release create vX.Y.Z ...
+```
 
 ### 근거
 
@@ -57,9 +67,10 @@ v2.13.0 gitflow 복원 후 첫 릴리스 (PR #102 develop → main) 에서 **rel
 ## 결과 / Behavior Changes
 
 - CLAUDE.md 릴리스 워크플로에 "`gh pr merge <PR> --merge` 사용, `--squash` 금지" 명시
-- PR 템플릿 Release PR 섹션에 "merge commit 방식으로 머지" 체크박스 추가. merge-back 체크박스는 hotfix 전용으로 복원
+- **CLAUDE.md 에 `git push origin main:develop` fast-forward 단계 명시** (v2.15.0 추가 — v2.14.0 실 운영에서 누락 발견)
+- PR 템플릿 Release PR 섹션에 "merge commit 방식으로 머지" + "fast-forward push" 체크박스 추가. merge-back 체크박스는 hotfix 전용으로 복원
 - create-pr 스킬 Base 선택 표에 머지 방식 컬럼 추가 (release=merge commit, 그 외=squash)
-- doctor 경고 문구에 "release PR 을 실수로 squash 머지한 가능성" 힌트 추가
+- **doctor `--is-ancestor` 체크 추가** (v2.15.0) — merge commit 직후 fast-forward 전 거짓 양성 제거
 - 후속 이슈 #106 (PR 템플릿 merge-back 용어 일반화) 는 **불필요** — release merge-back 이 사라지므로 hotfix 전용 용어 유지
 
 ## 재검토 조건

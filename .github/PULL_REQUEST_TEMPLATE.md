@@ -30,13 +30,16 @@ PR 타입에 맞는 한 줄만 체크. `base=main` 은 release/hotfix PR 만 허
 - [ ] `docs/retrospectives/<phase>-retrospective.md` 작성 (달성도/잘된것/어려웠던것/인수인계)
 
 ### Release PR 전용 (base=main, head=develop)
-일반 PR 이면 건너뛴다.
+일반 PR 이면 건너뛴다. 릴리스 워크플로 4단계 (ADR 20260419-release-merge-strategy):
 - [ ] 포함된 PR 번호 범위: #xxx ~ #yyy
 - [ ] CHANGELOG `[vX.Y.Z]` entry 작성 (Added / Behavior Changes / Notes)
 - [ ] `package.json` version bump
 - [ ] 태그 계획: `vX.Y.Z` (SemVer 분류 근거 명시)
-- [ ] **`gh pr merge <PR> --merge` (merge commit) 로 머지** — `--squash` 절대 사용 금지 (develop drift 유발, ADR 20260419-release-merge-strategy)
-- [ ] 머지 후 `git tag vX.Y.Z` + `gh release create` 수행 예정
+- [ ] **1단계**: `gh pr merge <PR> --merge` (merge commit) 로 머지 — `--squash` 절대 사용 금지
+- [ ] **2단계**: `git push origin main:develop` (fast-forward push — force 아님. main 의 merge commit 이 develop 을 직계 조상으로 포함하므로 안전)
+- [ ] **3단계**: `git tag vX.Y.Z` + `git push origin vX.Y.Z`
+- [ ] **4단계**: `gh release create vX.Y.Z ...`
+- [ ] 사후 확인: `harness doctor` 의 gitflow 브랜치 정합성이 "동기" 로 pass
 
 ### Hotfix PR 전용 (base=main, head=hotfix/*)
 일반 PR 이면 건너뛴다.
