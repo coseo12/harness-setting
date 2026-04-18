@@ -7,6 +7,31 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.11.0] — 2026-04-18
+
+volt [#29](https://github.com/coseo12/volt/issues/29) / [#31](https://github.com/coseo12/volt/issues/31) / [#34](https://github.com/coseo12/volt/issues/34) 반영 — 교차검증 수용/분리 3단 프로토콜 + 스프린트 계약 재조정 시 테스트 ROI 체크 + PM sub-agent multi-turn 라운드 이탈 검증을 에이전트 행동 규칙으로 박제.
+
+### Added
+
+- **CLAUDE.md 실전 교훈 블록: "sub-agent multi-turn 라운드 이탈 — 매트릭스 일관성 검증"** — 라운드 N 출력에서 핵심 키워드 목록(매트릭스 행 제목 / DoD 수치 / Q&A)을 추출해 라운드 N+1 과 대조하는 책임, SendMessage 시 이전 매트릭스 원문 인라인 재첨부, 이탈 산출물의 후속 확장 후보 자산화 규칙 박제 (volt #34).
+- **CLAUDE.md 스프린트 계약: 재조정 ROI 5문 체크 + 3위치 박제 (항목 6~9)** — 테스트 환경 구축 비용 / 보호 대상 라인 수 / 회귀 가시성 / 간접 보증 가능성 / 미래 인프라 이전 가능성의 5문 체크, 그리고 재조정 시 코드 주석 / PR 본문 / CHANGELOG Notes 3위치 동시 박제 의무화 (volt #31).
+- **CLAUDE.md 교차검증: 고유 발견의 수용 vs 후속 분리 3단 프로토콜** — 합의 선별 / 고유 발견의 범위 체크(스프린트 비목표 대조) / 분리 시 즉시 이슈 생성 + `Builds on: #원PR` 박제 규칙. 스프린트 비목표를 Gemini 제안 타당성만으로 무시하는 CRITICAL #6 침범 금지 명시 (volt #29).
+- **`.claude/agents/pm.md`: Multi-turn 라운드 이어받기 규칙 + 자가 점검 체크** — 이전 라운드 매트릭스의 본문 인라인 여부 사전 확인, 참조 레이블만 있으면 원문 재첨부 요구, 이탈 산출물 보너스 자산화 지시.
+- **`.claude/skills/cross-validate/SKILL.md`: 수용 vs 후속 분리 3단 프로토콜 본문** — "결과 분석" 섹션 뒤에 프로토콜 전문 + 참고 사례(#89→#92 분리) 박제.
+
+### Behavior Changes
+
+- PM 에이전트가 multi-turn 세션 이어받기 시 이전 라운드 매트릭스 원문의 본문 인라인 여부를 먼저 확인하고, 참조 레이블만 있으면 원문 재첨부 요구 후 진행한다 (이전: 참조 레이블만으로 재구성 시도)
+- 메인 오케스트레이터가 sub-agent multi-turn 라운드 N/N+1 키워드 대조로 이탈을 즉시 감지하는 책임을 명시적으로 진다 (이전: 루틴 없음)
+- 스프린트 완료 기준을 실측 후 재조정할 때 테스트 ROI 5문 체크를 거치고, 재조정 사실을 코드 주석 / PR 본문 / CHANGELOG 3위치에 동시 박제한다 (이전: "재조정 가능" 원칙만 있고 절차 부재)
+- 교차검증 고유 발견을 처리할 때 스프린트 비목표와 대조하여 현재 PR 반영 vs 후속 이슈 분리를 판정하며, 분리 시 즉시 이슈 생성 + `Builds on: #원PR` 링크를 박제한다 (이전: 반려 기준만 있고 수용/분리 기준 공백)
+
+### Notes
+
+- volt #23 CRITICAL DIRECTIVE 박제 직후 교차검증 루틴을 PR [#97](https://github.com/coseo12/harness-setting/pull/97) 에서 수행. Gemini 2.5 Pro 가 전 항목 "양호" + Merge 추천, 고유 발견 없이 통과.
+- 스킵한 volt 이슈 (10건) 와 사유는 PR [#97](https://github.com/coseo12/harness-setting/pull/97) 본문 참조. 주로 도메인 특화(WebGPU / Babylon / Chromium 진단) 또는 1회 관찰(컴파일 규약의 "3회 이상" 미달) 또는 기 반영 케이스.
+- 근거: volt [#29](https://github.com/coseo12/volt/issues/29) / [#31](https://github.com/coseo12/volt/issues/31) / [#34](https://github.com/coseo12/volt/issues/34), harness [PR #97](https://github.com/coseo12/harness-setting/pull/97)
+
 ## [2.10.0] — 2026-04-18
 
 harness [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 2 — `harness doctor` 해시 정합성 리포트가 **`previousSha256` 매치 건을 "외부 롤백 의심"** 으로 별도 분류. managed-block 센티널 외부 편집 오탐 방지 계약을 회귀 가드 테스트로 박제.
