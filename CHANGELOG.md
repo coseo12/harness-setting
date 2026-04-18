@@ -7,6 +7,30 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.8.0] — 2026-04-18
+
+harness [#89](https://github.com/coseo12/harness-setting/issues/89) 반영 — `harness update --apply-all-safe` post-apply 검증 게이트 + `harness doctor` 매니페스트 해시 정합성 검증. v2.7.2 에서 박제한 "매니페스트 최신 ≠ 파일 적용 완료" 교착 상태를 코드 레벨에서 방어.
+
+### Added
+
+- **`lib/update.js` post-apply 검증 게이트** — 파일 적용 직후 upstream 패키지 해시와 디스크 실측 해시를 비교하여 외부 프로세스(lint-staged 등) 에 의한 롤백을 감지. 불일치 파일의 매니페스트 해시는 이전 값으로 유지되어 재-apply 시 `modified-pristine` 으로 재감지됨. merge/delete type 은 검증 제외.
+- **`lib/doctor.js` "매니페스트 해시 정합성" 항목** — 매니페스트 기록 해시 vs 파일 실측 해시를 비교하여 해시 위조 또는 파일 누락을 warn 으로 리포트. managed-block 파일은 센티널 내부만 해시하므로 외부 편집 오탐 없음.
+- **`test/` 디렉토리 신설** — Node 내장 `node --test` 기반 6케이스 (update 검증 3 + doctor 정합성 3). `package.json scripts.test` 추가.
+
+### Behavior Changes
+
+- `harness update --apply-all-safe` 가 적용 직후 upstream/디스크 해시 비교를 수행한다
+- 불일치 파일은 매니페스트 해시를 갱신하지 않고 이전 값 유지 (재-apply 시 pristine 재감지)
+- 부분 실패 감지 시 exit code 1 + stderr `harness update: post-apply 검증 실패 N건 — <파일 목록>` 출력
+- `harness doctor` 가 "매니페스트 해시 정합성" 항목을 pass/warn 으로 리포트 (매니페스트 없으면 항목 스킵)
+- 정상 경로(검증 성공) 에서는 기존 동작과 완전 동일 (backward-compatible)
+
+### Notes
+
+- 한계: post-apply 검증은 `harness update` 종료 직전까지만 유효. 사용자 `git commit` 시점에 동작하는 lint-staged pre-commit 훅 롤백은 `harness doctor` 실행 시점에만 감지됨. 커밋 시점 롤백의 자가 복구는 후속 이슈 [#92](https://github.com/coseo12/harness-setting/issues/92) 에서 `previousSha256` 필드 도입으로 다룸.
+- Gemini 교차검증 수행 — 설계 방향 / edge case / 한계 인식 모두 합의. Gemini 고유 발견(previousSha256 제안, merge/managed-block 스킵 경로 테스트 보강)은 이슈 #92 에 박제.
+- 근거: harness [#89](https://github.com/coseo12/harness-setting/issues/89), volt [#27](https://github.com/coseo12/volt/issues/27)
+
 ## [2.7.2] — 2026-04-18
 
 volt [#27](https://github.com/coseo12/volt/issues/27) 반영 — 매니페스트 기반 패키지 관리자 부분 실패 교착 복구 교훈 박제.
