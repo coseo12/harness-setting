@@ -7,11 +7,13 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [2.15.1] — 2026-04-19
+
+상태 기록 원자성 3계층 직교 방어 패턴을 일반화된 설계 문서로 승격. harness v2.8.0 → v2.9.0 → v2.10.0 의 자기 실증 연대기를 CLAUDE.md 의 구체 사례로만 두지 않고, 다른 시스템(파일 시스템 / DB 마이그레이션 / 빌드 캐시 / git 서브모듈) 에 재사용 가능한 설계 지식으로 박제. [#100](https://github.com/coseo12/harness-setting/issues/100) 해결.
 
 ### Added
 
-- **`docs/architecture/state-atomicity-3-layer-defense.md` 신규** — 상태 기록 원자성 3계층 직교 방어 패턴 일반화 문서. 배경(blind spot 연쇄) / 3계층 설계 목표·커버 범위·blind spot 표 / 다른 시스템 적용 예시 4종 (파일 시스템 / DB 마이그레이션 / 빌드 캐시 / git 서브모듈) / 계층 1만·1+2·1+2+3 적용 조건 분기 / harness 자기 실증 매핑.
+- **`docs/architecture/state-atomicity-3-layer-defense.md` 신규** — 상태 기록 원자성 3계층 직교 방어 패턴 일반화 문서. 배경(blind spot 연쇄) / 3계층 설계 목표·커버 범위·blind spot 표 / 다른 시스템 적용 예시 4종 (파일 시스템 / DB 마이그레이션 / 빌드 캐시 / git 서브모듈) / 계층 1만·1+2·1+2+3 적용 조건 분기 / harness 자기 실증 매핑 (v2.8.0 / v2.9.0 / v2.10.0). git 서브모듈 계층 1 은 "pre-commit 훅 기반" 임을 명시 (git 자체 자동 차단 없음). 계층 1 타이밍 서술은 원자 트랜잭션 전제를 피해 "연산 scope 내 부분 실패" 로 중립화.
 - **CLAUDE.md "매니페스트 최신 ≠ 파일 적용 완료" 섹션에 신규 문서 링크 1줄 추가** — 다른 프로젝트에서 동일 패턴을 재사용할 때 CLAUDE.md 를 역-디코딩할 필요 없이 아키텍처 문서를 직접 참조하도록.
 
 ### Behavior Changes: None — 문서만
@@ -21,6 +23,7 @@
 ### Notes
 
 - **이슈 해결**: [#100](https://github.com/coseo12/harness-setting/issues/100) 본 릴리스로 close.
+- **후속 이슈 분리**: PR [#113](https://github.com/coseo12/harness-setting/pull/113) reviewer non-blocking 제안 3 (CLAUDE.md 실전 교훈 블록 링크 위치 일관성 리팩토링) 은 [#114](https://github.com/coseo12/harness-setting/issues/114) 로 분리. 향후 일반화 문서 추가 시 누적 효과 있는 별도 작업.
 - 근거: volt [#28](https://github.com/coseo12/volt/issues/28) (일반화된 3계층 방어 패턴 지식) + harness [#89](https://github.com/coseo12/harness-setting/issues/89) / [#92](https://github.com/coseo12/harness-setting/issues/92) (실증).
 
 ## [2.15.0] — 2026-04-19
