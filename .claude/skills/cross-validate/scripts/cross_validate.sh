@@ -118,17 +118,26 @@ GEMINI_RETRY_SLEEP_SECONDS="${GEMINI_RETRY_SLEEP_SECONDS:-5}"
 # 1  = 그 외 실패 (인자 오류 / 파일 부재 / 민감 파일 등)
 EXIT_CLAUDE_ONLY_FALLBACK=77
 
+# check_gemini_capacity 반환 코드 규약 (reviewer 권고 2, #131 Phase A)
+# 0 = capacity 복구 (probe 성공)
+# 2 = 여전히 429/503/500 — capacity 부족 (재시도 의미 낮음)
+# 1 = 비-429 probe 실패 (네트워크/인증 등 — 기타 오류와 구분)
+# 호출 측은 0 vs 2 vs 1 을 구분해 로그와 재시도 정책을 차별화한다.
+CAPACITY_OK=0
+CAPACITY_EXHAUSTED=2
+CAPACITY_OTHER_ERROR=1
+
 # Gemini capacity 체크 — `gemini -p "hello"` 로 빠른 응답성 확인
 # CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 단계 1
 check_gemini_capacity() {
   local probe_output
-  probe_output=$(gemini -m "${GEMINI_MODEL}" -p "hello" --approval-mode plan 2>&1) && return 0
+  probe_output=$(gemini -m "${GEMINI_MODEL}" -p "hello" --approval-mode plan 2>&1) && return "${CAPACITY_OK}"
   if echo "${probe_output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
-    log "capacity 체크 결과: 여전히 용량 부족"
-    return 1
+    log "capacity 체크 결과: 여전히 용량 부족 (code=${CAPACITY_EXHAUSTED})"
+    return "${CAPACITY_EXHAUSTED}"
   fi
-  log "capacity 체크 결과: 모델 응답은 살아있으나 hello 호출 실패 — $(echo "${probe_output}" | head -1)"
-  return 1
+  log "capacity 체크 결과: 비-capacity probe 실패 (code=${CAPACITY_OTHER_ERROR}) — $(echo "${probe_output}" | head -1)"
+  return "${CAPACITY_OTHER_ERROR}"
 }
 
 # reminder 이슈 생성 (dry-run 모드 기본)
@@ -210,15 +219,27 @@ run_gemini() {
       log "경고: ${GEMINI_MODEL} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
       if [ "${attempt}" -lt "${MAX_GEMINI_RETRIES}" ]; then
         # 폴백 프로토콜 단계 1: capacity 체크 + 지연 재시도
+        # sleep 공식: 2^attempt * BASE (reviewer 권고 3, #131 Phase A)
+        # MAX_RETRIES=2 에서 attempt=1 → 2*BASE (기본 10초)
+        # MAX_RETRIES 가 늘어나도 지수 증가 유지 (attempt=2 → 4*BASE, attempt=3 → 8*BASE)
         # 테스트 환경에서는 GEMINI_RETRY_SLEEP_SECONDS=0 으로 sleep 생략
         if [ "${GEMINI_RETRY_SLEEP_SECONDS}" -gt 0 ]; then
-          sleep $((attempt * GEMINI_RETRY_SLEEP_SECONDS))
+          sleep $(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))
         fi
-        if check_gemini_capacity; then
-          log "capacity 복구 감지 — 재시도 진행"
-        else
-          log "capacity 미복구 — 재시도는 진행하되 조기 포기 가능성 높음"
-        fi
+        # 반환 코드 3값 분기 (reviewer 권고 2, #131 Phase A)
+        capacity_rc=0
+        check_gemini_capacity || capacity_rc=$?
+        case "${capacity_rc}" in
+          "${CAPACITY_OK}")
+            log "capacity 복구 감지 — 재시도 진행"
+            ;;
+          "${CAPACITY_EXHAUSTED}")
+            log "capacity 여전히 부족 — 재시도 진행하되 조기 포기 가능성 높음"
+            ;;
+          *)
+            log "capacity probe 실패 (비-429) — 재시도는 진행 (probe 자체 이슈일 수 있음)"
+            ;;
+        esac
       fi
       attempt=$((attempt + 1))
     else
@@ -233,6 +254,9 @@ run_gemini() {
   local fallback_msg="claude-only analysis completed — 단일 모델 편향 노출 미확보"
   log "${fallback_msg}"
   echo "${fallback_msg}" >&2
+  # stdout 헤더 (reviewer 권고 1, #131 Phase A) — 호출 측이 stdout 만으로 fallback 모드 감지 가능
+  # 정상 경로 stdout 에는 Gemini 응답 본문이 출력됨. fallback 경로는 본문이 없으므로 이 프리픽스가 signal.
+  echo "[claude-only-fallback] Gemini ${GEMINI_MODEL} 응답 없음 — Claude 단독 분석 (교차검증 미확보)"
   echo "⚠ 교차검증 불가 — Claude 단독 분석. Gemini ${GEMINI_MODEL} 응답 없음." | tee -a "${LOG_FILE}"
 
   # 폴백 프로토콜 단계 3: 앵커 컨텍스트 있으면 reminder 이슈 (dry-run 기본)
