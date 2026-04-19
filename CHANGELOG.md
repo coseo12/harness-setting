@@ -16,7 +16,7 @@
 - **stdout `[claude-only-fallback]` 헤더** (권고 1) — fallback 경로에서도 stdout 에 한 줄 헤더 출력. 호출 측이 stderr 추적 없이 stdout 만으로도 fallback 모드 감지 가능.
 - **`check_gemini_capacity` exit code 3값 분리** (권고 2) — `CAPACITY_OK=0` / `CAPACITY_EXHAUSTED=2` / `CAPACITY_OTHER_ERROR=1`. 호출 측은 429 지속과 비-capacity probe 실패를 구분해 로그와 재시도 판단 가능.
 - **지수 backoff 공식** (권고 3) — `sleep $(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))`. `MAX_GEMINI_RETRIES` 가 늘어나도 지수 증가 유지 (attempt=1 → 2×BASE, attempt=2 → 4×BASE). 이전 공식: `attempt × BASE` (linear).
-- **스모크 테스트 +2** (`test/cross-validate-fallback.test.js`) — 권고 6 대응:
+- **스모크 테스트 +2** (`test/cross-validate-fallback.test.js`, 총 38 tests — 기존 36 + 신규 2) — 권고 6 대응:
   1. `recover-after-1` stateful mock — 1차 429 → 2차 정상 복구 분기 (counter 파일 기반)
   2. stdout `[claude-only-fallback]` 헤더 검증 (권고 1 대응 테스트)
 
