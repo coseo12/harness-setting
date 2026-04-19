@@ -143,3 +143,81 @@ test('cross-validate: 비-capacity fatal 오류 → exit 1 (claude-only 시그�
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+// Phase 3 (#131) — outcome JSON 파일 출력 + architect 자동 매핑 근거 검증
+// cross_validate.sh 실행 후 최신 outcome JSON 을 찾아 파싱
+function findLatestOutcomeFile() {
+  const logsDir = path.join(PROJECT_DIR, '.claude', 'logs');
+  if (!fs.existsSync(logsDir)) return null;
+  const files = fs.readdirSync(logsDir)
+    .filter((f) => f.endsWith('-outcome.json'))
+    .map((f) => ({
+      name: f,
+      full: path.join(logsDir, f),
+      mtime: fs.statSync(path.join(logsDir, f)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime);
+  return files[0]?.full ?? null;
+}
+
+test('cross-validate outcome: 429 응답 → outcome JSON 에 "429-fallback-claude-only" 기록', () => {
+  const { tmpDir } = setupMockGemini('429');
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      REMINDER_ISSUE_DRYRUN: '1',
+      CROSS_VALIDATE_ANCHOR: 'MINOR-behavior-change',
+    });
+    assert.strictEqual(result.status, 77);
+
+    const outcomeFile = findLatestOutcomeFile();
+    assert.ok(outcomeFile, 'outcome JSON 파일이 생성되어야 함');
+    const outcome = JSON.parse(fs.readFileSync(outcomeFile, 'utf8'));
+    assert.strictEqual(outcome.outcome, '429-fallback-claude-only');
+    assert.strictEqual(outcome.exit_code, 77);
+    assert.strictEqual(outcome.anchor, 'MINOR-behavior-change');
+    assert.strictEqual(outcome.reminder_issue, 'dryrun');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('cross-validate outcome: 정상 응답 → outcome JSON 에 "applied" 기록', () => {
+  const { tmpDir } = setupMockGemini('ok');
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      REMINDER_ISSUE_DRYRUN: '1',
+    });
+    assert.strictEqual(result.status, 0);
+
+    const outcomeFile = findLatestOutcomeFile();
+    assert.ok(outcomeFile, 'outcome JSON 파일이 생성되어야 함');
+    const outcome = JSON.parse(fs.readFileSync(outcomeFile, 'utf8'));
+    assert.strictEqual(outcome.outcome, 'applied');
+    assert.strictEqual(outcome.exit_code, 0);
+    assert.strictEqual(outcome.reminder_issue, 'none');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('cross-validate outcome: fatal 오류 → outcome JSON 에 "fatal-error" 기록', () => {
+  const { tmpDir } = setupMockGemini('fatal');
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      REMINDER_ISSUE_DRYRUN: '1',
+    });
+    assert.strictEqual(result.status, 1);
+
+    const outcomeFile = findLatestOutcomeFile();
+    assert.ok(outcomeFile, 'outcome JSON 파일이 생성되어야 함');
+    const outcome = JSON.parse(fs.readFileSync(outcomeFile, 'utf8'));
+    assert.strictEqual(outcome.outcome, 'fatal-error');
+    assert.strictEqual(outcome.exit_code, 1);
+    assert.strictEqual(outcome.reminder_issue, 'none');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
