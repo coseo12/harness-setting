@@ -7,7 +7,7 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [2.17.0] — 2026-04-19
 
 [#119](https://github.com/coseo12/harness-setting/issues/119) Phase 1 — sub-agent 공통 JSON 스키마 SSoT 박제 + 5개 페르소나 (developer / qa / reviewer / architect / pm) 마무리 체크리스트 하드코딩. v2.16.0 에서 박제된 CLAUDE.md 선언적 규칙을 프롬프트 레벨로 강제. Phase 2 (cross_validate.sh 폴백 보강 + 스모크 테스트) 는 별도 릴리스.
 
@@ -31,8 +31,10 @@
 ### Notes
 
 - **`Builds on:` [#117](https://github.com/coseo12/harness-setting/pull/117)** (v2.16.0) — 선언적 규칙을 구조적으로 강제.
-- **Phase 분리 근거**: Phase 1 (에이전트 템플릿) 만 배포돼도 정상 동작 (선언적 규칙 + 5개 페르소나 하드코딩). Phase 2 (cross_validate.sh 스크립트 폴백 + 스모크 테스트) 는 독립 릴리스 가능. CLAUDE.md `### 릴리스` 의 Phase 분리 3조건 충족 (backward-compat / 완결 Behavior Change 집합 / 사용자 점진 리듬 동의).
-- **cross-validate 수행 예정**: 본 릴리스는 MINOR Behavior Changes 가 **5개** 로 많음. 박제 직후 cross-validate 1회 호출 필수 (CLAUDE.md `## 교차검증` 루틴). 수행 결과는 PR 코멘트 + CHANGELOG Notes 에 박제.
+- **Phase 분리 근거**: Phase 1 (에이전트 템플릿) 만 배포돼도 정상 동작 (선언적 규칙 + 5개 페르소나 하드코딩). Phase 2 (cross_validate.sh 스크립트 폴백 + 스모크 테스트) 는 독립 릴리스 가능. CLAUDE.md `### 릴리스` 의 Phase 분리 3조건 충족.
+- **reviewer 정적 리뷰 결과**: 차단 2건 해소 (BC#4 architect 429 fallback 실행 단계 + BC#5 pm 비-범위 누락 경고 자동 append) + 권고 3건 범위 내 반영 (SSoT 키 순서 고정 / developer 시점 명확화 / qa auto_close_issue_states 재정의). 권고 1 (SSoT 중복 리팩토링) + 라벨 네이밍 혼재 → [#127](https://github.com/coseo12/harness-setting/issues/127) 분리.
+- **박제 직후 cross-validate (Gemini) 정상 수신**: 고유 발견 2건 중 (다) 파서 회귀 우려는 저장소에 CI/자동 JSON 파서 부재(`jq` 사용 1건만 — `package.json engines.node`) 를 실측으로 기각. (가) "JSON 블록 내 텍스트 금지 명시" 는 [#127](https://github.com/coseo12/harness-setting/issues/127) 에 C 항목으로 추가. Gemini 가 BC#4 BC#5 프롬프트 레벨 강제력을 "명시적·결정론적, wishful 성공적 제거" 로 평가.
+- **현재 자동 파서 없음 / 미래 주의**: 본 릴리스에서 developer / qa JSON 이 flat → nested(`extends`) 구조로 변경됨. 향후 CI 레벨 파이프라인 자동화 도입 시 `extends` 중첩 파싱을 고려. Phase 2 스모크 테스트에서 JSON 구조 회귀 가드 추가 예정.
 - **Phase 2 예정**: [#119](https://github.com/coseo12/harness-setting/issues/119) 완료 기준 2, 3, 5 (cross_validate.sh 429 폴백 하드코딩 + dry-run reminder + 스모크 테스트) 는 별도 MINOR 릴리스로 이어짐.
 
 ## [2.16.1] — 2026-04-19
