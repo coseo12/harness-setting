@@ -43,7 +43,12 @@ function setupMockGemini(mode) {
 function runScript(args, env) {
   const result = spawnSync('bash', [SCRIPT_PATH, ...args], {
     cwd: PROJECT_DIR,
-    env: { ...process.env, ...env },
+    env: {
+      ...process.env,
+      // 테스트에서는 sleep 생략 — 재시도 로직 자체만 검증
+      GEMINI_RETRY_SLEEP_SECONDS: '0',
+      ...env,
+    },
     encoding: 'utf8',
     timeout: 60_000,
   });

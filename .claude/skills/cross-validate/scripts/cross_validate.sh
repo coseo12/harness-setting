@@ -47,6 +47,8 @@ log() {
 # Gemini 모델 설정 — 경량 모델 폴백 없음 (교차검증 품질 보존)
 GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-pro}"
 MAX_GEMINI_RETRIES=2
+# 재시도 간 sleep 단위 (초). 테스트에서는 0 으로 설정해 실행 시간 단축.
+GEMINI_RETRY_SLEEP_SECONDS="${GEMINI_RETRY_SLEEP_SECONDS:-5}"
 
 # Exit code 규약 (CLAUDE.md API capacity 폴백 프로토콜)
 # 0  = Gemini 정상 응답 수신
@@ -73,6 +75,8 @@ check_gemini_capacity() {
 create_reminder_issue() {
   local context="${1:-cross-validate}"
   local anchor="${2:-MINOR-behavior-change}"
+  # 호출 측이 GH_PR_CONTEXT 를 설정하면 본문에 원 PR 링크 추적성 보강
+  local pr_ref="${GH_PR_CONTEXT:-}"
   local body
   body=$(cat <<BODY
 ## 배경
@@ -83,6 +87,7 @@ cross-validate 스킬 실행 중 Gemini API capacity 소진으로 **claude-only 
 
 - 원 호출 컨텍스트: ${context}
 - 앵커 유형: ${anchor}
+- 원 PR/ADR 참조: ${pr_ref:-"(GH_PR_CONTEXT 미설정 — 호출 측이 수동 링크 필요)"}
 - 호출 시각: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 - 로그 파일: ${LOG_FILE}
 
@@ -136,7 +141,10 @@ run_gemini() {
       log "경고: ${GEMINI_MODEL} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
       if [ "${attempt}" -lt "${MAX_GEMINI_RETRIES}" ]; then
         # 폴백 프로토콜 단계 1: capacity 체크 + 지연 재시도
-        sleep $((attempt * 5))
+        # 테스트 환경에서는 GEMINI_RETRY_SLEEP_SECONDS=0 으로 sleep 생략
+        if [ "${GEMINI_RETRY_SLEEP_SECONDS}" -gt 0 ]; then
+          sleep $((attempt * GEMINI_RETRY_SLEEP_SECONDS))
+        fi
         if check_gemini_capacity; then
           log "capacity 복구 감지 — 재시도 진행"
         else
