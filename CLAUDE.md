@@ -155,6 +155,8 @@ UI가 포함된 작업에서 4축으로 품질을 평가한다:
 <!-- harness:managed:real-lessons:start -->
 ## 실전 교훈 (portfolio-26, simple-shop 등에서 추출)
 
+> **블록 내 포인터 포맷 컨벤션**: 각 실전 교훈 블록은 내용 불릿 → `근거:` 불릿 → (선택) `일반화된 설계 지식:` 불릿 순서로 마감한다. `docs/architecture/` 나 `docs/decisions/` 로 승격된 지식이 있을 때만 마지막 포인터를 추가하고, 없으면 생략한다 (빈 placeholder 금지). 형식: `- 일반화된 설계 지식: [docs/architecture/<파일>.md](경로) — 한 줄 요약`. 근거: PR [#113](https://github.com/coseo12/harness-setting/pull/113) reviewer 권고 3, 이슈 [#114](https://github.com/coseo12/harness-setting/issues/114).
+
 ### 빌드 성공 ≠ 동작하는 앱
 빌드 통과 + 단위 테스트 통과여도 실제 브라우저에서 동작하지 않는 경우가 빈번하다.
 커밋 전 반드시 브라우저에서 3단계 검증을 수행한다:
