@@ -7,6 +7,22 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+### Added
+
+- **`docs/architecture/state-atomicity-3-layer-defense.md` 신규** — 상태 기록 원자성 3계층 직교 방어 패턴 일반화 문서. 배경(blind spot 연쇄) / 3계층 설계 목표·커버 범위·blind spot 표 / 다른 시스템 적용 예시 4종 (파일 시스템 / DB 마이그레이션 / 빌드 캐시 / git 서브모듈) / 계층 1만·1+2·1+2+3 적용 조건 분기 / harness 자기 실증 매핑.
+- **CLAUDE.md "매니페스트 최신 ≠ 파일 적용 완료" 섹션에 신규 문서 링크 1줄 추가** — 다른 프로젝트에서 동일 패턴을 재사용할 때 CLAUDE.md 를 역-디코딩할 필요 없이 아키텍처 문서를 직접 참조하도록.
+
+### Behavior Changes: None — 문서만
+
+에이전트·스킬 행동 변화 없음. harness 코드 변경 없음. [#100](https://github.com/coseo12/harness-setting/issues/100) 원문에서 PATCH 로 분류된 대로 `Builds on: #99` (v2.12.0) 의 후속 분리 이슈 해결.
+
+### Notes
+
+- **이슈 해결**: [#100](https://github.com/coseo12/harness-setting/issues/100) 본 릴리스로 close.
+- 근거: volt [#28](https://github.com/coseo12/volt/issues/28) (일반화된 3계층 방어 패턴 지식) + harness [#89](https://github.com/coseo12/harness-setting/issues/89) / [#92](https://github.com/coseo12/harness-setting/issues/92) (실증).
+
 ## [2.15.0] — 2026-04-19
 
 gitflow 정책 보강 릴리스 — v2.14.0 관찰로 드러난 fast-forward 단계 누락 + Gemini 2차 cross-validate 고유 발견 (doctor 거짓 양성 제거) + 후속 이슈 #105 (drift 로직 unrelated histories 방어 + hotfix 문맥 인식) 통합. ADR 2개 근거 보강 + 배포 패턴 가이드 신설. 후속 이슈 [#105](https://github.com/coseo12/assetsrc-setting/issues/105) [#110](https://github.com/coseo12/harness-setting/issues/110) 해결.
