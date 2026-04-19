@@ -212,6 +212,9 @@ run_gemini() {
   local prompt="$1"
   local attempt=1
   local fatal=0
+  # Phase B (reviewer #140 권고 3): 루프 내 사용 변수를 함수 스코프에 local 선언해 전역 유출 방지
+  local raw_sleep=0
+  local capacity_rc=0
 
   while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
     log "Gemini 실행 중 (모델: ${GEMINI_MODEL}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."

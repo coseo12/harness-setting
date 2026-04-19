@@ -79,7 +79,12 @@ if [ ! -f "${OUTCOME_FILE}" ]; then
 fi
 
 # JSON 문자열 필드 추출 (cross_validate.sh 의 write_outcome_json 스키마 기준)
-# JSON 이스케이프가 이미 write 단계에서 처리되었으므로 grep + sed 로 충분
+#
+# 파싱 계약 (reviewer #140 권고 1): 이 헬퍼는 cross_validate.sh 가 생성한 outcome JSON
+# 만 consume 한다. write 측 `json_escape()` 가 `\` / `"` / 개행 / 탭 / 캐리지리턴을
+# 이스케이프하므로 grep + sed 가 안전하게 작동한다. **호출 측이 직접 JSON 을 편집하거나
+# 외부 도구가 생성한 outcome JSON 을 이 헬퍼에 흘려넣지 말 것** — escaped quote 경계에서
+# 조기 종료 가능성 있음. 장기 안정성을 위한 jq 기반 전환은 #141 후속 분리.
 extract_string() {
   local key="$1"
   grep -o "\"${key}\": *\"[^\"]*\"" "${OUTCOME_FILE}" 2>/dev/null | head -1 | sed 's/.*"\([^"]*\)"$/\1/' || true

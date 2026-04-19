@@ -320,9 +320,11 @@ test('cross-validate: 429 fallback 시 stdout 에 [claude-only-fallback] 헤더 
 
 test('cross-validate: SKIP_CAPACITY_PROBE=1 → probe 호출 생략, mock 호출 횟수 = MAX_RETRIES (권고 4)', () => {
   const { tmpDir, counterPath } = setupMockGemini('429-counted');
+  const logDir = setupLogDir();
   try {
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
       REMINDER_ISSUE_DRYRUN: '1',
       SKIP_CAPACITY_PROBE: '1',
     });
@@ -337,14 +339,17 @@ test('cross-validate: SKIP_CAPACITY_PROBE=1 → probe 호출 생략, mock 호출
     );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
   }
 });
 
 test('cross-validate: SKIP_CAPACITY_PROBE=0 (기본) → probe 호출 수행, mock 호출 횟수 = 3', () => {
   const { tmpDir, counterPath } = setupMockGemini('429-counted');
+  const logDir = setupLogDir();
   try {
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
       REMINDER_ISSUE_DRYRUN: '1',
     });
     assert.strictEqual(result.status, 77);
@@ -353,6 +358,7 @@ test('cross-validate: SKIP_CAPACITY_PROBE=0 (기본) → probe 호출 수행, mo
     assert.strictEqual(callCount, 3, `기본 probe 활성 시 mock 호출 3회 기대. 실제: ${callCount}`);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
   }
 });
 
