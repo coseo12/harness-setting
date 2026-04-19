@@ -7,6 +7,36 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.17.0] — 2026-04-19
+
+[#119](https://github.com/coseo12/harness-setting/issues/119) Phase 1 — sub-agent 공통 JSON 스키마 SSoT 박제 + 5개 페르소나 (developer / qa / reviewer / architect / pm) 마무리 체크리스트 하드코딩. v2.16.0 에서 박제된 CLAUDE.md 선언적 규칙을 프롬프트 레벨로 강제. Phase 2 (cross_validate.sh 폴백 보강 + 스모크 테스트) 는 별도 릴리스.
+
+### Added
+
+- **CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료` 에 공통 JSON 스키마 SSoT 섹션** — 모든 외부 가시성 박제 에이전트가 반환할 **코어 필드** 정의 (commit_sha / pr_url / pr_comment_url / labels_applied_or_transitioned / auto_close_issue_states / blocking_issues / non_blocking_suggestions). 에이전트별 특수 필드는 `extends` 로 덧붙이는 구조.
+- **`.claude/agents/developer.md` 마무리 JSON 재구조화** — 기존 JSON (`commit_sha` / `pr_url` / `branch` / `files_changed` / `tests` / `browser_verified_levels` / `remaining_todos`) 을 **공통 코어 + developer extends** 로 분리. 공통 필드 7개 추가 (`pr_comment_url` / `labels_applied_or_transitioned` / `auto_close_issue_states` / `blocking_issues` / `non_blocking_suggestions`).
+- **`.claude/agents/qa.md` 마무리 JSON 재구조화** — 기존 JSON (`pr_url` / `pr_comment_url` / `label_transition` / `build_ok` / `tests` / `browser_levels_passed` / `contract_unmet` / `verdict`) 을 **공통 코어 + qa extends** 로 분리. `verdict: block` 시 `blocking_issues` 공통 필드 축약 전사 규칙 추가.
+- **`.claude/agents/reviewer.md` 마무리 JSON 섹션 신규** — 이전엔 없던 JSON 반환 요구를 추가. extends: `review_outcome` / `minor_classification_verdict` / `axes_5_findings`. `blocking_issues` 와 라벨 전이의 결정 규칙 명시.
+- **`.claude/agents/architect.md` 마무리 JSON 섹션 신규** — extends: `issue_url` / `adr_path` / `cross_validate_outcome` (`applied` / `skipped` / `429-fallback-claude-only` / `n/a`) / `design_comment_url`. `429-fallback-claude-only` 시 CLAUDE.md 폴백 프로토콜 기록 의무 인라인.
+- **`.claude/agents/pm.md` 마무리 JSON 섹션 신규** — extends: `issue_url` / `clarity_score` / `mode_used` (one-way/qa-light/deep-qa) / `completion_criteria_count` / `non_goals_declared`. 비-범위 누락 자동 경고.
+
+### Behavior Changes
+
+- **모든 sub-agent (5개 페르소나) 가 공통 코어 7개 필드 + extends 구조의 JSON 을 반환** (이전: developer / qa 만 서로 다른 포맷으로 반환, reviewer / architect / pm 은 JSON 반환 요구 없음). 메인 오케스트레이터가 에이전트 종류 구분 없이 공통 필드로 외부 가시성 검증 가능.
+- **sub-agent JSON 에 `auto_close_issue_states` 필드가 필수** (이전: v2.16.0 선언만, 프롬프트에 강제 없음). 각 에이전트가 머지/박제 대상 이슈 state 를 개별 확인해 필드 채움.
+- **sub-agent JSON 에 `blocking_issues` / `non_blocking_suggestions` 공통 필드 추가** (이전: reviewer 에만 비정형으로 존재). qa 는 `verdict: block` 시 공통 `blocking_issues` 에도 축약 전사.
+- **architect 가 cross-validate 수행 시 `extends.cross_validate_outcome` 을 JSON 으로 반환** (이전: 이슈 코멘트 `### 교차검증 반영` 서브섹션에만). `429-fallback-claude-only` outcome 은 CLAUDE.md 폴백 프로토콜 연동 강제.
+- **pm 이 스프린트 계약에 `## 비-범위` 섹션을 누락하면 `extends.non_goals_declared: false` + `non_blocking_suggestions` 경고 자동 추가** (이전: 자가 점검 체크 항목에만 존재).
+
+### Notes
+
+- **`Builds on:` [#117](https://github.com/coseo12/harness-setting/pull/117)** (v2.16.0) — 선언적 규칙을 구조적으로 강제.
+- **Phase 분리 근거**: Phase 1 (에이전트 템플릿) 만 배포돼도 정상 동작 (선언적 규칙 + 5개 페르소나 하드코딩). Phase 2 (cross_validate.sh 스크립트 폴백 + 스모크 테스트) 는 독립 릴리스 가능. CLAUDE.md `### 릴리스` 의 Phase 분리 3조건 충족.
+- **reviewer 정적 리뷰 결과**: 차단 2건 해소 (BC#4 architect 429 fallback 실행 단계 + BC#5 pm 비-범위 누락 경고 자동 append) + 권고 3건 범위 내 반영 (SSoT 키 순서 고정 / developer 시점 명확화 / qa auto_close_issue_states 재정의). 권고 1 (SSoT 중복 리팩토링) + 라벨 네이밍 혼재 → [#127](https://github.com/coseo12/harness-setting/issues/127) 분리.
+- **박제 직후 cross-validate (Gemini) 정상 수신**: 고유 발견 2건 중 (다) 파서 회귀 우려는 저장소에 CI/자동 JSON 파서 부재(`jq` 사용 1건만 — `package.json engines.node`) 를 실측으로 기각. (가) "JSON 블록 내 텍스트 금지 명시" 는 [#127](https://github.com/coseo12/harness-setting/issues/127) 에 C 항목으로 추가. Gemini 가 BC#4 BC#5 프롬프트 레벨 강제력을 "명시적·결정론적, wishful 성공적 제거" 로 평가.
+- **현재 자동 파서 없음 / 미래 주의**: 본 릴리스에서 developer / qa JSON 이 flat → nested(`extends`) 구조로 변경됨. 향후 CI 레벨 파이프라인 자동화 도입 시 `extends` 중첩 파싱을 고려. Phase 2 스모크 테스트에서 JSON 구조 회귀 가드 추가 예정.
+- **Phase 2 예정**: [#119](https://github.com/coseo12/harness-setting/issues/119) 완료 기준 2, 3, 5 (cross_validate.sh 429 폴백 하드코딩 + dry-run reminder + 스모크 테스트) 는 별도 MINOR 릴리스로 이어짐.
+
 ## [2.16.1] — 2026-04-19
 
 v2.16.0 reviewer non-blocking 권고에서 분리된 두 PATCH 이슈(#118 sub-agent 블록 불릿 분리 / #114 실전 교훈 포인터 포맷 컨벤션) 을 묶어 정리. 구조 리팩토링 + 컨벤션 명시만.
