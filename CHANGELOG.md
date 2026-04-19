@@ -7,6 +7,31 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.20.0] — 2026-04-19
+
+[#131](https://github.com/coseo12/harness-setting/issues/131) Phase A — reviewer 권고 5건 중 4건 반영 (1, 2, 3, 6). `cross_validate.sh` stdout 대칭성 / capacity 반환 코드 분리 / exponential backoff / 복구 분기 stateful 테스트.
+
+### Added
+
+- **stdout `[claude-only-fallback]` 헤더** (권고 1) — fallback 경로에서도 stdout 에 한 줄 헤더 출력. 호출 측이 stderr 추적 없이 stdout 만으로도 fallback 모드 감지 가능.
+- **`check_gemini_capacity` exit code 3값 분리** (권고 2) — `CAPACITY_OK=0` / `CAPACITY_EXHAUSTED=2` / `CAPACITY_OTHER_ERROR=1`. 호출 측은 429 지속과 비-capacity probe 실패를 구분해 로그와 재시도 판단 가능.
+- **지수 backoff 공식** (권고 3) — `sleep $(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))`. `MAX_GEMINI_RETRIES` 가 늘어나도 지수 증가 유지 (attempt=1 → 2×BASE, attempt=2 → 4×BASE). 이전 공식: `attempt × BASE` (linear).
+- **스모크 테스트 +2** (`test/cross-validate-fallback.test.js`, 총 38 tests — 기존 36 + 신규 2) — 권고 6 대응:
+  1. `recover-after-1` stateful mock — 1차 429 → 2차 정상 복구 분기 (counter 파일 기반)
+  2. stdout `[claude-only-fallback]` 헤더 검증 (권고 1 대응 테스트)
+
+### Behavior Changes
+
+- **fallback 경로 stdout 출력 형식 변경** — 기존 stderr 만 있던 fallback signal 이 stdout 에도 `[claude-only-fallback]` 헤더로 복제됨. 호출 측이 stdout 파싱으로 fallback 모드 판정 가능. 정상 경로 stdout (Gemini 응답 본문) 과는 프리픽스로 구분.
+- **재시도 전 sleep 시간이 2배 증가** (MAX_RETRIES=2 기준) — 1차 재시도 이전 sleep 이 `5초` (linear) 에서 `10초` (exponential, BASE=5) 로 변경. 429 조기 재시도 완화 + 향후 `MAX_GEMINI_RETRIES` 증설 시 지수 백오프 자연 작동.
+- **`check_gemini_capacity` 반환 코드 분리** — 이전 단일 `return 1` → `0 / 1 / 2` 로 3값 분기. 호출 측 (현재는 `run_gemini` 의 capacity 복구 감지 로직) 이 case 문으로 상태별 로그 기록.
+
+### Notes
+
+- **`Builds on:` [#134](https://github.com/coseo12/harness-setting/pull/134)** (v2.19.0 Phase 3).
+- **#131 잔존 권고 2건**: 4 (capacity probe 의 quota 소모 위험, medium) + 7 (Phase 4 outcome 파싱 공통 스니펫화, medium) 는 Phase B 로 분리 — 실사용 패턴 축적 후 재검토.
+- **cross-validate 수행 예정**: Behavior Changes 3개 = MINOR 노출 효율 최대 앵커. 박제 직후 1회 호출 루틴.
+
 ## [2.19.0] — 2026-04-19
 
 [#131](https://github.com/coseo12/harness-setting/issues/131) Phase 3 — v2.18.0 Phase 2 의 **수동 연결점 해소**. `cross_validate.sh` 가 outcome JSON 파일을 생성하고 architect 가 이를 bash 스니펫으로 자동 파싱. 3층 방어 (선언 + 프롬프트 + 스크립트) 간 연결이 구조적으로 강제됨.
