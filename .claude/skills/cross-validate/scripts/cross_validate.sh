@@ -111,6 +111,12 @@ GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-pro}"
 MAX_GEMINI_RETRIES=2
 # 재시도 간 sleep 단위 (초). 테스트에서는 0 으로 설정해 실행 시간 단축.
 GEMINI_RETRY_SLEEP_SECONDS="${GEMINI_RETRY_SLEEP_SECONDS:-5}"
+# sleep 상한 (초). 지수 backoff 가 MAX_RETRIES 증설 시 폭증하는 것을 방지.
+# reviewer non-blocking (#137, v2.21.0~ #131 Phase B): MIN(cap, 2^attempt * BASE)
+GEMINI_RETRY_SLEEP_CAP="${GEMINI_RETRY_SLEEP_CAP:-300}"
+# capacity probe 옵트아웃. 기본 0 (수행). 권고 4 (#131 Phase B): probe (`gemini -p "hello"`)
+# 자체가 free tier quota 를 소모하므로 429 가 이미 감지된 상황에선 생략이 유리할 수 있다.
+SKIP_CAPACITY_PROBE="${SKIP_CAPACITY_PROBE:-0}"
 
 # Exit code 규약 (CLAUDE.md API capacity 폴백 프로토콜)
 # 0  = Gemini 정상 응답 수신
@@ -206,6 +212,9 @@ run_gemini() {
   local prompt="$1"
   local attempt=1
   local fatal=0
+  # Phase B (reviewer #140 권고 3): 루프 내 사용 변수를 함수 스코프에 local 선언해 전역 유출 방지
+  local raw_sleep=0
+  local capacity_rc=0
 
   while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
     log "Gemini 실행 중 (모델: ${GEMINI_MODEL}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."
@@ -218,33 +227,45 @@ run_gemini() {
     if echo "${output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
       log "경고: ${GEMINI_MODEL} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
       if [ "${attempt}" -lt "${MAX_GEMINI_RETRIES}" ]; then
-        # 폴백 프로토콜 단계 1: capacity 체크 + 지연 재시도
-        # sleep 공식: 2^attempt * BASE (reviewer 권고 3, #131 Phase A)
-        # MAX_RETRIES=2 에서 attempt=1 → 2*BASE (기본 10초)
-        # MAX_RETRIES 가 늘어나도 지수 증가 유지 (attempt=2 → 4*BASE, attempt=3 → 8*BASE)
+        # 폴백 프로토콜 단계 1: 지연 후 (선택적으로) capacity 체크 + 재시도
+        # sleep 공식: MIN(SLEEP_CAP, 2^attempt * BASE) — Phase A 의 지수 공식에
+        #   Phase B (reviewer non-blocking) 상한 cap 을 추가. MAX_RETRIES=10 이상에서도
+        #   sleep 이 GEMINI_RETRY_SLEEP_CAP (기본 300s) 이하로 보장됨.
         # 테스트 환경에서는 GEMINI_RETRY_SLEEP_SECONDS=0 으로 sleep 생략
         if [ "${GEMINI_RETRY_SLEEP_SECONDS}" -gt 0 ]; then
-          sleep $(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))
+          raw_sleep=$(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))
+          if [ "${raw_sleep}" -gt "${GEMINI_RETRY_SLEEP_CAP}" ]; then
+            log "sleep cap ${GEMINI_RETRY_SLEEP_CAP}s 적용 (원시 ${raw_sleep}s, attempt=${attempt})"
+            raw_sleep="${GEMINI_RETRY_SLEEP_CAP}"
+          fi
+          sleep "${raw_sleep}"
         fi
-        # 반환 코드 3값 분기 (reviewer 권고 2, #131 Phase A)
-        # Gemini 교차검증 (#137) 고유 발견 반영: CAPACITY_OTHER_ERROR 케이스 명시 +
-        # `*)` 는 알 수 없는 code 방어용 (향후 반환 코드 추가 시 조용한 오분기 방지)
-        capacity_rc=0
-        check_gemini_capacity || capacity_rc=$?
-        case "${capacity_rc}" in
-          "${CAPACITY_OK}")
-            log "capacity 복구 감지 — 재시도 진행"
-            ;;
-          "${CAPACITY_EXHAUSTED}")
-            log "capacity 여전히 부족 — 재시도 진행하되 조기 포기 가능성 높음"
-            ;;
-          "${CAPACITY_OTHER_ERROR}")
-            log "capacity probe 실패 (비-429) — 재시도는 진행 (probe 자체 이슈일 수 있음)"
-            ;;
-          *)
-            log "알 수 없는 capacity_rc (${capacity_rc}) — 재시도 진행 (방어적 분기)"
-            ;;
-        esac
+        # 권고 4 (#131 Phase B) — probe 옵트아웃
+        # SKIP_CAPACITY_PROBE=1 설정 시 probe 호출 생략 → free tier quota 보존
+        # 호출 측이 "429 이면 재시도도 어차피 429" 를 확신할 때 비용 절약 경로
+        if [ "${SKIP_CAPACITY_PROBE}" = "1" ]; then
+          log "capacity probe 생략 (SKIP_CAPACITY_PROBE=1) — 바로 재시도"
+        else
+          # 반환 코드 3값 분기 (reviewer 권고 2, #131 Phase A)
+          # Gemini 교차검증 (#137) 고유 발견 반영: CAPACITY_OTHER_ERROR 케이스 명시 +
+          # `*)` 는 알 수 없는 code 방어용 (향후 반환 코드 추가 시 조용한 오분기 방지)
+          capacity_rc=0
+          check_gemini_capacity || capacity_rc=$?
+          case "${capacity_rc}" in
+            "${CAPACITY_OK}")
+              log "capacity 복구 감지 — 재시도 진행"
+              ;;
+            "${CAPACITY_EXHAUSTED}")
+              log "capacity 여전히 부족 — 재시도 진행하되 조기 포기 가능성 높음"
+              ;;
+            "${CAPACITY_OTHER_ERROR}")
+              log "capacity probe 실패 (비-429) — 재시도는 진행 (probe 자체 이슈일 수 있음)"
+              ;;
+            *)
+              log "알 수 없는 capacity_rc (${capacity_rc}) — 재시도 진행 (방어적 분기)"
+              ;;
+          esac
+        fi
       fi
       attempt=$((attempt + 1))
     else
@@ -261,6 +282,9 @@ run_gemini() {
   echo "${fallback_msg}" >&2
   # stdout 헤더 (reviewer 권고 1, #131 Phase A) — 호출 측이 stdout 만으로 fallback 모드 감지 가능
   # 정상 경로 stdout 에는 Gemini 응답 본문이 출력됨. fallback 경로는 본문이 없으므로 이 프리픽스가 signal.
+  # NOTE (qa non-blocking, #131 Phase B): fatal 경로 (비-capacity 오류, exit 1) 도 이 헤더를
+  #   동일하게 출력한다. fatal vs 429 정확 구분은 outcome JSON 의 "outcome" 필드를 참조해야 하며
+  #   (scripts/parse-cross-validate-outcome.sh 헬퍼 사용 권장), stdout 헤더 단독으로는 구분 불가.
   echo "[claude-only-fallback] Gemini ${GEMINI_MODEL} 응답 없음 — Claude 단독 분석 (교차검증 미확보)"
   echo "⚠ 교차검증 불가 — Claude 단독 분석. Gemini ${GEMINI_MODEL} 응답 없음." | tee -a "${LOG_FILE}"
 

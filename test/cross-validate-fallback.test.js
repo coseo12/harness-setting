@@ -21,11 +21,13 @@ const PROJECT_DIR = path.resolve(__dirname, '..');
 const SCRIPT_PATH = path.join(PROJECT_DIR, '.claude/skills/cross-validate/scripts/cross_validate.sh');
 
 // mock gemini 바이너리 생성 헬퍼
-// mode: '429' | 'ok' | 'fatal' | 'recover-after-1'
+// mode: '429' | 'ok' | 'fatal' | 'recover-after-1' | '429-counted'
 //   recover-after-1: 1차 호출 429, 2차 이후 정상 — 복구 분기 검증 (reviewer 권고 6, #131 Phase A)
+//   429-counted: 모든 호출 429, 호출 횟수를 counter 파일에 기록 — probe 생략 검증 (권고 4, #131 Phase B)
 function setupMockGemini(mode) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cv-mock-'));
   const mockPath = path.join(tmpDir, 'gemini');
+  const counterPath = path.join(tmpDir, 'counter');
   let script;
   if (mode === '429') {
     // 모든 호출 실패 (capacity 체크 + 재시도 모두 429)
@@ -36,8 +38,6 @@ function setupMockGemini(mode) {
     script = `#!/bin/bash\necho "Error: invalid argument" >&2\nexit 2\n`;
   } else if (mode === 'recover-after-1') {
     // 임시 디렉토리 내 counter 파일로 호출 순번 추적 — 1차 429, 2차+ 정상
-    // GEMINI_MOCK_COUNTER 환경변수로 counter 파일 경로 고정 (테스트 스크립트와 공유)
-    const counterPath = path.join(tmpDir, 'counter');
     script = `#!/bin/bash
 COUNTER_FILE="${counterPath}"
 count=0
@@ -51,11 +51,22 @@ fi
 echo "mock gemini recovered response (call \${count})"
 exit 0
 `;
+  } else if (mode === '429-counted') {
+    // 모든 호출 429 + 호출 횟수 counter 기록 — SKIP_CAPACITY_PROBE 검증용 (권고 4, #131 Phase B)
+    script = `#!/bin/bash
+COUNTER_FILE="${counterPath}"
+count=0
+if [ -f "\${COUNTER_FILE}" ]; then count=$(cat "\${COUNTER_FILE}"); fi
+count=$((count + 1))
+echo "\${count}" > "\${COUNTER_FILE}"
+echo "Error: 429 RESOURCE_EXHAUSTED" >&2
+exit 1
+`;
   } else {
     throw new Error(`unknown mode: ${mode}`);
   }
   fs.writeFileSync(mockPath, script, { mode: 0o755 });
-  return { tmpDir, mockPath };
+  return { tmpDir, mockPath, counterPath };
 }
 
 // 각 테스트마다 고유 LOG_DIR 을 사용해 outcome JSON 간섭 방지 (reviewer 권고 5)
@@ -302,5 +313,210 @@ test('cross-validate: 429 fallback 시 stdout 에 [claude-only-fallback] 헤더 
     );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+// Phase B (#131) — 권고 4 (SKIP_CAPACITY_PROBE) / sleep cap / 헬퍼 스크립트
+
+test('cross-validate: SKIP_CAPACITY_PROBE=1 → probe 호출 생략, mock 호출 횟수 = MAX_RETRIES (권고 4)', () => {
+  const { tmpDir, counterPath } = setupMockGemini('429-counted');
+  const logDir = setupLogDir();
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
+      REMINDER_ISSUE_DRYRUN: '1',
+      SKIP_CAPACITY_PROBE: '1',
+    });
+    assert.strictEqual(result.status, 77);
+    // probe 생략 시 mock gemini 호출은 run_gemini 의 재시도 루프 횟수만 (= MAX_GEMINI_RETRIES = 2)
+    // probe 가 활성이었다면 3번 호출 (초기 + probe + 재시도)
+    const callCount = parseInt(fs.readFileSync(counterPath, 'utf8').trim(), 10);
+    assert.strictEqual(callCount, 2, `SKIP_PROBE=1 시 mock 호출 2회 기대. 실제: ${callCount}`);
+    assert.ok(
+      result.stderr.includes('capacity probe 생략') || result.stdout.includes('capacity probe 생략'),
+      `probe 생략 로그 기대. stderr: ${result.stderr}`
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
+});
+
+test('cross-validate: SKIP_CAPACITY_PROBE=0 (기본) → probe 호출 수행, mock 호출 횟수 = 3', () => {
+  const { tmpDir, counterPath } = setupMockGemini('429-counted');
+  const logDir = setupLogDir();
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
+      REMINDER_ISSUE_DRYRUN: '1',
+    });
+    assert.strictEqual(result.status, 77);
+    // 기본값: probe 활성 → 3번 호출 (초기 429 + probe 429 + 재시도 429)
+    const callCount = parseInt(fs.readFileSync(counterPath, 'utf8').trim(), 10);
+    assert.strictEqual(callCount, 3, `기본 probe 활성 시 mock 호출 3회 기대. 실제: ${callCount}`);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
+});
+
+test('cross-validate: GEMINI_RETRY_SLEEP_CAP 적용 시 cap 로그 출력', () => {
+  const { tmpDir } = setupMockGemini('429');
+  const logDir = setupLogDir();
+  try {
+    // sleep cap 로그 검증 — raw=2*100=200s > cap=1s 이므로 cap 적용
+    // 실제 sleep 은 1초 (테스트 slowdown)
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
+      REMINDER_ISSUE_DRYRUN: '1',
+      GEMINI_RETRY_SLEEP_SECONDS: '100',
+      GEMINI_RETRY_SLEEP_CAP: '1',
+    });
+    assert.strictEqual(result.status, 77);
+    // 로그 파일에서 cap 적용 메시지 확인
+    const logFiles = fs.readdirSync(logDir).filter((f) => f.endsWith('.log'));
+    assert.ok(logFiles.length > 0, 'log 파일이 생성되어야 함');
+    const logContent = fs.readFileSync(path.join(logDir, logFiles[0]), 'utf8');
+    assert.ok(
+      logContent.includes('sleep cap 1s 적용'),
+      `sleep cap 적용 로그 기대. 실제 log: ${logContent}`
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
+});
+
+// parse-cross-validate-outcome.sh 헬퍼 스크립트 단위 테스트 (권고 7, #131 Phase B)
+const HELPER_PATH = path.join(PROJECT_DIR, 'scripts/parse-cross-validate-outcome.sh');
+
+function runHelper(args, stdinContent) {
+  const result = spawnSync('bash', [HELPER_PATH, ...args], {
+    cwd: PROJECT_DIR,
+    input: stdinContent,
+    encoding: 'utf8',
+    timeout: 10_000,
+  });
+  return result;
+}
+
+function writeOutcomeJson(dir, data) {
+  const outcomeFile = path.join(dir, `cross-validate-structure-${Date.now()}-outcome.json`);
+  fs.writeFileSync(outcomeFile, JSON.stringify(data, null, 2));
+  return outcomeFile;
+}
+
+test('parse-helper: outcome JSON 직접 파싱 → KEY=value 형식 stdout 출력', () => {
+  const logDir = setupLogDir();
+  try {
+    const outcomeFile = writeOutcomeJson(logDir, {
+      outcome: 'applied',
+      exit_code: 0,
+      anchor: 'MINOR-behavior-change',
+      pr_ref: '#137',
+      context: 'code:137',
+      log_file: '/tmp/test.log',
+      reminder_issue: 'none',
+      timestamp: '2026-04-19T00:00:00Z',
+    });
+    const result = runHelper([outcomeFile]);
+    assert.strictEqual(result.status, 0);
+    assert.match(result.stdout, /CROSS_VALIDATE_OUTCOME="applied"/);
+    assert.match(result.stdout, /CROSS_VALIDATE_EXIT_CODE=0/);
+    assert.match(result.stdout, /CROSS_VALIDATE_REMINDER="none"/);
+    assert.match(result.stdout, /CROSS_VALIDATE_ANCHOR="MINOR-behavior-change"/);
+  } finally {
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
+});
+
+test('parse-helper: 429 fallback outcome JSON → exit_code=77 + reminder 추출', () => {
+  const logDir = setupLogDir();
+  try {
+    const outcomeFile = writeOutcomeJson(logDir, {
+      outcome: '429-fallback-claude-only',
+      exit_code: 77,
+      anchor: 'ADR-new-or-amendment',
+      pr_ref: '',
+      context: 'architecture:docs/decisions/foo.md',
+      log_file: '/tmp/test.log',
+      reminder_issue: 'dryrun',
+      timestamp: '2026-04-19T00:00:00Z',
+    });
+    const result = runHelper([outcomeFile]);
+    assert.strictEqual(result.status, 0);
+    assert.match(result.stdout, /CROSS_VALIDATE_OUTCOME="429-fallback-claude-only"/);
+    assert.match(result.stdout, /CROSS_VALIDATE_EXIT_CODE=77/);
+    assert.match(result.stdout, /CROSS_VALIDATE_REMINDER="dryrun"/);
+  } finally {
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
+});
+
+test('parse-helper: 파일 없음 → OUTCOME="missing" + stderr 경고', () => {
+  const result = runHelper(['/nonexistent/path.json']);
+  assert.strictEqual(result.status, 0, `파일 없어도 exit 0 (안전 기본값 출력)`);
+  assert.match(result.stdout, /CROSS_VALIDATE_OUTCOME="missing"/);
+  assert.match(result.stdout, /CROSS_VALIDATE_EXIT_CODE=1/);
+  assert.ok(
+    result.stderr.includes('outcome 파일 없음'),
+    `stderr 에 경고 기대. 실제: ${result.stderr}`
+  );
+});
+
+test('parse-helper: --from-stdout 모드 → [outcome-file] 프리픽스 자동 추출', () => {
+  const logDir = setupLogDir();
+  try {
+    const outcomeFile = writeOutcomeJson(logDir, {
+      outcome: 'applied',
+      exit_code: 0,
+      anchor: '',
+      pr_ref: '',
+      context: 'skill:cross-validate',
+      log_file: '/tmp/test.log',
+      reminder_issue: 'none',
+      timestamp: '2026-04-19T00:00:00Z',
+    });
+    // cross_validate.sh stdout 모방
+    const fakeStdout = `Some gemini response body\n[outcome-file] ${outcomeFile}\n`;
+    const result = runHelper(['--from-stdout'], fakeStdout);
+    assert.strictEqual(result.status, 0);
+    assert.match(result.stdout, /CROSS_VALIDATE_OUTCOME="applied"/);
+  } finally {
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
+});
+
+test('parse-helper: --from-stdout 에서 프리픽스 부재 → OUTCOME="missing"', () => {
+  const result = runHelper(['--from-stdout'], 'No outcome prefix here\n');
+  assert.strictEqual(result.status, 0);
+  assert.match(result.stdout, /CROSS_VALIDATE_OUTCOME="missing"/);
+  assert.ok(
+    result.stderr.includes('찾지 못함'),
+    `stderr 에 경고 기대. 실제: ${result.stderr}`
+  );
+});
+
+test('parse-helper + cross_validate.sh 통합: 실제 outcome JSON 파싱 (정상 경로)', () => {
+  const { tmpDir } = setupMockGemini('ok');
+  const logDir = setupLogDir();
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
+      REMINDER_ISSUE_DRYRUN: '1',
+    });
+    assert.strictEqual(result.status, 0);
+    // 실측 stdout 을 헬퍼에 파이프
+    const helperResult = runHelper(['--from-stdout'], result.stdout);
+    assert.strictEqual(helperResult.status, 0);
+    assert.match(helperResult.stdout, /CROSS_VALIDATE_OUTCOME="applied"/);
+    assert.match(helperResult.stdout, /CROSS_VALIDATE_EXIT_CODE=0/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
   }
 });

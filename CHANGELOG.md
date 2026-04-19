@@ -7,6 +7,39 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+[#131](https://github.com/coseo12/harness-setting/issues/131) Phase B — 잔존 권고 2건 (4, 7) + reviewer/qa non-blocking 2건. `cross_validate.sh` probe 옵트아웃 / sleep cap 상한 / 공통 파싱 헬퍼 + fatal stdout 헤더 규약 박제.
+
+### Added
+
+- **`SKIP_CAPACITY_PROBE` 환경변수** (권고 4) — 활성 시 capacity probe (`gemini -p "hello"`) 호출 생략, sleep 후 바로 재시도. probe 자체 free-tier quota 소모 회피. 기본값 `0` (현행 동작 유지).
+- **`GEMINI_RETRY_SLEEP_CAP` 환경변수** (reviewer non-blocking) — sleep 상한 (기본 300s). 공식 `MIN(cap, 2^attempt × BASE)` — `MAX_GEMINI_RETRIES` 증설 시 sleep 폭증 방지.
+- **`scripts/parse-cross-validate-outcome.sh` 공통 헬퍼** (권고 7) — outcome JSON 파싱 SSoT. 사용 경로:
+  - 직접 지정: `eval "$(./scripts/parse-cross-validate-outcome.sh /path/to/outcome.json)"`
+  - stdout 자동 추출: `eval "$(... | ./scripts/parse-cross-validate-outcome.sh --from-stdout)"`
+  - 출력 변수: `CROSS_VALIDATE_OUTCOME` / `CROSS_VALIDATE_EXIT_CODE` / `CROSS_VALIDATE_REMINDER` / `CROSS_VALIDATE_LOG_FILE` / `CROSS_VALIDATE_ANCHOR`
+  - 예외 분기: 파일 없음 → `"missing"`, 필수 필드 부재 → `"parse-error"`
+- **fatal 경로 stdout 헤더 규약 명시** (qa non-blocking) — `cross_validate.sh` 코드 주석 + `CLAUDE.md ## 교차검증` 에 박제: fatal (exit 1) 도 `[claude-only-fallback]` 헤더를 공유하므로 **fatal vs 429 정확 구분은 outcome JSON 의 `outcome` 필드** (또는 헬퍼) 참조 필수.
+- **스모크 테스트 +9** (`test/cross-validate-fallback.test.js`, 총 47 tests — 기존 38 + 신규 9):
+  1. `SKIP_CAPACITY_PROBE=1` 시 mock 호출 횟수 2회 (기본 3회) — `429-counted` stateful mock
+  2. `SKIP_CAPACITY_PROBE=0` 기본값 — probe 활성 시 mock 호출 3회
+  3. `GEMINI_RETRY_SLEEP_CAP` 로그 검증 (raw=200s → cap=1s)
+  4-8. 헬퍼 단위 테스트: 직접 경로 / 429 outcome / 파일 없음 / `--from-stdout` 추출 / 프리픽스 부재
+  9. 헬퍼 + `cross_validate.sh` 실제 파이프 통합 테스트 (정상 경로)
+
+### Behavior Changes
+
+- **`architect.md` step 8 — outcome 파싱을 공통 헬퍼 호출로 단순화** — 기존 인라인 `grep`/`sed` bash 스니펫이 `eval "$(... | parse-cross-validate-outcome.sh --from-stdout)"` 한 줄로 축약. 에이전트가 설정하는 변수명도 `OUTCOME` / `REMINDER` 등 충돌 위험 있는 짧은 이름 → `CROSS_VALIDATE_OUTCOME` 등 네임스페이스화
+- **`cross_validate.sh` sleep 공식에 상한 cap 추가** — 기존 `sleep $(( (1 << attempt) * BASE ))` → `sleep $(( MIN(GEMINI_RETRY_SLEEP_CAP, (1 << attempt) * BASE) ))`. 기본값 `CAP=300s` 이므로 `MAX_GEMINI_RETRIES=2` 현행에선 동작 변화 없음. 미래 `MAX_RETRIES` 증설 시 자동 보호
+- **`cross_validate.sh` capacity probe 경로 분기 추가** — `SKIP_CAPACITY_PROBE=1` 설정 시 probe 블록 자체를 스킵하고 재시도 직행. 기본 동작은 변화 없음
+
+### Notes
+
+- **`Builds on:` [#137](https://github.com/coseo12/harness-setting/pull/137)** (v2.20.0 Phase A)
+- **#131 완전 해소 후보**: Phase A + Phase B 로 모든 reviewer 권고 5건 + non-blocking 2건 반영. 이슈 close 여부는 릴리스 시점에 판단
+- **cross-validate 수행 예정**: Behavior Changes 3개 = MINOR 노출 효율 최대 앵커. 박제 직후 1회 호출 루틴
+
 ## [2.20.0] — 2026-04-19
 
 [#131](https://github.com/coseo12/harness-setting/issues/131) Phase A — reviewer 권고 5건 중 4건 반영 (1, 2, 3, 6). `cross_validate.sh` stdout 대칭성 / capacity 반환 코드 분리 / exponential backoff / 복구 분기 stateful 테스트.
