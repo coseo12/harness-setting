@@ -95,6 +95,13 @@ develop   ← 동기화 유지 (누락 시 drift)
 ## PR 규칙
 - PR 제목에 이슈 번호 포함: `[#이슈번호] 설명`
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
+- **여러 이슈 auto-close 시 각 이슈마다 keyword 반복 또는 줄 분리** — GitHub 은 각 이슈 바로 앞 단어에 closing keyword (`close[s|d]` / `fix[es|ed]` / `resolve[s|d]`) 가 있어야 인식한다. 잘못된 문법은 **조용히 누락**되어 이슈가 OPEN 으로 잔존.
+  - **단일 원리**: GitHub 은 **각 이슈 번호 직전에 closing keyword 가 토큰으로 인접해야** 인식한다. 콜론/콤마/공백 등으로 keyword 와 번호 사이를 끊거나 두 번째 번호 앞에 keyword 가 없으면 모두 **동일한 결함** (두 번째 이슈 앞 keyword 부재) 으로 수렴해 #B 미인식.
+  - ✅ `Closes #A, closes #B` — 각 이슈에 keyword 반복
+  - ✅ 줄 분리 — `Closes #A\nCloses #B`
+  - ❌ `Closes: #A, #B` / `Closes #A, #B` / `Closes #A #B` — 모두 #B 앞 keyword 부재 (콜론·콤마·공백은 동일 결함의 표면 변형)
+- **머지 직후 auto-close 검증 루틴** — release/feature PR 머지 후 close 대상 이슈 전부에 `gh issue view <n> --json state` 로 실제 close 여부를 확인. default branch (main) 머지가 아닌 경우 (feature PR → develop) 는 릴리스 시점까지 OPEN 유지가 정상
+- 근거: volt [#41](https://github.com/coseo12/volt/issues/41) — harness PR [#108](https://github.com/coseo12/harness-setting/pull/108) (v2.14.0) 커밋 메시지 `Closes: #105, #110` 에서 #105 만 auto-close 되고 #110 은 수동 close 필요했던 실측 사례
 
 ---
 
@@ -220,8 +227,8 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
 ### sub-agent 검증 완료 ≠ GitHub 박제 완료
 sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 수행하면서도 **커밋/푸시/PR 생성/`gh pr comment` 박제** 같은 외부 가시성 단계에서 이탈하는 패턴이 반복된다(4회 관찰). sub-agent 관점 "작업 완료"와 harness 관점 "외부 가시성 있음"이 어긋나 메인 오케스트레이터가 매번 수동 보완해야 했다.
 
-- sub-agent 위임은 **"검증"까지는 신뢰하되 "박제"는 신뢰하지 말 것** — 메인 컨텍스트가 sub-agent 보고 수신 직후 `git log --oneline -1` / `gh pr list` / `gh pr view <번호> --json comments` 로 GitHub 상태를 직접 확인한다
-- sub-agent 프롬프트 말미에 **마무리 체크리스트 JSON 반환** 을 요구한다 — 커밋 SHA / PR URL / 코멘트 URL / 라벨 전이 결과를 field로 명시해 누락을 구조적으로 감지
+- sub-agent 위임은 **"검증"까지는 신뢰하되 "박제"는 신뢰하지 말 것** — 메인 컨텍스트가 sub-agent 보고 수신 직후 `git log --oneline -1` / `gh pr list` / `gh pr view <번호> --json comments` / `gh issue view <auto-close 대상> --json state` 로 GitHub 상태를 직접 확인한다 (auto-close 검증은 PR 규칙 섹션 keyword 문법 가드와 연결 — `Closes: #A, #B` 콜론 문법은 #B 미인식)
+- sub-agent 프롬프트 말미에 **마무리 체크리스트 JSON 반환** 을 요구한다 — 커밋 SHA / PR URL / 코멘트 URL / 라벨 전이 결과 / **auto-close 대상 이슈의 실제 state** 를 field로 명시해 누락을 구조적으로 감지
 - 누락 감지 시 메인이 직접 보완 박제 (커밋/PR/코멘트). sub-agent를 재호출해 같은 누락을 반복시키지 않는다
 - 근거: volt [#24](https://github.com/coseo12/volt/issues/24) — astro-simulator P6-B~E 에서 dev/qa sub-agent 마무리 단계 누락 4회 연속 관찰
 
@@ -250,6 +257,22 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 정답이 없는 의사결정에서 Gemini의 두 번째 시각을 활용한다.
 - Gemini 실패 시 스킵하고 "Claude 단독 분석"을 명시한다
 - 경량 모델 폴백은 하지 않는다 — 교차검증의 가치는 깊은 분석에 있다
+- **API capacity 소진 (429) 폴백 프로토콜** — 첫 429 응답 시 즉시 Claude 단독으로 내려가지 말고 단계적으로 처리:
+  1. `gemini -p "hello"` 로 capacity 체크 후 본 검증 1회 **지연 재시도** (연속 429 는 대개 수초~수분 단위로 해소됨)
+  2. 2차 시도도 429/timeout 이면 Claude 단독 분석으로 전환. 단, **"claude-only analysis completed — 단일 모델 편향 노출 미확보"** 를 결과 박제에 명시 기록. 박제 위치는 컨텍스트별 1:1:
+     - **PR 리뷰 맥락** → 원 PR 에 코멘트 한 줄 추가
+     - **ADR 생성 맥락** → 해당 ADR 의 `## 결과·재검토 조건` 섹션에 각주
+     - **릴리스 박제 맥락** (MINOR 이상 `Behavior Changes` 직후) → CHANGELOG `### Notes` 에 한 줄
+     - **CRITICAL DIRECTIVE 개정** → CLAUDE.md 개정 커밋 메시지에 각주
+
+     **여러 컨텍스트가 겹치면** (예: CRITICAL 개정 + PR 리뷰 + MINOR 릴리스) 영구성 우선순위로 1개소에만 기록: **CHANGELOG Notes > ADR 각주 > 커밋 메시지 > PR 코멘트**. 중복 기록은 하지 않는다. 누락 시 "cross-validate 루틴 불이행" 으로 오인
+  3. **노출 효율 최대 타이밍** 이었다면 **reminder 이슈로 박제**. 최대 타이밍은 다음 3개 앵커 중 하나에 해당할 때:
+     - **CRITICAL DIRECTIVE 개정** — 세션 초기 각인 규칙이 추가·변경됨
+     - **ADR 신규 생성 및 중대한 개정/폐기** — 코어 기술/아키텍처 결정이 박제되거나 기존 합의가 역전됨 (신규 못지않게 개정/폐기도 노출 효율 최대)
+     - **MINOR 이상 릴리스의 `### Behavior Changes`** — 에이전트 행동 규칙이 추가·변경됨 (PATCH 는 제외)
+
+     reminder 이슈 제목 예시 `[#<원 PR 번호>] cross-validate 재시도 — Gemini capacity 복구 후`. 본문에 원 PR/ADR 링크 + 재시도 시 확인할 범주(범주 오류 / 암묵 전제 / 비목표 대조) 명시. API 복구 후 close 또는 재검증 결과 반영
+- 근거 (폴백 프로토콜): volt [#40](https://github.com/coseo12/volt/issues/40) — v2.13.0 / v2.15.0 박제 직후 Gemini 429 2회 관찰. harness [#107](https://github.com/coseo12/harness-setting/issues/107) 선례 (복구 후 재시도 이슈 박제 → 2차 성공 후 close)
 - **정책·설계·ADR 박제 직후 1회 루틴** — 정책 문서, ADR, CRITICAL DIRECTIVE 등을 박제한 직후 cross-validate 스킬을 1회 호출한다. 단일 모델 편향(범주 오류/암묵 전제 누락)은 박제 직후가 노출 효율이 가장 높다. v2.6.2→v2.6.3(SemVer 세분화) 사례 참조.
 - **교차검증 결과는 Claude가 재분석**: Gemini 산출물을 합의/이견/고유발견으로 분류하고, 과대 대응은 근거와 함께 반려. 맹목 수용 금지.
 - **고유 발견의 수용 vs 후속 분리 3단 프로토콜** — #23 의 반려 기준을 보완하는 수용/분리 기준:
