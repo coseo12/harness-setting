@@ -96,11 +96,10 @@ develop   ← 동기화 유지 (누락 시 drift)
 - PR 제목에 이슈 번호 포함: `[#이슈번호] 설명`
 - PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
 - **여러 이슈 auto-close 시 각 이슈마다 keyword 반복 또는 줄 분리** — GitHub 은 각 이슈 바로 앞 단어에 closing keyword (`close[s|d]` / `fix[es|ed]` / `resolve[s|d]`) 가 있어야 인식한다. 잘못된 문법은 **조용히 누락**되어 이슈가 OPEN 으로 잔존.
-  - ✅ `Closes #A, closes #B` — 각 이슈에 keyword
+  - **단일 원리**: GitHub 은 **각 이슈 번호 직전에 closing keyword 가 토큰으로 인접해야** 인식한다. 콜론/콤마/공백 등으로 keyword 와 번호 사이를 끊거나 두 번째 번호 앞에 keyword 가 없으면 모두 **동일한 결함** (두 번째 이슈 앞 keyword 부재) 으로 수렴해 #B 미인식.
+  - ✅ `Closes #A, closes #B` — 각 이슈에 keyword 반복
   - ✅ 줄 분리 — `Closes #A\nCloses #B`
-  - ❌ `Closes: #A, #B` — 콜론 문법. #B 미인식
-  - ❌ `Closes #A, #B` — 콤마만. #B 미인식
-  - ❌ `Closes #A #B` — 공백 구분. #B 미인식
+  - ❌ `Closes: #A, #B` / `Closes #A, #B` / `Closes #A #B` — 모두 #B 앞 keyword 부재 (콜론·콤마·공백은 동일 결함의 표면 변형)
 - **머지 직후 auto-close 검증 루틴** — release/feature PR 머지 후 close 대상 이슈 전부에 `gh issue view <n> --json state` 로 실제 close 여부를 확인. default branch (main) 머지가 아닌 경우 (feature PR → develop) 는 릴리스 시점까지 OPEN 유지가 정상
 - 근거: volt [#41](https://github.com/coseo12/volt/issues/41) — harness PR [#108](https://github.com/coseo12/harness-setting/pull/108) (v2.14.0) 커밋 메시지 `Closes: #105, #110` 에서 #105 만 auto-close 되고 #110 은 수동 close 필요했던 실측 사례
 
@@ -260,8 +259,19 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 - 경량 모델 폴백은 하지 않는다 — 교차검증의 가치는 깊은 분석에 있다
 - **API capacity 소진 (429) 폴백 프로토콜** — 첫 429 응답 시 즉시 Claude 단독으로 내려가지 말고 단계적으로 처리:
   1. `gemini -p "hello"` 로 capacity 체크 후 본 검증 1회 **지연 재시도** (연속 429 는 대개 수초~수분 단위로 해소됨)
-  2. 2차 시도도 429/timeout 이면 Claude 단독 분석으로 전환. 단, **"claude-only analysis completed — 단일 모델 편향 노출 미확보"** 를 결과 박제에 명시 기록 (PR 코멘트 / ADR / CHANGELOG Notes 중 해당 위치). 누락 시 "cross-validate 루틴 불이행" 으로 오인
-  3. 박제 직후 루틴처럼 **노출 효율이 최대인 타이밍** 이었다면 **reminder 이슈로 박제** — 제목 예시 `[#<원 PR 번호>] cross-validate 재시도 — Gemini capacity 복구 후`. 본문에 원 PR/ADR 링크 + 재시도 시 확인할 범주(범주 오류 / 암묵 전제 / 비목표 대조) 명시. API 복구 후 close 또는 재검증 결과 반영
+  2. 2차 시도도 429/timeout 이면 Claude 단독 분석으로 전환. 단, **"claude-only analysis completed — 단일 모델 편향 노출 미확보"** 를 결과 박제에 명시 기록. 박제 위치는 컨텍스트별 1:1:
+     - **PR 리뷰 맥락** → 원 PR 에 코멘트 한 줄 추가
+     - **ADR 생성 맥락** → 해당 ADR 의 `## 결과·재검토 조건` 섹션에 각주
+     - **릴리스 박제 맥락** (MINOR 이상 `Behavior Changes` 직후) → CHANGELOG `### Notes` 에 한 줄
+     - **CRITICAL DIRECTIVE 개정** → CLAUDE.md 개정 커밋 메시지에 각주
+
+     누락 시 "cross-validate 루틴 불이행" 으로 오인
+  3. **노출 효율 최대 타이밍** 이었다면 **reminder 이슈로 박제**. 최대 타이밍은 다음 3개 앵커 중 하나에 해당할 때:
+     - **CRITICAL DIRECTIVE 개정** — 세션 초기 각인 규칙이 추가·변경됨
+     - **ADR 신규 생성** — 코어 기술/아키텍처 결정 박제 직후
+     - **MINOR 이상 릴리스의 `### Behavior Changes`** — 에이전트 행동 규칙이 추가·변경됨 (PATCH 는 제외)
+
+     reminder 이슈 제목 예시 `[#<원 PR 번호>] cross-validate 재시도 — Gemini capacity 복구 후`. 본문에 원 PR/ADR 링크 + 재시도 시 확인할 범주(범주 오류 / 암묵 전제 / 비목표 대조) 명시. API 복구 후 close 또는 재검증 결과 반영
 - 근거 (폴백 프로토콜): volt [#40](https://github.com/coseo12/volt/issues/40) — v2.13.0 / v2.15.0 박제 직후 Gemini 429 2회 관찰. harness [#107](https://github.com/coseo12/harness-setting/issues/107) 선례 (복구 후 재시도 이슈 박제 → 2차 성공 후 close)
 - **정책·설계·ADR 박제 직후 1회 루틴** — 정책 문서, ADR, CRITICAL DIRECTIVE 등을 박제한 직후 cross-validate 스킬을 1회 호출한다. 단일 모델 편향(범주 오류/암묵 전제 누락)은 박제 직후가 노출 효율이 가장 높다. v2.6.2→v2.6.3(SemVer 세분화) 사례 참조.
 - **교차검증 결과는 Claude가 재분석**: Gemini 산출물을 합의/이견/고유발견으로 분류하고, 과대 대응은 근거와 함께 반려. 맹목 수용 금지.

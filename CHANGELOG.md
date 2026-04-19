@@ -9,7 +9,7 @@
 
 ## [Unreleased]
 
-volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com/coseo12/volt/issues/41) 반영. GitHub auto-close keyword 문법 가드 + Gemini cross-validate 429 폴백 프로토콜. 조용한 누락(이슈 OPEN 잔존 / 박제 직후 편향 노출 미확보) 을 구조적으로 방어.
+volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com/coseo12/volt/issues/41) 반영. GitHub auto-close keyword 문법 가드 + Gemini cross-validate 429 폴백 프로토콜. 조용한 누락(**이슈 OPEN 잔존** = 커밋 메시지 keyword 오문법으로 auto-close 실패 / **박제 직후 cross-validate 루틴을 단일 모델 편향 노출 기회가 가장 큰 시점에 포기** = Gemini 429 로 즉시 Claude 단독 폴백 후 흔적 없이 사라짐) 을 구조적으로 방어.
 
 ### Added
 
