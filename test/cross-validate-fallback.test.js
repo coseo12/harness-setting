@@ -40,6 +40,11 @@ function setupMockGemini(mode) {
   return { tmpDir, mockPath };
 }
 
+// 각 테스트마다 고유 LOG_DIR 을 사용해 outcome JSON 간섭 방지 (reviewer 권고 5)
+function setupLogDir() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cv-logs-'));
+}
+
 function runScript(args, env) {
   const result = spawnSync('bash', [SCRIPT_PATH, ...args], {
     cwd: PROJECT_DIR,
@@ -53,6 +58,16 @@ function runScript(args, env) {
     timeout: 60_000,
   });
   return result;
+}
+
+// 지정한 LOG_DIR 에서 최신 outcome JSON 읽기 (테스트 격리용)
+function readOutcomeFromDir(logDir) {
+  const files = fs.readdirSync(logDir)
+    .filter((f) => f.endsWith('-outcome.json'))
+    .map((f) => ({ full: path.join(logDir, f), mtime: fs.statSync(path.join(logDir, f)).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime);
+  if (!files[0]) return null;
+  return JSON.parse(fs.readFileSync(files[0].full, 'utf8'));
 }
 
 test('cross-validate: 429 응답 → claude-only fallback exit code 77', () => {
@@ -145,79 +160,78 @@ test('cross-validate: 비-capacity fatal 오류 → exit 1 (claude-only 시그�
 });
 
 // Phase 3 (#131) — outcome JSON 파일 출력 + architect 자동 매핑 근거 검증
-// cross_validate.sh 실행 후 최신 outcome JSON 을 찾아 파싱
-function findLatestOutcomeFile() {
-  const logsDir = path.join(PROJECT_DIR, '.claude', 'logs');
-  if (!fs.existsSync(logsDir)) return null;
-  const files = fs.readdirSync(logsDir)
-    .filter((f) => f.endsWith('-outcome.json'))
-    .map((f) => ({
-      name: f,
-      full: path.join(logsDir, f),
-      mtime: fs.statSync(path.join(logsDir, f)).mtimeMs,
-    }))
-    .sort((a, b) => b.mtime - a.mtime);
-  return files[0]?.full ?? null;
-}
+// 테스트 격리: 각 테스트가 자체 LOG_DIR 사용 (reviewer 권고 5)
 
 test('cross-validate outcome: 429 응답 → outcome JSON 에 "429-fallback-claude-only" 기록', () => {
   const { tmpDir } = setupMockGemini('429');
+  const logDir = setupLogDir();
   try {
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
       REMINDER_ISSUE_DRYRUN: '1',
       CROSS_VALIDATE_ANCHOR: 'MINOR-behavior-change',
     });
     assert.strictEqual(result.status, 77);
 
-    const outcomeFile = findLatestOutcomeFile();
-    assert.ok(outcomeFile, 'outcome JSON 파일이 생성되어야 함');
-    const outcome = JSON.parse(fs.readFileSync(outcomeFile, 'utf8'));
+    const outcome = readOutcomeFromDir(logDir);
+    assert.ok(outcome, 'outcome JSON 파일이 생성되어야 함');
     assert.strictEqual(outcome.outcome, '429-fallback-claude-only');
     assert.strictEqual(outcome.exit_code, 77);
     assert.strictEqual(outcome.anchor, 'MINOR-behavior-change');
+    // reminder 이슈는 dry-run 이므로 "dryrun" 기대 (reviewer 차단 반영: 실제 결과)
     assert.strictEqual(outcome.reminder_issue, 'dryrun');
+    // stdout 에 outcome-file prefix 출력 (architect bash 스니펫 파싱용)
+    assert.ok(
+      result.stdout.includes('[outcome-file]'),
+      `stdout 에 [outcome-file] prefix 필요. 실제 stdout: ${result.stdout}`
+    );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
   }
 });
 
 test('cross-validate outcome: 정상 응답 → outcome JSON 에 "applied" 기록', () => {
   const { tmpDir } = setupMockGemini('ok');
+  const logDir = setupLogDir();
   try {
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
       REMINDER_ISSUE_DRYRUN: '1',
     });
     assert.strictEqual(result.status, 0);
 
-    const outcomeFile = findLatestOutcomeFile();
-    assert.ok(outcomeFile, 'outcome JSON 파일이 생성되어야 함');
-    const outcome = JSON.parse(fs.readFileSync(outcomeFile, 'utf8'));
+    const outcome = readOutcomeFromDir(logDir);
+    assert.ok(outcome);
     assert.strictEqual(outcome.outcome, 'applied');
     assert.strictEqual(outcome.exit_code, 0);
     assert.strictEqual(outcome.reminder_issue, 'none');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
   }
 });
 
 test('cross-validate outcome: fatal 오류 → outcome JSON 에 "fatal-error" 기록', () => {
   const { tmpDir } = setupMockGemini('fatal');
+  const logDir = setupLogDir();
   try {
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
+      LOG_DIR: logDir,
       REMINDER_ISSUE_DRYRUN: '1',
     });
     assert.strictEqual(result.status, 1);
 
-    const outcomeFile = findLatestOutcomeFile();
-    assert.ok(outcomeFile, 'outcome JSON 파일이 생성되어야 함');
-    const outcome = JSON.parse(fs.readFileSync(outcomeFile, 'utf8'));
+    const outcome = readOutcomeFromDir(logDir);
+    assert.ok(outcome);
     assert.strictEqual(outcome.outcome, 'fatal-error');
     assert.strictEqual(outcome.exit_code, 1);
     assert.strictEqual(outcome.reminder_issue, 'none');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(logDir, { recursive: true, force: true });
   }
 });
