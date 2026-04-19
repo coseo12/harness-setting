@@ -22,7 +22,7 @@
 
 | 계층 | 설계 목표 | 커버하는 타이밍 | blind spot (상위 계층이 보완) |
 |---|---|---|---|
-| **계층 1 — 도중 방어** <br/> (post-apply 검증 게이트) | 상태 갱신 연산 **직후** 기대 해시와 실측 해시를 비교하여 불일치면 해당 엔트리의 매니페스트 기록을 **이전 값으로 유지**. 부분 실패 감지 시 exit code 1 + stderr 경고 | 연산 프로세스 종료 전 외부 간섭 (즉시 실행 워커 / 병렬 편집 / 동일 트랜잭션 내 rollback) | 연산 종료 **이후** 에 발생하는 간섭 (pre-commit 훅, 비동기 formatter, 별도 프로세스 개입) |
+| **계층 1 — 도중 방어** <br/> (post-apply 검증 게이트) | 상태 갱신 연산 **직후** 기대 해시와 실측 해시를 비교하여 불일치면 해당 엔트리의 매니페스트 기록을 **이전 값으로 유지**. 부분 실패 감지 시 exit code 1 + stderr 경고 | 연산 scope 내 부분 실패 / 외부 간섭 (즉시 실행 워커 / 병렬 편집 / 연산 중 중단) | 연산 종료 **이후** 에 발생하는 간섭 (pre-commit 훅, 비동기 formatter, 별도 프로세스 개입) |
 | **계층 2 — 사후 복구** <br/> (previous-state self-healing) | 각 엔트리에 직전 상태 해시를 optional 필드(`previousSha256`) 로 기록. 다음 연산 시 `현재 파일 해시 === previousSha256` 이면 "외부 롤백 확정" 으로 분류해 **재적용 허용** | 계층 1 이 못 잡는 사후 간섭을 **다음 연산에서 자가 해소** (교착 상태 원천 제거) | 자가 복구 경로가 존재한다는 사실을 사용자가 모르면 수동 개입(매니페스트 git checkout 복원) 으로 회귀 |
 | **계층 3 — 사용자 안내** <br/> (drift 분류 + 복구 경로 노출) | 상태 점검 명령(`harness doctor` / `fsck` / `db:status` 등) 이 **"복구 가능 드리프트"** 를 별도 카테고리로 분리 노출. 다음 행동("N건 — `--apply-all-safe` 로 자가 복구 가능") 을 한 줄로 안내 | 계층 2 의 복구 경로가 사용자에게 **가시적** 이 되어 즉시 활용됨. 수동 우회 회귀 방지 | (상위 보완 없음 — 최종 계층) |
 
@@ -39,7 +39,7 @@
 | **파일 시스템 인덱스** (fs journal, inode table) | fsync 후 checksum 검증. 실패 시 journal rollback | journal 에 previous-state 기록 → 비정상 종료 후 재mount 에서 자가 복구 | `fsck` 가 "복구 가능 항목 N개" 와 "수동 개입 필요 N개" 를 분리 리포트 |
 | **DB 마이그레이션 레지스트리** (`schema_migrations` 테이블) | post-migrate assertion (예상 테이블/컬럼 존재 확인). 실패 시 migration 기록 롤백 | shadow table / down-migration + previous schema snapshot 보존 | `rake db:status` / `migrate:status` 가 "drift 감지 — `db:migrate:redo` 로 복구" 안내 |
 | **빌드 캐시** (turbo / bazel / sccache) | 빌드 완료 후 산출물 해시가 cache key 와 일치하는지 재검증 | 이전 빌드 산출물 해시 보존 → 다음 빌드에서 캐시 오염 탐지 시 재사용 차단 + 자가 재빌드 | `build --diagnose` / `bazel info` 가 "캐시 오염 N건 — `clean --expunge` 권장" 메시지 |
-| **git 서브모듈** (`.gitmodules` + gitlink) | commit 시 submodule HEAD 가 gitlink 과 일치하는지 검증 | `.git/modules/*/HEAD` 이전 SHA 기록 → `submodule update` 가 드리프트 시 이전 SHA 기준 recover | `git status` / `git submodule status` 가 "+/-/U" prefix 로 drift 유형 명시 |
+| **git 서브모듈** (`.gitmodules` + gitlink) | pre-commit **훅** 으로 submodule HEAD 가 gitlink 과 일치하는지 검증 (git 자체는 자동 차단하지 않음 — 훅 기반 방어 필요) | `.git/modules/*/HEAD` 이전 SHA 기록 → `submodule update` 가 드리프트 시 이전 SHA 기준 recover | `git status` / `git submodule status` 가 "+/-/U" prefix 로 drift 유형 명시 |
 
 패턴을 이식할 때의 체크리스트:
 - **계층 1**: "쓰기 직후 기대 상태 = 실측 상태" 검증이 가능한가? 검증 단위(파일/row/산출물) 의 해시/체크섬이 싸게 계산되는가?
@@ -99,4 +99,5 @@
 - volt [#13](https://github.com/coseo12/volt/issues/13) — lint-staged silent partial commit (계층 2 의 방어 대상 타이밍)
 - volt [#23](https://github.com/coseo12/volt/issues/23) — 교차검증 수용/분리 3단 프로토콜 (계층 2 는 cross-validate 고유 발견)
 - harness [#89](https://github.com/coseo12/harness-setting/issues/89) / [#92](https://github.com/coseo12/harness-setting/issues/92) — 구현 이슈
+- harness [#99](https://github.com/coseo12/harness-setting/pull/99) — `Builds on` 발의 PR (v2.12.0 에서 후속 분리 명시 → 본 문서 이슈 #100 으로 귀결)
 - CLAUDE.md `### 매니페스트 최신 ≠ 파일 적용 완료` — 연대기 + 복구 recipe
