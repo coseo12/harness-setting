@@ -7,7 +7,7 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [2.19.0] — 2026-04-19
 
 [#131](https://github.com/coseo12/harness-setting/issues/131) Phase 3 — v2.18.0 Phase 2 의 **수동 연결점 해소**. `cross_validate.sh` 가 outcome JSON 파일을 생성하고 architect 가 이를 bash 스니펫으로 자동 파싱. 3층 방어 (선언 + 프롬프트 + 스크립트) 간 연결이 구조적으로 강제됨.
 
