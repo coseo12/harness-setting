@@ -7,9 +7,9 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [2.16.0] — 2026-04-19
 
-volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com/coseo12/volt/issues/41) 반영. GitHub auto-close keyword 문법 가드 + Gemini cross-validate 429 폴백 프로토콜. 조용한 누락(**이슈 OPEN 잔존** = 커밋 메시지 keyword 오문법으로 auto-close 실패 / **박제 직후 cross-validate 루틴을 단일 모델 편향 노출 기회가 가장 큰 시점에 포기** = Gemini 429 로 즉시 Claude 단독 폴백 후 흔적 없이 사라짐) 을 구조적으로 방어.
+volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com/coseo12/volt/issues/41) 반영. GitHub auto-close keyword 문법 가드 + Gemini cross-validate 429 폴백 프로토콜. 조용한 누락(**이슈 OPEN 잔존** = 커밋 메시지 keyword 오문법으로 auto-close 실패 / **박제 직후 cross-validate 루틴을 단일 모델 편향 노출 기회가 가장 큰 시점에 포기** = Gemini 429 로 즉시 Claude 단독 폴백 후 흔적 없이 사라짐) 을 구조적으로 방어. 박제 직후 cross-validate (Gemini) 정상 수신 후 앵커 2 확장 + 박제 위치 우선순위 반영. follow-up 이슈 [#118](https://github.com/coseo12/harness-setting/issues/118) (CLAUDE.md 불릿 분리) / [#119](https://github.com/coseo12/harness-setting/issues/119) (sub-agent 프롬프트 하드코딩) 분리.
 
 ### Added
 
@@ -29,6 +29,8 @@ volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com
 - **근거**: volt [#40](https://github.com/coseo12/volt/issues/40) (Gemini capacity 소진 폴백 프로토콜, v2.13.0 / v2.15.0 박제 직후 2회 관찰), volt [#41](https://github.com/coseo12/volt/issues/41) (GitHub auto-close `Closes:` 콜론 문법 미인식, harness PR [#108](https://github.com/coseo12/harness-setting/pull/108) 실측).
 - **스킵**: volt [#40](https://github.com/coseo12/volt/issues/40) 교훈 5 (Gemini 2.5 Pro preview free tier retry 30분) 은 모델/시점 종속 정보라 CLAUDE.md 본문 부적합 — 반영 제외.
 - **분류 근거**: 에이전트가 같은 입력에 다르게 동작 (커밋 메시지 문법 교체 / 재시도 루틴 / reminder 이슈 박제) → **MINOR**. `### Behavior Changes` 필수 섹션 포함.
+- **박제 직후 cross-validate (Gemini) 성공**: 본 릴리스의 MINOR Behavior Changes 가 앵커 조건 (노출 효율 최대 시점) 에 해당하여 Gemini cross-validate 를 1회 호출. 응답 정상 수신 → 폴백 미적용 → reminder 이슈 발동 조건 소멸. Gemini 고유 발견 6건 중 **수용 2 (앵커 2 확장 / 박제 위치 우선순위)**, **후속 분리 1 (#119 sub-agent 프롬프트 하드코딩, medium)**, **반려 1 (reminder 이슈 과설계 주장 — harness #107 실증 선례로 기각)**, **합의 2**.
+- **reviewer 권고 반영**: non-blocking 5건 중 4건 반영 (실패 예시 통합 / 앵커 3개 명시 / 박제 위치 매핑 / CHANGELOG 명확화), 1건 분리 ([#118](https://github.com/coseo12/harness-setting/issues/118)).
 
 ## [2.15.1] — 2026-04-19
 
