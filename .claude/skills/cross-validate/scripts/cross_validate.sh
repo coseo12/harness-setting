@@ -4,7 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
-LOG_DIR="${PROJECT_DIR}/.claude/logs"
+# LOG_DIR 환경변수로 오버라이드 가능 (테스트 격리용)
+LOG_DIR="${LOG_DIR:-${PROJECT_DIR}/.claude/logs}"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
 mkdir -p "${LOG_DIR}"
@@ -39,9 +40,70 @@ fi
 TYPE="$1"
 TARGET="${2:-}"
 LOG_FILE="${LOG_DIR}/cross-validate-${TYPE}-${TIMESTAMP}.log"
+# outcome JSON 파일 — architect 등 호출 측이 extends.cross_validate_outcome 자동 매핑
+# 가능한 구조화된 결과 요약. Phase 3 (#131) 에서 도입.
+OUTCOME_FILE="${LOG_DIR}/cross-validate-${TYPE}-${TIMESTAMP}-outcome.json"
 
 log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "${LOG_FILE}"
+}
+
+# JSON 문자열 이스케이프 — outcome JSON 생성 시 환경변수 값 안전 인젝션
+# 처리 대상: \ → \\, " → \", 줄바꿈(\n) / 캐리지리턴(\r) / 탭(\t) 만 JSON 이스케이프.
+# 그 외 제어문자(0x00~0x1F) 는 처리하지 않음 — 환경변수/파일경로/timestamp 가
+# 주 입력이라 실측 범위 밖. 필요 시 향후 확장.
+# RS="" 는 awk 가 입력 전체를 한 레코드로 처리하도록 강제 (멀티라인 안전).
+json_escape() {
+  local input="${1:-}"
+  printf '%s' "${input}" | awk '
+    BEGIN { RS = "" }
+    {
+      gsub(/\\/, "\\\\");
+      gsub(/"/, "\\\"");
+      gsub(/\n/, "\\n");
+      gsub(/\t/, "\\t");
+      gsub(/\r/, "\\r");
+      printf "%s", $0
+    }
+  '
+}
+
+# reminder 이슈 생성 결과 추적 — create_reminder_issue 가 저장, write_outcome_json 이 소비
+# 초기값 "none" — 호출 자체가 없었음
+REMINDER_ISSUE_RESULT="none"
+
+# outcome JSON 파일 출력
+# architect.md step 8 규약: 이 파일을 읽어 extends.cross_validate_outcome 에 매핑
+# outcome 값 규약:
+#   "applied"                  — Gemini 정상 응답 수신 (exit 0)
+#   "429-fallback-claude-only" — 429 최종 실패 폴백 (exit 77)
+#   "fatal-error"              — 비-capacity 치명적 오류 (exit 1)
+write_outcome_json() {
+  local outcome="$1"
+  local exit_code="$2"
+  local anchor_esc pr_ref_esc log_file_esc reminder_esc context_esc
+  anchor_esc=$(json_escape "${CROSS_VALIDATE_ANCHOR:-}")
+  pr_ref_esc=$(json_escape "${GH_PR_CONTEXT:-}")
+  log_file_esc=$(json_escape "${LOG_FILE}")
+  context_esc=$(json_escape "${TYPE:-unknown}${TARGET:+:${TARGET}}")
+
+  # reminder_issue 값은 create_reminder_issue() 가 설정한 전역 REMINDER_ISSUE_RESULT 를 그대로 사용
+  # 값 규약: "none" (호출 없음) / "dryrun" / "created" (실제 생성 성공) / "create-failed" (gh 실패)
+  # reviewer 차단 반영: 이전에는 REMINDER_ISSUE_DRYRUN 환경변수만 보고 "created" 를 가정했음 — 실측으로 교정
+  reminder_esc=$(json_escape "${REMINDER_ISSUE_RESULT}")
+
+  cat > "${OUTCOME_FILE}" <<EOF
+{
+  "outcome": "${outcome}",
+  "exit_code": ${exit_code},
+  "anchor": "${anchor_esc}",
+  "pr_ref": "${pr_ref_esc}",
+  "context": "${context_esc}",
+  "log_file": "${log_file_esc}",
+  "reminder_issue": "${reminder_esc}",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
 }
 
 # Gemini 모델 설정 — 경량 모델 폴백 없음 (교차검증 품질 보존)
@@ -108,13 +170,20 @@ BODY
   local title="[cross-validate reminder] ${context} — Gemini capacity 복구 후 재시도 (${anchor})"
   if [ "${REMINDER_ISSUE_DRYRUN:-1}" = "0" ]; then
     log "reminder 이슈 생성 (실제)"
-    gh issue create --title "${title}" --body "${body}" --label "enhancement" 2>&1 | tee -a "${LOG_FILE}"
+    # gh issue create 의 성공/실패를 실측해 REMINDER_ISSUE_RESULT 에 반영 (reviewer 차단 반영)
+    if gh issue create --title "${title}" --body "${body}" --label "enhancement" 2>&1 | tee -a "${LOG_FILE}"; then
+      REMINDER_ISSUE_RESULT="created"
+    else
+      REMINDER_ISSUE_RESULT="create-failed"
+      log "경고: gh issue create 실패 — REMINDER_ISSUE_RESULT=create-failed"
+    fi
   else
     log "reminder 이슈 dry-run — 실제 생성하지 않음 (REMINDER_ISSUE_DRYRUN=0 으로 설정 시 실제 생성)"
     {
       echo "[reminder-issue-dryrun] 제목: ${title}"
       echo "[reminder-issue-dryrun] 본문 요약: ${context} / ${anchor} / 로그 ${LOG_FILE}"
     } >&2
+    REMINDER_ISSUE_RESULT="dryrun"
   fi
 }
 
@@ -370,5 +439,18 @@ log ""
 log "=== 교차검증 완료 ==="
 log "로그: ${LOG_FILE}"
 
+# outcome JSON 출력 (Phase 3, #131) — 호출 측이 extends.cross_validate_outcome 자동 매핑
+FINAL_RC="${RC:-0}"
+case "${FINAL_RC}" in
+  0)  OUTCOME="applied" ;;
+  77) OUTCOME="429-fallback-claude-only" ;;
+  *)  OUTCOME="fatal-error" ;;
+esac
+write_outcome_json "${OUTCOME}" "${FINAL_RC}"
+log "outcome: ${OUTCOME} (exit ${FINAL_RC}) — ${OUTCOME_FILE}"
+# architect 에이전트가 bash 스니펫으로 쉽게 잡을 수 있도록 경로를 stdout 에 명시 출력
+# stdout 파싱 편의용 prefix — 호출 측은 grep '^\[outcome-file\] ' 로 추출
+echo "[outcome-file] ${OUTCOME_FILE}"
+
 # run_gemini 가 77 (claude-only fallback) 또는 1 (fatal) 을 반환한 경우 스크립트도 동일 코드로 종료
-exit "${RC:-0}"
+exit "${FINAL_RC}"

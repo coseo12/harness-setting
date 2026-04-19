@@ -7,6 +7,36 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.19.0] — 2026-04-19
+
+[#131](https://github.com/coseo12/harness-setting/issues/131) Phase 3 — v2.18.0 Phase 2 의 **수동 연결점 해소**. `cross_validate.sh` 가 outcome JSON 파일을 생성하고 architect 가 이를 bash 스니펫으로 자동 파싱. 3층 방어 (선언 + 프롬프트 + 스크립트) 간 연결이 구조적으로 강제됨.
+
+### Added
+
+- **`cross_validate.sh` outcome JSON 파일 출력** — 종료 시 `${LOG_DIR}/cross-validate-<type>-<timestamp>-outcome.json` 생성. 필드:
+  - `outcome`: `"applied"` (exit 0) / `"429-fallback-claude-only"` (exit 77) / `"fatal-error"` (exit 1)
+  - `exit_code`, `anchor`, `pr_ref`, `context`, `log_file`, `reminder_issue`, `timestamp`
+  - `json_escape()` 헬퍼 함수 — 환경변수 인젝션 방지 (`\`, `"`, 제어문자 이스케이프)
+- **`.claude/agents/architect.md` step 8 자동 매핑 규약** — 기존 "429 fallback 분기" 수동 규칙을 **bash 스니펫 기반 자동 매핑** 으로 재작성. `OUTCOME=$(grep -o '"outcome": *"[^"]*"' ...)` 예시 명시. outcome 3값 각각에 대한 후속 박제 규칙 (`applied` / `429-fallback-claude-only` / `fatal-error` / `skipped`).
+- **스모크 테스트 +3** (`test/cross-validate-fallback.test.js`):
+  1. 429 → outcome JSON 에 `"429-fallback-claude-only"` + `reminder_issue: "dryrun"` 기록
+  2. 정상 → outcome JSON 에 `"applied"` + `reminder_issue: "none"`
+  3. fatal → outcome JSON 에 `"fatal-error"` + `reminder_issue: "none"`
+- **CLAUDE.md `## 교차검증` 섹션에 outcome JSON 자동 매핑 1줄** — Phase 3 의 SSoT 박제 (outcome 값 / 파일 경로 / architect 연동 명시).
+
+### Behavior Changes
+
+- **cross_validate.sh 종료 시 outcome JSON 파일 자동 생성** (이전: 로그 파일만). 호출 측(architect / 기타 에이전트 / CI 파이프라인)이 exit code 확인 + 구조화된 메타데이터 읽기 가능
+- **architect 에이전트 step 8 이 outcome JSON 을 읽어 `extends.cross_validate_outcome` 자동 매핑** (이전: 에이전트가 자체 판단으로 outcome 값 생성). 수동 판단 → 구조적 강제로 전환, Phase 2 의 "마지막 수동 연결점" 제거
+- **outcome JSON 의 `reminder_issue` 필드로 dry-run/created 상태 관측 가능** (이전: stderr 로그만). CI 레벨 파이프라인이 JSON 파싱만으로 reminder 이슈 박제 상태 감지 가능
+
+### Notes
+
+- **`Builds on:` [#130](https://github.com/coseo12/harness-setting/pull/130)** (v2.18.0 Phase 2) — 스크립트 레벨 강제를 outcome JSON 으로 마감.
+- **#131 에서 Phase 3 (5번 항목) 만 해소**: 나머지 5개 권고 (stdout contract / capacity 로그 / exponential / probe quota / Stateful mock) 는 이슈 OPEN 유지, 별도 PR 로 순차 진행.
+- **Phase 3 완료로 3층 방어 수동 연결점 제거**: v2.16.0 (CLAUDE.md 선언) → v2.17.0 (5개 에이전트 프롬프트) → v2.18.0 (cross_validate.sh 구현) → **v2.19.0 (architect 자동 매핑)**. 이제 정상 실행 경로에서 architect 가 outcome 을 수동 판정할 필요 없이 파일 읽기만으로 완결.
+- **cross-validate 수행 예정**: MINOR Behavior Changes 3개 = 노출 효율 최대 앵커. 박제 직후 1회 호출. Phase 3 자체가 outcome JSON 을 생성하므로 이 호출이 **Phase 3 의 실 자기 적용** (더 깊은 셀프 적용 — 스크립트가 자신의 outcome 을 스스로 JSON 으로 기록).
+
 ## [2.18.0] — 2026-04-19
 
 [#119](https://github.com/coseo12/harness-setting/issues/119) Phase 2 — v2.17.0 Phase 1 (에이전트 프롬프트 하드코딩) 에 이어 **스크립트 레벨 강제** 완성. `cross_validate.sh` 에 CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 3단계 하드코딩 + reminder 이슈 dry-run + 스모크 테스트.
