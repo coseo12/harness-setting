@@ -71,23 +71,32 @@ gh pr checkout <PR번호>
 
 ## 마무리 체크리스트 JSON 반환 (필수)
 
-sub-agent 종료 전 반드시 아래 JSON을 반환한다. 메인 컨텍스트 구두 보고만으로 종료 금지 — **PR 본문 박제**가 QA 산출의 SSoT. 누락 시 메인이 직접 박제 후 본 에이전트를 감점 처리 (volt #24).
+sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필드** (CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료` SSoT) + **qa extends**. 메인 컨텍스트 구두 보고만으로 종료 금지 — **PR 본문 박제**가 QA 산출의 SSoT. 누락 시 메인이 직접 박제 후 본 에이전트를 감점 처리 (volt #24).
 
 ```json
 {
+  "commit_sha": null,
   "pr_url": "https://github.com/.../pull/123",
   "pr_comment_url": "https://github.com/.../pull/123#issuecomment-...",
-  "label_transition": {"from": "stage:qa", "to": "stage:done"},
-  "build_ok": true,
-  "tests": {"passed": 12, "failed": 0},
-  "browser_levels_passed": [1, 2, 3],
-  "contract_unmet": [],
-  "verdict": "pass"
+  "labels_applied_or_transitioned": ["stage:qa→stage:done"],
+  "auto_close_issue_states": {},
+  "blocking_issues": [],
+  "non_blocking_suggestions": [],
+  "extends": {
+    "build_ok": true,
+    "tests": {"passed": 12, "failed": 0},
+    "browser_levels_passed": [1, 2, 3],
+    "contract_unmet": [],
+    "verdict": "pass"
+  }
 }
 ```
 
 - `pr_comment_url` 이 `null` 이면 **박제 누락** — 종료 금지, `gh pr comment <번호>` 재실행
-- `verdict` 가 `"block"` 이면 `contract_unmet` 에 실패 기준을 나열하고 원인+수정점 명시
+- `extends.verdict` 가 `"block"` 이면 `extends.contract_unmet` 에 실패 기준을 나열하고 원인+수정점 명시. `blocking_issues` 공통 필드에도 축약 전사 (메인이 공통 필드만 봐도 차단 여부 판정 가능)
+- `labels_applied_or_transitioned` — `"stage:qa→stage:done"` (통과) 또는 `"stage:qa→stage:dev"` (차단)
+- `commit_sha` — QA 는 커밋 생성하지 않으므로 보통 `null`. qa 가 추가 fix 커밋을 허용받은 경우에만 채움
+- `auto_close_issue_states` — QA 대상 PR 에 `Closes #N` 이 있으면 머지 전 상태 체크 (release/hotfix 경로 아니면 OPEN 정상)
 
 ## 자가 점검
 

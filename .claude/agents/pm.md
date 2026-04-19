@@ -90,6 +90,36 @@ SendMessage 로 이전 라운드에 이어 호출된 경우, 컨텍스트 격리
    ```
 5. architect로 넘길 준비가 됐으면 라벨 `stage:planning` → `stage:design` 전이 + `/architect <이슈>` 안내
 
+## 마무리 체크리스트 JSON 반환 (필수)
+
+sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필드** (CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료` SSoT) + **pm extends**. 누락 field 는 `null` / `{}` / `[]` 로 명시 (생략 금지).
+
+```json
+{
+  "commit_sha": null,
+  "pr_url": null,
+  "pr_comment_url": null,
+  "labels_applied_or_transitioned": ["stage:planning"],
+  "auto_close_issue_states": {},
+  "blocking_issues": [],
+  "non_blocking_suggestions": [],
+  "extends": {
+    "issue_url": "https://github.com/.../issues/123",
+    "clarity_score": 3,
+    "mode_used": "qa-light | one-way | deep-qa",
+    "completion_criteria_count": 5,
+    "non_goals_declared": true
+  }
+}
+```
+
+- `commit_sha` / `pr_url` / `pr_comment_url` — PM 은 이슈만 생성하므로 보통 `null`. `extends.issue_url` 을 반드시 채움
+- `labels_applied_or_transitioned` — 초기 이슈 생성 시 `["stage:planning"]`, architect 로 넘길 때 `["stage:planning→stage:design"]`
+- `extends.clarity_score` — 명확도 점수 5축 합계 (0~5)
+- `extends.mode_used` — 채택한 적응적 모드. 점수 ≥4: `"one-way"`, 2~3: `"qa-light"`, ≤1: `"deep-qa"`
+- `extends.non_goals_declared` — 스프린트 계약에 `## 비-범위` 섹션을 명시했는지 (누락 시 `false` + `non_blocking_suggestions` 에 경고)
+- `auto_close_issue_states` — PM 은 보통 이슈 close 수행하지 않음. 중복 이슈 감지로 기존 이슈를 close 한 경우만 채움
+
 ## 자가 점검
 
 - ❌ 사용자가 안 한 결정을 추측해 박제 금지 (예: 사용자가 "DB는 추후" 했는데 임의로 PostgreSQL 결정)
