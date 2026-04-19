@@ -7,6 +7,21 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+### Added
+
+- **CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료` 블록 불릿 분리** — "한 불릿 = 한 규칙" 컨벤션 수렴. 기존 3개 논리 혼합 불릿(메인 확인 명령 / GitHub 명령 세트 / keyword 문법 연결)을 3개 독립 불릿으로 분리. 향후 수정 시 개별 규칙 참조 용이.
+
+### Behavior Changes: None — 문서만
+
+구조 리팩토링. 에이전트·스킬 행동 변화 없음. 기존 규칙 3개가 독립 불릿으로 표기 방식만 변경됨.
+
+### Notes
+
+- **이슈 해결**: [#118](https://github.com/coseo12/harness-setting/issues/118) 본 릴리스로 close (v2.16.0 PR #117 reviewer non-blocking 권고 5 의 분리 이슈).
+- PATCH — `Builds on: #117`.
+
 ## [2.16.0] — 2026-04-19
 
 volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com/coseo12/volt/issues/41) 반영. GitHub auto-close keyword 문법 가드 + Gemini cross-validate 429 폴백 프로토콜. 조용한 누락(**이슈 OPEN 잔존** = 커밋 메시지 keyword 오문법으로 auto-close 실패 / **박제 직후 cross-validate 루틴을 단일 모델 편향 노출 기회가 가장 큰 시점에 포기** = Gemini 429 로 즉시 Claude 단독 폴백 후 흔적 없이 사라짐) 을 구조적으로 방어. 박제 직후 cross-validate (Gemini) 정상 수신 후 앵커 2 확장 + 박제 위치 우선순위 반영. follow-up 이슈 [#118](https://github.com/coseo12/harness-setting/issues/118) (CLAUDE.md 불릿 분리) / [#119](https://github.com/coseo12/harness-setting/issues/119) (sub-agent 프롬프트 하드코딩) 분리.
