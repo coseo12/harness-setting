@@ -7,6 +7,40 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+[#119](https://github.com/coseo12/harness-setting/issues/119) Phase 2 — v2.17.0 Phase 1 (에이전트 프롬프트 하드코딩) 에 이어 **스크립트 레벨 강제** 완성. `cross_validate.sh` 에 CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 3단계 하드코딩 + reminder 이슈 dry-run + 스모크 테스트.
+
+### Added
+
+- **`.claude/skills/cross-validate/scripts/cross_validate.sh` 폴백 프로토콜 하드코딩**:
+  - `check_gemini_capacity()` 함수 — `gemini -p "hello"` 로 capacity 응답성 확인 (폴백 프로토콜 단계 1)
+  - `run_gemini()` 재시도 루프에 capacity 체크 통합 — 1차 429 후 sleep + capacity 체크 + 2차 재시도
+  - 최종 실패 시 **stderr 에 `claude-only analysis completed — 단일 모델 편향 노출 미확보` 프리픽스** 출력 + **exit code 77 (EXIT_CLAUDE_ONLY_FALLBACK)** 반환 (폴백 단계 2)
+  - `create_reminder_issue()` 함수 — `CROSS_VALIDATE_ANCHOR` 환경변수 설정 시 reminder 이슈 생성 (기본 dry-run, `REMINDER_ISSUE_DRYRUN=0` 으로 실제 생성) (폴백 단계 3)
+  - Exit code 규약 섹션 추가 — 0 (정상) / 77 (claude-only fallback) / 1 (fatal 오류)
+- **`test/cross-validate-fallback.test.js` 스모크 테스트 신규** — mock gemini 바이너리 (`429` / `ok` / `fatal` 모드) 로 5개 분기 검증:
+  1. 429 응답 → exit 77 + claude-only 프리픽스
+  2. `CROSS_VALIDATE_ANCHOR` 설정 시 reminder dry-run 출력
+  3. 앵커 미설정 시 dry-run 생략
+  4. 정상 응답 → exit 0 + 프리픽스 없음
+  5. 비-capacity fatal 오류 → exit 1
+- **CLAUDE.md `## 교차검증` 에 스크립트 레벨 강제 1줄 추가** — cross_validate.sh 하드코딩 박제 + 스모크 테스트 경로 명시 + `CROSS_VALIDATE_ANCHOR` / `REMINDER_ISSUE_DRYRUN` 환경변수 규약.
+
+### Behavior Changes
+
+- **cross_validate.sh 종료 코드 차별화** (이전: 실패 시 전부 일반 종료) — 정상 0 / claude-only fallback 77 / fatal 1. 호출 측(에이전트/hooks)이 77 을 감지해 "선언만 상태" 를 프로그램적으로 분기 가능
+- **429 최종 실패 시 stderr 에 `claude-only analysis completed` 프리픽스 출력** (이전: "교차검증 스킵. Claude 단독 분석으로 전환" 메시지만). 메인 오케스트레이터가 stderr grep 으로 폴백 감지 가능
+- **`CROSS_VALIDATE_ANCHOR` 환경변수 설정 시 fallback 경로에서 reminder 이슈 박제 (기본 dry-run)** (이전: reminder 이슈 로직 없음). 노출 효율 최대 앵커에서 cross-validate 포기 시 자동 재시도 큐잉 가능
+- **스모크 테스트가 프롬프트 레벨 규약 회귀 방지 가드** — `npm test` 에 `test/cross-validate-fallback.test.js` 포함되어 향후 스크립트 수정 시 폴백 프로토콜 준수 자동 검증 (총 테스트 28 → 33)
+
+### Notes
+
+- **`Builds on:` [#126](https://github.com/coseo12/harness-setting/pull/126)** (v2.17.0 Phase 1) — 프롬프트 레벨 + 스크립트 레벨 양쪽 강제로 "wishful documentation" 완전 해소.
+- **#119 이슈 close 예정** — Phase 1 (#126) + Phase 2 (이 PR) 로 완료 기준 1/2/3/4/5/6/7 모두 충족. release PR 머지 시 `Closes #119` 트리거.
+- **Gemini cross-validate 수행 예정**: 본 릴리스도 MINOR Behavior Changes 4개 + 스크립트 레벨 강제 = 노출 효율 최대 앵커. 박제 직후 1회 호출. 429 발생 시 방금 박제된 폴백 프로토콜의 **본격 자기 적용** (v2.17.0 PR #126 보다 한 단계 더 깊은 셀프 적용).
+- **자동 파서 회귀 가드**: v2.17.0 Notes 에서 "향후 CI 레벨 파이프라인 자동화 도입 시 `extends` 중첩 파싱 고려" 를 명시했으나, Phase 2 에서 스모크 테스트가 JSON 구조 자체는 검증하지 않고 exit code / stderr 규약만 검증. `extends` 구조 회귀 가드는 별도 이슈 후보.
+
 ## [2.17.0] — 2026-04-19
 
 [#119](https://github.com/coseo12/harness-setting/issues/119) Phase 1 — sub-agent 공통 JSON 스키마 SSoT 박제 + 5개 페르소나 (developer / qa / reviewer / architect / pm) 마무리 체크리스트 하드코딩. v2.16.0 에서 박제된 CLAUDE.md 선언적 규칙을 프롬프트 레벨로 강제. Phase 2 (cross_validate.sh 폴백 보강 + 스모크 테스트) 는 별도 릴리스.

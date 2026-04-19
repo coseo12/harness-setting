@@ -48,10 +48,81 @@ log() {
 GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-pro}"
 MAX_GEMINI_RETRIES=2
 
-# Gemini 실행 (읽기 전용, 실패 시 스킵)
+# Exit code 규약 (CLAUDE.md API capacity 폴백 프로토콜)
+# 0  = Gemini 정상 응답 수신
+# 77 = claude-only fallback (Gemini 429/timeout 최종 실패, 단일 모델 편향 노출 미확보)
+# 1  = 그 외 실패 (인자 오류 / 파일 부재 / 민감 파일 등)
+EXIT_CLAUDE_ONLY_FALLBACK=77
+
+# Gemini capacity 체크 — `gemini -p "hello"` 로 빠른 응답성 확인
+# CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 단계 1
+check_gemini_capacity() {
+  local probe_output
+  probe_output=$(gemini -m "${GEMINI_MODEL}" -p "hello" --approval-mode plan 2>&1) && return 0
+  if echo "${probe_output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
+    log "capacity 체크 결과: 여전히 용량 부족"
+    return 1
+  fi
+  log "capacity 체크 결과: 모델 응답은 살아있으나 hello 호출 실패 — $(echo "${probe_output}" | head -1)"
+  return 1
+}
+
+# reminder 이슈 생성 (dry-run 모드 기본)
+# CLAUDE.md 폴백 프로토콜 단계 3: 노출 효율 최대 앵커 해당 시 reminder 이슈 박제
+# 환경변수 REMINDER_ISSUE_DRYRUN=0 로 설정해야 실제 생성. 기본은 stderr 에 초안 출력.
+create_reminder_issue() {
+  local context="${1:-cross-validate}"
+  local anchor="${2:-MINOR-behavior-change}"
+  local body
+  body=$(cat <<BODY
+## 배경
+
+cross-validate 스킬 실행 중 Gemini API capacity 소진으로 **claude-only fallback** 발생. CLAUDE.md \`## 교차검증\` API capacity 폴백 프로토콜 단계 3 (노출 효율 최대 앵커 해당 시 reminder 이슈 박제) 에 따라 API 복구 후 재검증용 이슈 박제.
+
+## 맥락
+
+- 원 호출 컨텍스트: ${context}
+- 앵커 유형: ${anchor}
+- 호출 시각: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+- 로그 파일: ${LOG_FILE}
+
+## 재시도 시 확인 범주
+
+- 범주 오류 (categorical error)
+- 암묵 전제 누락 (unstated assumption)
+- 비목표 대조 (non-goal consistency check)
+
+## 완료 기준
+
+- [ ] Gemini API 복구 확인 (\`gemini -p "hello"\`)
+- [ ] 원 컨텍스트에 대해 cross-validate 재실행
+- [ ] 결과를 원 PR / ADR / CHANGELOG 해당 위치에 박제
+- [ ] 재시도 성공 시 본 이슈 close
+BODY
+)
+  local title="[cross-validate reminder] ${context} — Gemini capacity 복구 후 재시도 (${anchor})"
+  if [ "${REMINDER_ISSUE_DRYRUN:-1}" = "0" ]; then
+    log "reminder 이슈 생성 (실제)"
+    gh issue create --title "${title}" --body "${body}" --label "enhancement" 2>&1 | tee -a "${LOG_FILE}"
+  else
+    log "reminder 이슈 dry-run — 실제 생성하지 않음 (REMINDER_ISSUE_DRYRUN=0 으로 설정 시 실제 생성)"
+    {
+      echo "[reminder-issue-dryrun] 제목: ${title}"
+      echo "[reminder-issue-dryrun] 본문 요약: ${context} / ${anchor} / 로그 ${LOG_FILE}"
+    } >&2
+  fi
+}
+
+# Gemini 실행 (읽기 전용)
+# CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜:
+#   1. 1차 429/timeout → capacity 체크 + 지연 후 1회 재시도
+#   2. 2차 실패 → claude-only analysis completed 프리픽스 + exit 77
+#   3. 앵커 해당 시 reminder 이슈 박제
+# 앵커 컨텍스트는 호출 측에서 CROSS_VALIDATE_ANCHOR 환경변수로 전달 가능
 run_gemini() {
   local prompt="$1"
   local attempt=1
+  local fatal=0
 
   while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
     log "Gemini 실행 중 (모델: ${GEMINI_MODEL}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."
@@ -63,18 +134,42 @@ run_gemini() {
 
     if echo "${output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
       log "경고: ${GEMINI_MODEL} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
+      if [ "${attempt}" -lt "${MAX_GEMINI_RETRIES}" ]; then
+        # 폴백 프로토콜 단계 1: capacity 체크 + 지연 재시도
+        sleep $((attempt * 5))
+        if check_gemini_capacity; then
+          log "capacity 복구 감지 — 재시도 진행"
+        else
+          log "capacity 미복구 — 재시도는 진행하되 조기 포기 가능성 높음"
+        fi
+      fi
       attempt=$((attempt + 1))
-      sleep $((attempt * 5))
     else
-      log "경고: ${GEMINI_MODEL} 실패 — $(echo "${output}" | head -3)"
+      log "경고: ${GEMINI_MODEL} 실패 (비-capacity 오류) — $(echo "${output}" | head -3)"
       echo "${output}" >> "${LOG_FILE}"
+      fatal=1
       break
     fi
   done
 
-  log "교차검증 스킵: Gemini API 사용 불가. Claude 단독 분석으로 전환합니다."
+  # 폴백 프로토콜 단계 2: claude-only analysis completed 박제
+  local fallback_msg="claude-only analysis completed — 단일 모델 편향 노출 미확보"
+  log "${fallback_msg}"
+  echo "${fallback_msg}" >&2
   echo "⚠ 교차검증 불가 — Claude 단독 분석. Gemini ${GEMINI_MODEL} 응답 없음." | tee -a "${LOG_FILE}"
-  return 1
+
+  # 폴백 프로토콜 단계 3: 앵커 컨텍스트 있으면 reminder 이슈 (dry-run 기본)
+  if [ -n "${CROSS_VALIDATE_ANCHOR:-}" ]; then
+    create_reminder_issue "${TYPE}${TARGET:+:${TARGET}}" "${CROSS_VALIDATE_ANCHOR}"
+  else
+    log "앵커 컨텍스트 없음 (CROSS_VALIDATE_ANCHOR 미설정) — reminder 이슈 생략"
+  fi
+
+  # capacity 실패가 아닌 fatal 오류면 1, 그 외엔 claude-only 시그널 77
+  if [ "${fatal}" = "1" ]; then
+    return 1
+  fi
+  return "${EXIT_CLAUDE_ONLY_FALLBACK}"
 }
 
 # 민감 파일 필터링
@@ -109,7 +204,7 @@ case "${TYPE}" in
 한국어로 답변해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}"
+    run_gemini "${PROMPT}" || RC=$?
     ;;
 
   code)
@@ -161,7 +256,7 @@ ${DIFF}
 한국어로 항목별 평가(양호/주의/위험)와 구체적 개선 제안을 해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}"
+    run_gemini "${PROMPT}" || RC=$?
     ;;
 
   architecture)
@@ -203,7 +298,7 @@ ${DOC_CONTENT}
 한국어로 항목별 평가와 개선 제안을 해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}"
+    run_gemini "${PROMPT}" || RC=$?
     ;;
 
   skill)
@@ -254,7 +349,7 @@ ${EVALS_INFO}
 한국어로 항목별 평가와 개선 제안을 해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}"
+    run_gemini "${PROMPT}" || RC=$?
     ;;
 
   *)
@@ -266,3 +361,6 @@ esac
 log ""
 log "=== 교차검증 완료 ==="
 log "로그: ${LOG_FILE}"
+
+# run_gemini 가 77 (claude-only fallback) 또는 1 (fatal) 을 반환한 경우 스크립트도 동일 코드로 종료
+exit "${RC:-0}"
