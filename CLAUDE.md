@@ -265,10 +265,10 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
      - **릴리스 박제 맥락** (MINOR 이상 `Behavior Changes` 직후) → CHANGELOG `### Notes` 에 한 줄
      - **CRITICAL DIRECTIVE 개정** → CLAUDE.md 개정 커밋 메시지에 각주
 
-     누락 시 "cross-validate 루틴 불이행" 으로 오인
+     **여러 컨텍스트가 겹치면** (예: CRITICAL 개정 + PR 리뷰 + MINOR 릴리스) 영구성 우선순위로 1개소에만 기록: **CHANGELOG Notes > ADR 각주 > 커밋 메시지 > PR 코멘트**. 중복 기록은 하지 않는다. 누락 시 "cross-validate 루틴 불이행" 으로 오인
   3. **노출 효율 최대 타이밍** 이었다면 **reminder 이슈로 박제**. 최대 타이밍은 다음 3개 앵커 중 하나에 해당할 때:
      - **CRITICAL DIRECTIVE 개정** — 세션 초기 각인 규칙이 추가·변경됨
-     - **ADR 신규 생성** — 코어 기술/아키텍처 결정 박제 직후
+     - **ADR 신규 생성 및 중대한 개정/폐기** — 코어 기술/아키텍처 결정이 박제되거나 기존 합의가 역전됨 (신규 못지않게 개정/폐기도 노출 효율 최대)
      - **MINOR 이상 릴리스의 `### Behavior Changes`** — 에이전트 행동 규칙이 추가·변경됨 (PATCH 는 제외)
 
      reminder 이슈 제목 예시 `[#<원 PR 번호>] cross-validate 재시도 — Gemini capacity 복구 후`. 본문에 원 PR/ADR 링크 + 재시도 시 확인할 범주(범주 오류 / 암묵 전제 / 비목표 대조) 명시. API 복구 후 close 또는 재검증 결과 반영
