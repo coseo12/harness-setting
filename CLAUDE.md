@@ -293,6 +293,7 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 
      reminder 이슈 제목 예시 `[#<원 PR 번호>] cross-validate 재시도 — Gemini capacity 복구 후`. 본문에 원 PR/ADR 링크 + 재시도 시 확인할 범주(범주 오류 / 암묵 전제 / 비목표 대조) 명시. API 복구 후 close 또는 재검증 결과 반영
 - 근거 (폴백 프로토콜): volt [#40](https://github.com/coseo12/volt/issues/40) — v2.13.0 / v2.15.0 박제 직후 Gemini 429 2회 관찰. harness [#107](https://github.com/coseo12/harness-setting/issues/107) 선례 (복구 후 재시도 이슈 박제 → 2차 성공 후 close)
+- **스크립트 레벨 강제 (v2.18.0~)** — [.claude/skills/cross-validate/scripts/cross_validate.sh](.claude/skills/cross-validate/scripts/cross_validate.sh) 는 폴백 프로토콜을 하드코딩한다. 429 수신 시 `check_gemini_capacity()` (`gemini -p "hello"`) + 지연 후 재시도 → 최종 실패 시 **stderr 에 `claude-only analysis completed — 단일 모델 편향 노출 미확보` 프리픽스 출력 + exit code 77** 반환. 호출 측이 `CROSS_VALIDATE_ANCHOR` 환경변수 (`MINOR-behavior-change` / `ADR-new-or-amendment` / `CRITICAL-directive-revision`) 를 설정하면 **reminder 이슈 생성** (기본 dry-run, `REMINDER_ISSUE_DRYRUN=0` 으로 실제 생성). 스모크 테스트는 `test/cross-validate-fallback.test.js` 가 mock gemini 바이너리로 각 분기를 검증
 - **정책·설계·ADR 박제 직후 1회 루틴** — 정책 문서, ADR, CRITICAL DIRECTIVE 등을 박제한 직후 cross-validate 스킬을 1회 호출한다. 단일 모델 편향(범주 오류/암묵 전제 누락)은 박제 직후가 노출 효율이 가장 높다. v2.6.2→v2.6.3(SemVer 세분화) 사례 참조.
 - **교차검증 결과는 Claude가 재분석**: Gemini 산출물을 합의/이견/고유발견으로 분류하고, 과대 대응은 근거와 함께 반려. 맹목 수용 금지.
 - **고유 발견의 수용 vs 후속 분리 3단 프로토콜** — #23 의 반려 기준을 보완하는 수용/분리 기준:
