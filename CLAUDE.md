@@ -227,7 +227,12 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
 ### sub-agent 검증 완료 ≠ GitHub 박제 완료
 sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 수행하면서도 **커밋/푸시/PR 생성/`gh pr comment` 박제** 같은 외부 가시성 단계에서 이탈하는 패턴이 반복된다(4회 관찰). sub-agent 관점 "작업 완료"와 harness 관점 "외부 가시성 있음"이 어긋나 메인 오케스트레이터가 매번 수동 보완해야 했다.
 
-- sub-agent 위임은 **"검증"까지는 신뢰하되 "박제"는 신뢰하지 말 것** — 메인 컨텍스트가 sub-agent 보고 수신 직후 `git log --oneline -1` / `gh pr list` / `gh pr view <번호> --json comments` / `gh issue view <auto-close 대상> --json state` 로 GitHub 상태를 직접 확인한다 (auto-close 검증은 PR 규칙 섹션 keyword 문법 가드와 연결 — `Closes: #A, #B` 콜론 문법은 #B 미인식)
+- sub-agent 위임은 **"검증"까지는 신뢰하되 "박제"는 신뢰하지 말 것** — sub-agent 의 보고는 의도이고 실제 외부 가시성은 별도
+- **메인이 직접 확인할 GitHub 명령 세트** — sub-agent 보고 수신 직후 메인 컨텍스트가 다음을 실행:
+  - `git log --oneline -1` — 커밋이 실제 반영됐는지
+  - `gh pr list` / `gh pr view <번호> --json comments` — PR·코멘트 박제 여부
+  - `gh issue view <auto-close 대상> --json state` — auto-close 실제 성공 여부
+- **auto-close 검증은 PR 규칙 섹션 keyword 문법 가드와 연결** — `Closes: #A, #B` 같은 콜론 문법은 #B 미인식 (PR 규칙 참조). 문법이 틀려도 sub-agent 는 "close 완료" 로 보고하므로 메인이 state 를 직접 확인
 - sub-agent 프롬프트 말미에 **마무리 체크리스트 JSON 반환** 을 요구한다 — 커밋 SHA / PR URL / 코멘트 URL / 라벨 전이 결과 / **auto-close 대상 이슈의 실제 state** 를 field로 명시해 누락을 구조적으로 감지
 - 누락 감지 시 메인이 직접 보완 박제 (커밋/PR/코멘트). sub-agent를 재호출해 같은 누락을 반복시키지 않는다
 - 근거: volt [#24](https://github.com/coseo12/volt/issues/24) — astro-simulator P6-B~E 에서 dev/qa sub-agent 마무리 단계 누락 4회 연속 관찰
