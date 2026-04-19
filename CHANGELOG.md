@@ -7,6 +7,29 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+volt [#40](https://github.com/coseo12/volt/issues/40) + [#41](https://github.com/coseo12/volt/issues/41) 반영. GitHub auto-close keyword 문법 가드 + Gemini cross-validate 429 폴백 프로토콜. 조용한 누락(이슈 OPEN 잔존 / 박제 직후 편향 노출 미확보) 을 구조적으로 방어.
+
+### Added
+
+- **CLAUDE.md `## PR 규칙` 확장** — GitHub closing keyword 올바른/잘못된 문법 예시 표. 머지 직후 `gh issue view <n> --json state` 로 auto-close 검증 루틴 명시. default branch 아닌 머지(feature → develop) 는 릴리스까지 OPEN 유지가 정상이라는 예외 조건 포함.
+- **CLAUDE.md `## 교차검증` 에 API capacity 소진 폴백 프로토콜 3단 추가** — (1) `gemini -p "hello"` capacity 체크 + 1회 지연 재시도 (2) 2차 실패 시 "claude-only analysis completed — 단일 모델 편향 노출 미확보" 박제 기록 의무 (3) 박제 직후 루틴처럼 노출 효율 최대 시점이었다면 reminder 이슈로 박제 (harness #107 선례).
+- **sub-agent 마무리 체크리스트에 auto-close 검증 통합** — sub-agent 보고 수신 직후 메인이 `gh issue view <대상> --json state` 로 실제 close 확인. 체크리스트 JSON 필드에 "auto-close 대상 이슈의 실제 state" 추가.
+
+### Behavior Changes
+
+- 에이전트가 여러 이슈 close 시 `Closes: #A, #B` 콜론 문법을 **사용하지 않고** `Closes #A, closes #B` 또는 줄 분리로 작성 (이전: 콜론 문법 사용 시 #B 조용히 미인식)
+- 릴리스 PR / feature PR 머지 직후 sub-agent 가 보고하든 메인이 직접 작업하든 **auto-close 대상 이슈 state 를 개별 확인** (이전: PR merged=true 만 확인)
+- Gemini 429 수신 시 즉시 Claude 단독 폴백하지 않고 **지연 재시도 후 최종 실패 시 폴백 + 결과 박제에 "단독 분석" 명시** (이전: 즉시 스킵하고 흔적 남기지 않음)
+- 박제 직후 루틴처럼 노출 효율 최대 시점에 cross-validate 를 포기했다면 **reminder 이슈를 생성**해 API 복구 후 재시도 (이전: 재시도 기회가 사장됨)
+
+### Notes
+
+- **근거**: volt [#40](https://github.com/coseo12/volt/issues/40) (Gemini capacity 소진 폴백 프로토콜, v2.13.0 / v2.15.0 박제 직후 2회 관찰), volt [#41](https://github.com/coseo12/volt/issues/41) (GitHub auto-close `Closes:` 콜론 문법 미인식, harness PR [#108](https://github.com/coseo12/harness-setting/pull/108) 실측).
+- **스킵**: volt [#40](https://github.com/coseo12/volt/issues/40) 교훈 5 (Gemini 2.5 Pro preview free tier retry 30분) 은 모델/시점 종속 정보라 CLAUDE.md 본문 부적합 — 반영 제외.
+- **분류 근거**: 에이전트가 같은 입력에 다르게 동작 (커밋 메시지 문법 교체 / 재시도 루틴 / reminder 이슈 박제) → **MINOR**. `### Behavior Changes` 필수 섹션 포함.
+
 ## [2.15.1] — 2026-04-19
 
 상태 기록 원자성 3계층 직교 방어 패턴을 일반화된 설계 문서로 승격. harness v2.8.0 → v2.9.0 → v2.10.0 의 자기 실증 연대기를 CLAUDE.md 의 구체 사례로만 두지 않고, 다른 시스템(파일 시스템 / DB 마이그레이션 / 빌드 캐시 / git 서브모듈) 에 재사용 가능한 설계 지식으로 박제. [#100](https://github.com/coseo12/harness-setting/issues/100) 해결.
