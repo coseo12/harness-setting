@@ -84,11 +84,15 @@ SendMessage 로 이전 라운드에 이어 호출된 경우, 컨텍스트 격리
 1. **명확도 점수 채점** + 사용자에 모드 통보
 2. (질답 모드면) 핵심 질문 1회 보내고 답변 대기
 3. 답변 통합 → 스프린트 계약 초안 작성 → 사용자 확인
-4. 확인 후 이슈 생성:
+4. **비-범위 섹션 존재 검사 (BC#5 실행 단계)** — 초안에 `## 비-범위` 섹션과 그 하위 bullet 이 최소 1개 존재하는지 자가 점검. 누락이면 다음을 수행:
+   - 마무리 체크리스트 JSON 의 `extends.non_goals_declared` 를 `false` 로 기록
+   - 공통 필드 `non_blocking_suggestions` 에 문자열 `"스프린트 계약에 '## 비-범위' 섹션 누락 — scope creep 자석"` 추가
+   - 사용자에게 비-범위 명시 여부 재확인 (추측 금지)
+5. 확인 후 이슈 생성:
    ```bash
    gh issue create --title "<요지>" --body "<스프린트 계약>" --label "stage:planning"
    ```
-5. architect로 넘길 준비가 됐으면 라벨 `stage:planning` → `stage:design` 전이 + `/architect <이슈>` 안내
+6. architect로 넘길 준비가 됐으면 라벨 `stage:planning` → `stage:design` 전이 + `/architect <이슈>` 안내
 
 ## 마무리 체크리스트 JSON 반환 (필수)
 

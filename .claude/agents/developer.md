@@ -43,7 +43,7 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
       }
     }
     ```
-    - `auto_close_issue_states` — PR 본문/커밋 메시지의 `Closes #N` 키워드 대상 이슈를 머지 직후 `gh issue view <N> --json state` 로 확인 (default branch 아닌 머지는 OPEN 유지가 정상)
+    - `auto_close_issue_states` — PR 본문/커밋 메시지의 `Closes #N` 키워드 대상 이슈의 **현재 state** 를 PR 생성 후 (머지 전) `gh issue view <N> --json state` 로 기록. developer 는 머지 주체가 아니므로 보통 `"OPEN"` 이 정상. 실제 close 성공 검증은 메인 오케스트레이터 책임
     - `labels_applied_or_transitioned` — developer 는 보통 빈 배열. 라벨 전이는 reviewer / qa 영역
 
 ## 브라우저 검증 (UI 포함 이슈 필수)
