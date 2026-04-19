@@ -236,6 +236,19 @@ sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 
   - `gh issue view <auto-close 대상> --json state` — auto-close 실제 성공 여부
 - **auto-close 검증은 PR 규칙 섹션 keyword 문법 가드와 연결** — `Closes: #A, #B` 같은 콜론 문법은 #B 미인식 (PR 규칙 참조). 문법이 틀려도 sub-agent 는 "close 완료" 로 보고하므로 메인이 state 를 직접 확인
 - sub-agent 프롬프트 말미에 **마무리 체크리스트 JSON 반환** 을 요구한다 — 커밋 SHA / PR URL / 코멘트 URL / 라벨 전이 결과 / **auto-close 대상 이슈의 실제 state** 를 field로 명시해 누락을 구조적으로 감지
+- **공통 JSON 스키마 (SSoT)** — 모든 외부 가시성 박제 에이전트(developer / qa / reviewer / architect / pm)가 공통으로 반환하는 **코어 필드**. 에이전트별 특수 필드는 extends 형태로 덧붙인다. **키 순서는 아래 선언 순서대로 고정** (diff 리뷰 가독성 + grep 기반 회귀 검사를 위해):
+  ```json
+  {
+    "commit_sha": "abc1234 | null",
+    "pr_url": "https://github.com/.../pull/123 | null",
+    "pr_comment_url": "https://github.com/.../pull/123#issuecomment-... | null",
+    "labels_applied_or_transitioned": ["stage:qa"] ,
+    "auto_close_issue_states": {"#118": "CLOSED", "#114": "CLOSED"},
+    "blocking_issues": ["..."],
+    "non_blocking_suggestions": ["..."]
+  }
+  ```
+  누락 field 는 `null` 또는 빈 배열/객체로 **명시** (생략 금지). 공통 필드 검증 이후 에이전트별 `extends` 영역을 검증한다. 각 에이전트 파일의 `## 마무리 체크리스트 JSON 반환 (필수)` 섹션은 이 코어를 포함하고 특수 필드만 추가한다.
 - 누락 감지 시 메인이 직접 보완 박제 (커밋/PR/코멘트). sub-agent를 재호출해 같은 누락을 반복시키지 않는다
 - 근거: volt [#24](https://github.com/coseo12/volt/issues/24) — astro-simulator P6-B~E 에서 dev/qa sub-agent 마무리 단계 누락 4회 연속 관찰
 
