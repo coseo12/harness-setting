@@ -227,6 +227,8 @@ run_gemini() {
           sleep $(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))
         fi
         # 반환 코드 3값 분기 (reviewer 권고 2, #131 Phase A)
+        # Gemini 교차검증 (#137) 고유 발견 반영: CAPACITY_OTHER_ERROR 케이스 명시 +
+        # `*)` 는 알 수 없는 code 방어용 (향후 반환 코드 추가 시 조용한 오분기 방지)
         capacity_rc=0
         check_gemini_capacity || capacity_rc=$?
         case "${capacity_rc}" in
@@ -236,8 +238,11 @@ run_gemini() {
           "${CAPACITY_EXHAUSTED}")
             log "capacity 여전히 부족 — 재시도 진행하되 조기 포기 가능성 높음"
             ;;
-          *)
+          "${CAPACITY_OTHER_ERROR}")
             log "capacity probe 실패 (비-429) — 재시도는 진행 (probe 자체 이슈일 수 있음)"
+            ;;
+          *)
+            log "알 수 없는 capacity_rc (${capacity_rc}) — 재시도 진행 (방어적 분기)"
             ;;
         esac
       fi
