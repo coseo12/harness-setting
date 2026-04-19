@@ -7,7 +7,7 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [2.18.0] — 2026-04-19
 
 [#119](https://github.com/coseo12/harness-setting/issues/119) Phase 2 — v2.17.0 Phase 1 (에이전트 프롬프트 하드코딩) 에 이어 **스크립트 레벨 강제** 완성. `cross_validate.sh` 에 CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 3단계 하드코딩 + reminder 이슈 dry-run + 스모크 테스트.
 
