@@ -7,7 +7,9 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [2.16.1] — 2026-04-19
+
+v2.16.0 reviewer non-blocking 권고에서 분리된 두 PATCH 이슈(#118 sub-agent 블록 불릿 분리 / #114 실전 교훈 포인터 포맷 컨벤션) 을 묶어 정리. 구조 리팩토링 + 컨벤션 명시만.
 
 ### Added
 
