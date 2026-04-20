@@ -25,18 +25,14 @@ jobs:
       # - npm ci 는 package-lock.json 이 있을 때만 (재현 가능한 정확한 설치)
       # - npm install --no-audit --no-fund 는 lock 이 없는 Node 프로젝트 fallback
       # - npm test --if-present 는 scripts.test 없으면 조용히 skip (다운스트림 호환성)
-      - name: Node.js setup (lockfile 있음, npm cache 활성)
-        if: hashFiles('package-lock.json') != ''
+      # setup-node@v4 는 cache: 'npm' 이 설정돼도 package-lock.json 부재 시 자동으로
+       # 캐시를 비활성화하므로 (warning 만 남기고 fail 아님) 분기 불필요 — 단일 step
+      - name: Node.js setup
+        if: hashFiles('package.json') != ''
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
           cache: 'npm'
-
-      - name: Node.js setup (lockfile 없음, cache 비활성)
-        if: hashFiles('package.json') != '' && hashFiles('package-lock.json') == ''
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
 
       - name: npm ci (lockfile 있을 때)
         if: hashFiles('package-lock.json') != ''
