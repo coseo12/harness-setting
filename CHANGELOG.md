@@ -7,6 +7,26 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.30.0] — 2026-04-20
+
+[#185](https://github.com/coseo12/harness-setting/pull/185) — volt #59 #60 반영. cross-validate 가드 2차 방어선 + 다운스트림 실측 최종 가드 (MINOR).
+
+### Behavior Changes
+
+- **cross-validate "외부 툴 동작 주장 실측" 가드 Claude 자신에게도 적용 명시** — 기존 "Gemini 제안 시" 가드가 표제 재기술 (`(Claude 도입 / Gemini 제안 공통)`) 로 확장. Claude 가 새 외부 도구 flag 를 도입할 때도 동일 4단계 실측 요구. 근거: volt [#59](https://github.com/coseo12/volt/issues/59) — v2.28.2 pnpm `--if-present` 셀프 위반 실증
+- **"같은 생태계 내 도구 간 flag 호환 가정 금지" 규약 추가** — npm/pnpm/yarn/bun 는 Node.js 생태계여도 CLI 독립 설계. flag 복사 금지 + 각 도구 개별 검증 필수. 그룹 B (호출 시점 가드) 로 체크리스트 2단계 편성
+- **cross-validate 호출 프롬프트에 '신규 외부 도구 flag 실측 질문' 명시 삽입 의무** — "Gemini 의 침묵 = 안전 아님" 박제. 주장하지 않으면 가드 미발동 (volt #59 관찰). 질문 템플릿: "도입한 `<도구>` 의 flag / 각 flag 의 공식 문서 명시 여부 / 같은 생태계 내 다른 도구 flag 복사 여부". volt [#61](https://github.com/coseo12/volt/issues/61) (1회 관찰 후보 추적) 간접 반영
+- **"다운스트림 실측이 최종 가드" 실전 교훈 신규 섹션** — upstream 3중 방어 (단위 테스트 + reviewer + cross-validate) blindspot 인정. upstream 사전 방어 3가지 (긴급 PATCH 파이프라인 템플릿 / 대표 다운스트림 튜플 규격화 / 회귀 가드 소급 승격). 5 적용 시나리오 (Rust crate / npm / Docker / DB migration / LLM 모델). 근거: volt [#60](https://github.com/coseo12/volt/issues/60) — v2.28.2 → astro-simulator#270 → v2.29.1 복구 체인
+
+### Notes
+
+- **cross-validate 폴백 박제 (volt #40 프로토콜)** — 본 PR #185 의 cross-validate 가 Gemini gemini-2.5-pro capacity 소진으로 2회 시도 모두 실패. outcome=`429-fallback-claude-only`. **claude-only analysis completed — 단일 모델 편향 노출 미확보**. 릴리스 후 reminder 이슈 수동 생성하여 API 복구 시 재검증 경로 확보 예정. CLAUDE.md 영구성 우선순위에 따라 본 CHANGELOG `### Notes` 에 1회 기록 (PR 코멘트/커밋/ADR 중복 기록 없음)
+- **1회 관찰 박제 예외 적용**: volt #59 는 "가드 자기 위반" 으로 compile 규약 "3회 이상" 예외 (즉시 박제). volt #60 은 1회 관찰 + 5 적용 시나리오로 관찰 등가 증거력 확보. volt #61 은 CLAUDE.md 편향 5종 박제 보류 (1회 + 일반화 범위 미증명 → 추적 이슈로 누적 대기)
+- **Reviewer 5 권고 전부 반영**: 6단계 → 2 그룹 (A: 사전 실측 / B: 호출 시점) 재구성 / "확장" → "직교 관계" 표현 완화 / 대표 다운스트림 튜플 규격화 / 표제 재기술 / 링크 일관성
+- **Reviewer SSoT `bg_process_handoff` 4번째 variance 관찰** — 본 PR #185 에서 `{}` (빈 객체) 반환. 이전 3회 (#167 누락 / #170 null / #178 누락) 와 다른 4번째 형태. harness [#184](https://github.com/coseo12/harness-setting/issues/184) (sub-agent 반환 JSON 런타임 SSoT 검증) 우선순위 재확인 근거 축적
+- **오늘 2026-04-20 9번째 MINOR 릴리스** — v2.24.0 부터 v2.30.0 까지. Phase 분리 리듬 유지, 각 릴리스 독립 관찰 가능
+
+
 ## [2.29.1] — 2026-04-20
 
 [#181](https://github.com/coseo12/harness-setting/issues/181) — CI pnpm 경로 `--if-present` 인자 forwarding 버그 수정 (PATCH — bug fix).
