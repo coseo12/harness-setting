@@ -246,7 +246,8 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
 - 실구현 PR 에서 `git diff --stat <추상화 계층 경로>` 로 재현 확인 — 예측 성공 시 기존 추상화가 올바르게 설계됐다는 **구체 증거**
 - 예측 실패(= 계층 수정 필요) 시 두 갈래: (a) 추상화가 부족하다는 신호 → 먼저 리팩토링 후 ADR 구현 재개 (b) 예외 케이스 인정 → ADR Amendment 박제
 - 적용 시나리오: parentId 체인 / 플러그인 레지스트리 / 라우팅 테이블 / 스키마-주도 UI (form builder, dashboard) / i18n 번역 테이블 — **데이터로 확장하는 계층적 구조** 전반. 새 모듈/레이어를 만드는 결정에는 적용 불가 (확장이 이미 데이터로 흡수 가능한 상태가 전제)
-- 근거: volt [#47](https://github.com/coseo12/volt/issues/47) — astro-simulator P8 ADR `20260419-satellite-orbit-hybrid.md` 에 "포보스/데이모스 JSON 추가 → sim-canvas 코드 변경 0 줄" 예측 박제. PR-3 (#252) 에서 실측 재현 성공 — parentId 3계층 (scene graph / sidebar / camera) 이 모두 데이터로만 참조됨을 실증. 스킬 절차는 [record-adr SKILL.md](.claude/skills/record-adr/SKILL.md) "Concrete Prediction" 섹션 참조
+- 근거: volt [#47](https://github.com/coseo12/volt/issues/47) — astro-simulator P8 ADR `20260419-satellite-orbit-hybrid.md` 에 "포보스/데이모스 JSON 추가 → sim-canvas 코드 변경 0 줄" 예측 박제. PR-3 (#252) 에서 실측 재현 성공 — parentId 3계층 (scene graph / sidebar / camera) 이 모두 데이터로만 참조됨을 실증
+- 스킬 절차: [.claude/skills/record-adr/SKILL.md](.claude/skills/record-adr/SKILL.md) "Concrete Prediction" 섹션 — ADR `## 결과·재검토 조건` 에 박제하는 포맷 템플릿
 
 ### 커밋 성공 ≠ 의도한 변경 커밋됨
 `git commit` 종료 코드 0과 "커밋 성공" 메시지만 믿지 말 것. 특히 lint-staged + tracked/ignored 혼재 상황에서 staged 변경 일부가 **조용히 유실**될 수 있다.
