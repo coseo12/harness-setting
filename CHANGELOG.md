@@ -7,6 +7,33 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.29.0] — 2026-04-20
+
+[#178](https://github.com/coseo12/harness-setting/pull/178) — CI `detect-and-test` 다언어 실 실행 복구 + Node.js yarn 지원 (MINOR).
+
+### Behavior Changes
+
+- **Python 실 실행 복구** — 기존 `echo "Python 프로젝트 감지됨"` → 실제 `pytest` 실행. 패키지 매니저 우선순위 자동 분기 (`uv.lock` > `poetry.lock` > `Pipfile.lock` > `requirements.txt` / `pyproject.toml` / `setup.py`). uv 는 공식 `astral-sh/setup-uv@v3` action 사용 (Gemini 보안 권고 반영). poetry/pipenv 경로는 pytest 감지 실패 시 명시 설치. `pytest` exit 5 (수집 0건) 는 경고로 처리. 근거: volt [#48](https://github.com/coseo12/volt/issues/48)
+- **Go 실 실행 복구** — `actions/setup-go@v5` + `go test ./...`. `go.mod` 의 `go` 버전 사용. 근거: volt #48
+- **Rust 실 실행 복구** — `actions-rust-lang/setup-rust-toolchain` + `cargo test --lib` (debug 빌드). 장기 테스트 이원화 (volt [#54](https://github.com/coseo12/volt/issues/54)) 는 다운스트림 옵션. 근거: volt #48
+- **Node.js yarn 지원 추가** — `yarn.lock` 감지 시 실행. berry (`.yarnrc.yml` 존재) 와 classic 자동 분기:
+  - berry: `yarn install --immutable` + `yarn test`
+  - classic: `yarn install --frozen-lockfile` + `yarn test`
+  - `corepack enable` 로 `packageManager` 필드 우선 존중
+  - `scripts.test` 유무 체크 스크립트 삽입 (yarn 은 `--if-present` flag 없음)
+- **run-tests 스킬 감지 테이블 확장** — Node.js 7 lock 우선순위 (pnpm / yarn berry / yarn classic / Bun / Deno / npm / npm fallback) + Python 6 도구 분기. 하이브리드 lock 혼재 시 상위 우선 + 경고 원칙 명시
+
+### Notes
+
+- **배타 조건 분기 전략 (volt #51 외부 툴 실측 가드 준수)** — setup-node@v4 `cache: 'yarn'` 은 `yarn.lock` 부재 시 실패. 단일화 대신 다중 step 유지 (volt [#51](https://github.com/coseo12/volt/issues/51) 케이스 A 재현 방지)
+- **Gemini cross-validate 보안 고유 발견 수용** — uv 설치를 `curl \| sh` 패턴에서 공식 `astral-sh/setup-uv@v3` action 으로 전환. 공급망 공격 표면 축소 + 버전 고정 + 캐싱. Gemini 제안의 차선안 (checksum 검증) 보다 권장안 (공식 action) 채택 — 운영 오버헤드 낮음
+- **Reviewer 권고 6건 전부 반영** — setup-python cache 지시어 제거 + python-version '3.x' fallback + poetry/pipenv pytest 명시 설치 + cargo --release 제거 + SKILL.md Bun/Deno drift 각주 + pip 경로 주석 보강. 권고 #7 closing keyword 는 연결 이슈 없어 N/A
+- **Bun / Deno 의도적 drift** — SKILL.md 감지 테이블에는 포함 / CI 구현 미포함. 각주 ¹ 로 명시하고 향후 harness 추가 검토 (volt #49 주석-구현 drift 경계 준수 — drift 가 의도적임을 문서화)
+- **dogfooding**: v2.28.1 에 도입한 `verify-release-version-bump.sh` 가 본 릴리스에서 정상 작동 — package.json 2.28.2 → 2.29.0 동시 bump 보증
+- **Reviewer SSoT 2필드 3번째 누락 관찰** (PR #167 / #170 / #178) — compile 규약 "3회 이상 관찰 시 후속 분리" 발동 조건 달성. v2.29.0 릴리스 후 별도 후속 이슈로 분리 검토 예정
+- **오늘 2026-04-20 8번째 릴리스** (v2.24.0 → v2.25.0 → v2.26.0 → v2.27.0 → v2.28.0 → v2.28.1 → v2.28.2 → v2.29.0). Phase 분리 리듬 유지, 각 릴리스 독립 관찰 가능
+
+
 ## [2.28.2] — 2026-04-20
 
 [#175](https://github.com/coseo12/harness-setting/issues/175) — CI 템플릿 (`.github/workflows/ci.yml`) 의 `detect-and-test` job 에 pnpm 프로젝트 지원 추가 (PATCH — bug fix).
