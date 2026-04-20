@@ -7,14 +7,14 @@
 # SSoT 선언 위치: CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료`
 # 의 "공통 JSON 스키마 (SSoT)" 블록 (commit_sha / pr_url / pr_comment_url /
 # labels_applied_or_transitioned / auto_close_issue_states / blocking_issues /
-# non_blocking_suggestions).
+# non_blocking_suggestions / spawned_bg_pids / bg_process_handoff).
 #
 # 호출 예:
 #   ./scripts/verify-agent-ssot.sh
-#     → 통과: exit 0, "✅ agent SSoT drift 없음 (5 files × 7 fields)"
+#     → 통과: exit 0, "✅ agent SSoT drift 없음 (5 files × 9 fields)"
 #     → 실패: exit 1, 누락/순서 이탈 파일·필드 상세 출력
 #
-# 관련 이슈: #145 (Z 옵션 — drift 자동 감지 게이트)
+# 관련 이슈: #145 (Z 옵션 — drift 자동 감지 게이트). volt #46/#52 — spawned_bg_pids / bg_process_handoff 2필드 확장
 
 set -euo pipefail
 
@@ -34,6 +34,8 @@ CORE_FIELDS=(
   auto_close_issue_states
   blocking_issues
   non_blocking_suggestions
+  spawned_bg_pids
+  bg_process_handoff
 )
 
 errors=0

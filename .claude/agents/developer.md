@@ -34,6 +34,8 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
       "auto_close_issue_states": {"#123": "OPEN"},
       "blocking_issues": [],
       "non_blocking_suggestions": [],
+      "spawned_bg_pids": [],
+      "bg_process_handoff": "sub-agent-confirmed-done",
       "extends": {
         "branch": "feature/...",
         "files_changed": ["path/a", "path/b"],
@@ -45,6 +47,7 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
     ```
     - `auto_close_issue_states` — PR 본문/커밋 메시지의 `Closes #N` 키워드 대상 이슈의 **현재 state** 를 PR 생성 후 (머지 전) `gh issue view <N> --json state` 로 기록. developer 는 머지 주체가 아니므로 보통 `"OPEN"` 이 정상. 실제 close 성공 검증은 메인 오케스트레이터 책임
     - `labels_applied_or_transitioned` — developer 는 보통 빈 배열. 라벨 전이는 reviewer / qa 영역
+    - `spawned_bg_pids` / `bg_process_handoff` — 구현 중 dev 서버 / 테스트 러너 / 장시간 빌드를 `run_in_background` 로 띄웠으면 반환 전 **완주/kill 확인 후** `spawned_bg_pids: []` + `bg_process_handoff: "sub-agent-confirmed-done"`. 완주 확인 못 하고 반환하면 살아있는 PID 배열 + `"main-cleanup"` (메인이 `ps`/`lsof` 로 독립 확인). 띄운 적 없으면 `[]` + `"none"`. volt #46/#52 — stale dev 서버 포트 점유 / cargo 좀비 4개 누적 방지
 
 ## 브라우저 검증 (UI 포함 이슈 필수)
 
