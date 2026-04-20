@@ -16,6 +16,7 @@
 |---|---|---|---|
 | 2026-04-19 | [gitflow-main-develop](20260419-gitflow-main-develop.md) | Accepted | **상위** — `main=배포 / develop=개발` 브랜치 전략 결정 |
 | 2026-04-19 | [release-merge-strategy](20260419-release-merge-strategy.md) | Accepted | **세부** — 위 gitflow 의 release PR merge 방식 결정 (`--merge` + fast-forward). 선행 ADR: `20260419-gitflow-main-develop` |
+| 2026-04-20 | [jq-based-parsing-no-op](20260420-jq-based-parsing-no-op.md) | Accepted (NO-OP) | cross-validate outcome JSON 파싱의 jq 전환 **기각** — grep/sed 파이프라인 유지 + 경계 가드 테스트 추가 |
 
 ## 언제 작성하는가
 
