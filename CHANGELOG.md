@@ -7,6 +7,25 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.24.0] — 2026-04-20
+
+[#153](https://github.com/coseo12/harness-setting/issues/153) — CI `detect-and-test` 의 Node.js `npm test` 실 실행 복구 (MINOR).
+
+### Behavior Changes
+
+- **CI `detect-and-test` 의 Node.js 브랜치가 실제 테스트를 실행** — 기존에는 `echo` 로 감지만 수행하여 모든 PR 이 CI 에서 테스트되지 않은 상태로 머지됐다. 이제 `actions/setup-node@v4` (node-version-file: `package.json` 의 `engines.node` 참조) + `npm ci` (lockfile 있을 때) 또는 `npm install --no-audit --no-fund --ignore-scripts` (없을 때 fallback) + `npm test --if-present` 실행. 로컬 통과와 CI 통과가 일치해야 PR 머지 가능 — 새 회귀 차단 게이트.
+- **harness 템플릿 호환성 유지**: `hashFiles('package.json')` / `hashFiles('package-lock.json')` 조건 게이트로 Node 프로젝트가 아닌 다운스트림은 step 전체 skip. `npm test --if-present` 는 `scripts.test` 미정의 프로젝트도 조용히 skip.
+
+### Fixed
+
+- 세션 전체 PR (`#144` / `#147` / `#150` / `#154`) 이 CI 에서 `npm test` 가 돌지 않은 채 머지됐던 구조적 결함 해소. 이번 PR 이후 머지되는 PR 부터 실 테스트가 회귀 게이트로 동작.
+
+### Notes
+
+- 이 저장소 자체는 의존성 0개 (`dependencies` / `devDependencies` 섹션 없음) + `package-lock.json` 부재. `npm install fallback` 분기를 통해 lock 없이도 테스트 실행.
+- Node version 은 `package.json::engines.node` (`>=16.7.0`) 의 semver range 를 `setup-node@v4` 가 해석.
+- **`scripts.test` 를 `--test-concurrency=1` 로 변경** — 착수 중 `test/previous-sha256.test.js:140` / `test/update-verification.test.js:172` 의 `post-apply 검증: 정상 apply 시 ok=true` 테스트가 병렬 실행 시 간헐 실패하는 flaky 확인. CI 안정성을 위해 순차 실행으로 임시 조치. 실행 시간 6s → 18s. 근본 원인 분석 + 병렬 복구는 후속 이슈 [#157](https://github.com/coseo12/harness-setting/issues/157) (low).
+
 ## [2.23.0] — 2026-04-20
 
 [#145](https://github.com/coseo12/harness-setting/issues/145) — 공통 JSON 스키마 (SSoT) drift 자동 가드 도입 (MINOR).

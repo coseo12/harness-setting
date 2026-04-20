@@ -12,13 +12,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node.js 프로젝트 감지
-      - name: Node.js 테스트
+      # Node.js 프로젝트 감지 (감지 메시지만 — 실제 실행은 아래 step 들)
+      - name: Node.js 프로젝트 감지
         if: hashFiles('package.json') != ''
         run: |
           node_version=$(jq -r '.engines.node // "20"' package.json | grep -oE '[0-9]+' | head -1)
           echo "Node.js ${node_version} 사용"
-        # Node 설정은 프로젝트별로 추가
+
+      # Node.js 실 테스트 (#153)
+      # - setup-node 는 package.json 존재 시 실행. node-version-file 이 engines.node 의 semver range 도 해석
+      # - cache 는 package-lock.json 이 있을 때만 활성화 (setup-node v4 가 알아서 skip)
+      # - npm ci 는 package-lock.json 이 있을 때만 (재현 가능한 정확한 설치)
+      # - npm install --no-audit --no-fund 는 lock 이 없는 Node 프로젝트 fallback
+      # - npm test --if-present 는 scripts.test 없으면 조용히 skip (다운스트림 호환성)
+      - name: Node.js setup (lockfile 있음, npm cache 활성)
+        if: hashFiles('package-lock.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+          cache: 'npm'
+
+      - name: Node.js setup (lockfile 없음, cache 비활성)
+        if: hashFiles('package.json') != '' && hashFiles('package-lock.json') == ''
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
+      - name: npm ci (lockfile 있을 때)
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
+      - name: npm install (lockfile 없을 때 fallback)
+        if: hashFiles('package.json') != '' && hashFiles('package-lock.json') == ''
+        run: npm install --no-audit --no-fund --ignore-scripts
+
+      - name: npm test
+        if: hashFiles('package.json') != ''
+        run: npm test --if-present
 
       # Python 프로젝트 감지
       - name: Python 테스트
