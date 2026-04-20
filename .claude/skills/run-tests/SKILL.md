@@ -195,7 +195,7 @@ kill $DEV_PID
 | 언어/프레임워크 | 마킹 | CI 실행 |
 |---|---|---|
 | Rust | `#[ignore = "<사유>; run with --include-ignored in CI"]` | `cargo test --lib -- --include-ignored` |
-| Jest/Vitest | `test.todo` / `describe.skip` + tag 주석 | `vitest --grep "<tag>"` 또는 `RUN_SLOW=1 jest` |
+| Jest/Vitest | 파일명 suffix `*.slow.test.ts` + config 프로젝트 분리 / 또는 `describe.skip`·`it.skip` + `RUN_SLOW` env 조건 분기 | `RUN_SLOW=1 vitest` / `vitest --project slow` (config 에 `testMatch` / `include` 분리) |
 | pytest | `@pytest.mark.slow` (conftest 에서 `--run-slow` 훅) | `pytest --run-slow` |
 | Go | `t.Skip(...)` + build tag `//go:build slow` | `go test -tags slow ./...` |
 | JUnit (Java) | `@Tag("slow")` + Maven `-DexcludedGroups=slow` | Maven profile 전환 |
@@ -212,7 +212,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo test --release --lib   # 또는 npm test / pytest 등
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo
+          key: cargo-fast-${{ hashFiles('Cargo.lock') }}   # 빠른 경로 전용 키
+      - run: cargo test --release --lib
     # 실패 시 PR 차단
 
   test-long-integration:
@@ -220,11 +224,15 @@ jobs:
     continue-on-error: true    # 빠른 경로 실패 시만 머지 차단
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo
+          key: cargo-long-${{ hashFiles('Cargo.lock') }}   # 장기 경로 전용 키 (접두사 다름)
       - run: cargo test --release --lib -- --include-ignored
     # 실패는 nightly 알림 / 대시보드만
 ```
 
-**핵심 제약**: 두 job 이 **독립 캐시 키** 사용. 빠른 경로 재실행이 장기 경로 cache 를 무효화하지 않도록.
+**핵심 제약**: 두 job 의 `actions/cache` **`key` 접두사를 다르게** 명시적으로 설정 (예: `cargo-fast-*` / `cargo-long-*`). GitHub Actions `actions/cache` 는 동일 `key` 시 job 간 캐시 공유가 기본이므로, 별도 접두사로 **명시적 분리** 하지 않으면 빠른 경로 재실행이 장기 경로 cache 를 무효화한다. 기본 동작 아님 — 명시적 설정 필수.
 
 ### 재발 감지 신호 (정기 감사 항목)
 
