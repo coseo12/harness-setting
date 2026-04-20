@@ -4,6 +4,10 @@
 >
 > harness-setting 을 다운스트림 프로젝트에 `harness update --check` / `--apply-all-safe` 적용 **전** 에 수행하는 구조 부합성 점검. v2.15.0 에서 `detect-and-test` 가 "감지만" 에서 "실제 실행" 으로 확장된 이후 다운스트림 특수 구조 (pnpm 모노레포 / WASM / dist-based exports 등) 와 부합하지 않아 push-fail-fix 루프에 빠지는 패턴이 반복 관찰됨 (volt [#62](https://github.com/coseo12/volt/issues/62) / [#64](https://github.com/coseo12/volt/issues/64)). 본 체크리스트로 사전 이탈 감지.
 
+## 적용 범위 (reviewer #191 권고 #4)
+
+> **본 체크리스트는 v2.29.0 기준 Node.js 모노레포 중심**. v2.29.0 에서 Python / Go / Rust / yarn 경로가 확장됐으나 동일 구조 (editable install + build 산출물 exports) 는 Python (`pyproject.toml` extras / setuptools editable) / Rust (`cargo build --lib` 후 dist) 에도 존재 가능. 해당 생태계 다운스트림은 본 체크리스트를 **Node.js → Python/Rust 로 유추 적용** 하되, 별도 경로 체크리스트 확장은 후속 이슈로 추적.
+
 ## 언제 수행하는가
 
 - **harness MAJOR / MINOR 업데이트 적용 전** 에 1회
@@ -67,7 +71,7 @@ harness v2.15.0 → v2.29.1 적용 시 6회 연속 push-fail-fix 루프:
 5. `pnpm -r build` 필터 → root.build 재귀로 physics-wasm 재포함
 6. core build → `@astro-simulator/physics-wasm` 타입 의존 해결 불가
 
-**6단계 후 scripts.test 제거 (옵션 A)** 로 최종 회피. 처음부터 본 체크리스트 수행했다면 **체크 3에서 즉시 옵션 A 도출** 가능.
+**6단계 후 scripts.test 제거 (옵션 A)** 로 최종 회피. 정정 (reviewer #191 권고 #5): 1~2단계는 upstream harness 버그 (v2.28.2 / v2.29.1 수정) 였으므로 본 체크리스트 **범위 밖**. 본 체크리스트를 사전 수행했어도 1~2단계는 피할 수 없었다. 다만 **3단계부터 (WASM / 타입 의존 / 재귀 빌드) 는 체크 3에서 즉시 옵션 A 도출 가능** — 약 3~4 실패 사이클 단축 효과.
 
 ## 관련
 
