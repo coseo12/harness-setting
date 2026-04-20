@@ -7,6 +7,33 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.26.0] — 2026-04-20
+
+[#164](https://github.com/coseo12/harness-setting/pull/164) — volt 이슈 8건 (#43 #45 #46 #47 #48 #49 #50 #51 #52) 반영. cross-validate 외부 툴 가드 + sub-agent SSoT 2필드 확장 + record-adr Concrete Prediction + run-tests Flaky 진단 루트 (MINOR).
+
+### Behavior Changes
+
+- **cross-validate 루틴에 외부 툴 동작 주장 실측 가드 추가** — Gemini 의 개선 제안이 외부 툴 / CI / 프레임워크 기본값의 세부 동작에 관한 주장일 때는 실측 없이 수용 금지. 4단계 검증 의무: (1) 공식 문서 확인 (2) CI / 샌드박스 실측 (3) revert 가능한 단위 커밋 (4) 오탐 근거 3곳(커밋 메시지 / 파일 주석 / CHANGELOG Notes) 박제. 검증 필수도 매트릭스 + diff-only 리뷰 한계 명시. CLAUDE.md `## 교차검증` 섹션에 반영. 근거: volt [#51](https://github.com/coseo12/volt/issues/51) — setup-node cache 자동 skip 주장 실측 반증 + 이미 존재하는 `body || ''` guard "추가하라" 오탐 2건 실증
+- **sub-agent 공통 JSON 스키마 2필드 확장 (7 → 9)** — `spawned_bg_pids` (배열) + `bg_process_handoff` (`"main-cleanup"` / `"sub-agent-confirmed-done"` / `"none"`) 추가. sub-agent 가 `run_in_background=true` 로 띄운 dev 서버 / cargo test / 장시간 빌드 등의 정리 책임 인계를 구조화. 5개 에이전트 파일 (architect / developer / pm / qa / reviewer) 전부 동기화 + `scripts/verify-agent-ssot.sh` CORE_FIELDS 9필드 검증 (drift 시 exit 1). 근거: volt [#46](https://github.com/coseo12/volt/issues/46) / [#52](https://github.com/coseo12/volt/issues/52) — stale dev 서버 포트 점유 오진 + `cargo test` 좀비 4개 누적 관찰
+- **record-adr 스킬에 Concrete Prediction 절차 추가** — ADR 결정을 구현할 때 "코드 변경 0 예측" 을 박제하면 기존 추상화의 건강성을 실증할 수 있다. ADR `## 결과·재검토 조건` 섹션에 `### Concrete Prediction` 서브섹션 박제 포맷 + 검증 방법(`git diff --stat`) + 실패 대응 분기 규약. NO-OP ADR 변형과 구분(산출물 유/무). 근거: volt [#47](https://github.com/coseo12/volt/issues/47) — astro-simulator P8 ADR "포보스/데이모스 JSON 추가 → sim-canvas 코드 변경 0 줄" 예측 박제 → PR-3 실측 재현 성공
+- **run-tests 스킬에 Flaky 진단 루트 6단계 추가** — flaky 3회 재시도 후에도 실패 시 `concurrency=1` / CI retry / skip / low 방치 안티패턴으로 직행 금지. 6단계 진단 루트 (병렬 반복 + stderr 수집 → 영향받은 객체 특정 → 이름 패턴 분석 → 분기 결과 확인 → 주석 계약 대조 → 수정 + 회귀 가드) 실행. 수용 기준: 8회 이상 연속 병렬 0 실패 + 임시 조치 제거 상태 통과 + 실행 시간 회복. 근거: volt [#50](https://github.com/coseo12/volt/issues/50) — v2.24.0 → v2.25.0 에서 `--test-concurrency=1` 임시 조치로 6s → 18s 역행 후 stderr 의 `.claude/logs/` 단서로 categorize 주석-구현 drift 식별 → 1 라인 수정으로 7.5s 회복
+
+### Added
+
+- **CLAUDE.md 실전 교훈 3개 추가**:
+  1. **"CI 통과 ≠ 테스트 실행"** — "언어 자동 감지" 범용 CI 템플릿이 `echo` 만 수행하는 no-op 함정. 진단 신호 3개 (실행 시간 / Actions 로그 / CI 구조) + 고의적 실패 PR 실측 루틴. 근거: volt [#48](https://github.com/coseo12/volt/issues/48)
+  2. **"workflow_dispatch 2단계 함정"** — default branch 종속 + `can_approve_pull_request_reviews` 기본 OFF. 조치 명령 + workflow 파일 상단 주석 템플릿. 근거: volt [#45](https://github.com/coseo12/volt/issues/45) — astro-simulator bench workflow 2단계 실패 실증
+  3. **"주석 계약 vs 구현 drift — 버그 생성원"** — 파일 상단 주석이 선언한 계약이 구현에 반영되지 않으면 default fallback 이 누락을 조용히 흡수. 카테고리/enum 류 분기 함수 특히 주의. 근거: volt [#49](https://github.com/coseo12/volt/issues/49)
+- **CLAUDE.md "신규 데이터 ≠ 신규 코드" 블록** — "신규 함수 ≠ 신규 구현"의 데이터 버전. 레이어/플러그인/스키마 구조에서 확장이 코드 변경 0 으로 가능한지 예측 + `git diff --stat` 실측. 스킬 절차는 record-adr SKILL.md 로 포인터 분리
+- **`docs/architecture/state-atomicity-3-layer-defense.md` §6** — "해석자가 자동화 주체일 때 — 4번째 자동 매핑 층" 추가. cross-validate 폴백 프로토콜 완성 여정 (v2.18.0 선언 → v2.19.0 자동 매핑) 을 일반 설계 지식으로 승격. "해석자가 누구인가" 설계 체크리스트. 근거: volt [#43](https://github.com/coseo12/volt/issues/43)
+
+### Notes
+
+- cross-validate 셀프 적용 **6번째 연속 정상 경로 성공** (volt [#42](https://github.com/coseo12/volt/issues/42) 패턴 확장) — PR #164 박제 직후 Gemini Approve / 이견 0 / 고유 발견 0. outcome=`applied` (exit 0), reminder 이슈 발동 조건 소멸, 폴백 프로토콜 기록 의무 해당 없음.
+- Reviewer 7 non-blocking 권고 중 **2건 반영** (#2 포인터 포맷 분리 / #4 NO-OP 차이 섹션 위치 통합) + **2건 기각** (#1 bg_process_handoff 예시 비대칭은 의도적 차별화 / #3 gh api 명령 2회는 역할이 달라 SSoT 불필요). 기각 근거는 PR 코멘트에 박제.
+- 스킵한 volt 이슈: [#42](https://github.com/coseo12/volt/issues/42) (정상 경로 관찰 — 기존 루틴 validation 이지 새 규칙 아님) / [#44](https://github.com/coseo12/volt/issues/44) (5단계 루프 — 각 단계가 이미 조각으로 박제됨).
+- `.gitignore` 에 `.claude/scheduled_tasks.lock` + `.claude/scheduled_tasks/` 추가 — ScheduleWakeup 상태 파일이 실수로 tracked 되는 경로 회귀 가드.
+
 ## [2.25.0] — 2026-04-20
 
 [#157](https://github.com/coseo12/harness-setting/issues/157) — `.claude/logs/` 가 `atomic` 으로 오분류되던 버그 수정 + 테스트 병렬 실행 복구 (MINOR).
