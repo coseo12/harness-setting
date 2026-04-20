@@ -7,6 +7,26 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.25.0] — 2026-04-20
+
+[#157](https://github.com/coseo12/harness-setting/issues/157) — `.claude/logs/` 가 `atomic` 으로 오분류되던 버그 수정 + 테스트 병렬 실행 복구 (MINOR).
+
+### Behavior Changes
+
+- **`.claude/logs/` 경로는 이제 `user-only` 카테고리** — 기존에는 `categorize()` 의 기본 fallback 에 걸려 `atomic` 으로 분류되었고, `walkTracked(PKG_ROOT)` 가 모든 로그 파일을 tracked 집합에 포함시켜 `harness update --apply-all-safe` 가 이들을 복사 대상으로 삼았다. 이번 릴리스부터 `.claude/logs/**` 는 tracked 에서 제외되어 사용자 cwd 에 영향 없음. `lib/categorize.js` 상단 주석의 "user-only: state, **logs**, 사용자 추가 파일" 계약이 코드에 반영됨.
+- **다운스트림 매니페스트 영향**: 기존에 `.harness/manifest.json` 에 `.claude/logs/*` 엔트리가 기록돼 있었다면, `harness update` 재실행 시 해당 엔트리가 `removed-upstream` 으로 분류되어 정리됨. 로그 파일 자체는 `user-only` 이므로 사용자 cwd 에서 삭제되지 않고 그대로 보존.
+- **`package.json::scripts.test` 가 병렬 실행으로 복구** — v2.24.0 에서 임시로 `--test-concurrency=1` 로 변경했던 조치를 되돌림. 근본 원인이 해소되어 병렬 실행이 안정적으로 동작. CI 실행 시간 18s → ~7.5s (약 60% 단축).
+
+### Fixed
+
+- **테스트 병렬 실행 flaky 완전 해소** — `test/previous-sha256.test.js` / `test/update-verification.test.js` 의 `post-apply 검증: 정상 apply 시 ok=true` 가 병렬 실행 시 약 75% 빈도로 실패하던 증상. 원인은 `.claude/logs/cross-validate-*.log` 338개 파일 (실측 당시 누적분) 이 매 `update()` 호출마다 copy 대상으로 포함되어 I/O 경쟁 + 해시 재계산 timing 불일치로 `rolledBack` 배열에 들어간 것. 실패 시 stderr 로그에서 rolledBack 대상이 `.claude/logs/cross-validate-structure-20260420-141012.log` 같은 로그 파일로 특정되어 진단 가능했음.
+- 8회 연속 병렬 실행 실패 0건 실측 확인.
+
+### Notes
+
+- `lib/categorize.js` 의 머리 주석이 이미 "user-only: init 후엔 harness가 손대지 않음 (state, logs, 사용자 추가 파일)" 계약을 선언하고 있었으나, 구현에 `.claude/logs/` 규칙이 **누락**되어 주석과 코드가 어긋나 있던 것. 이 차이가 `#157` flaky 의 직접 원인이었고, `#153` 이 임시 조치한 `--test-concurrency=1` 이 `#157` 을 우회한 형태.
+- 진단 루트: `node --test` 기본 병렬로 반복 실행 → stderr 의 `harness update: post-apply 검증 실패 N건 — <파일 목록>` 출력에서 `.claude/logs/cross-validate-*.log` 식별 → `categorize('.claude/logs/...')` 가 `atomic` 반환 확인 → 주석 대조 후 누락 규칙 추가.
+
 ## [2.24.0] — 2026-04-20
 
 [#153](https://github.com/coseo12/harness-setting/issues/153) — CI `detect-and-test` 의 Node.js `npm test` 실 실행 복구 (MINOR).
