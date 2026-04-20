@@ -356,7 +356,10 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
      - **CRITICAL DIRECTIVE 개정** — 세션 초기 각인 규칙이 추가·변경됨
      - **ADR 신규 생성 및 중대한 개정/폐기** — 코어 기술/아키텍처 결정이 박제되거나 기존 합의가 역전됨 (신규 못지않게 개정/폐기도 노출 효율 최대)
      - **MINOR 이상 릴리스의 `### Behavior Changes`** — 에이전트 행동 규칙이 추가·변경됨 (PATCH 는 제외)
-     - **프로젝트 원칙·철학 선언** — ADR 보다 추상도 높은 상위 원칙 (예: "Fact-First / Visual-Second", "Correctness-First / Performance-Second") 을 박제할 때. 단일 모델 편향이 원칙 수준에서 특히 강하게 작용 (볼트 [#55](https://github.com/coseo12/volt/issues/55) 에서 Gemini 고유 발견 6종을 원칙 선언 직후 교차검증으로 끌어낸 실증)
+     - **프로젝트 원칙·철학 선언** — ADR 보다 추상도 높은 상위 원칙 (예: "Fact-First / Visual-Second", "Correctness-First / Performance-Second") 을 박제할 때. 단일 모델 편향이 원칙 수준에서 특히 강하게 작용 (볼트 [#55](https://github.com/coseo12/volt/issues/55) 에서 Gemini 고유 발견 6종을 원칙 선언 직후 교차검증으로 끌어낸 실증). **식별 질문 3개** (모두 yes 여야 본 앵커 해당 — 일반 ADR·릴리스 Notes 와 구분):
+       1. "**프로젝트 전반 의사결정의 tie-breaker** 역할을 하는가?" — 여러 ADR·기능 결정이 상충할 때 이 원칙이 판정 기준이 되는가 (특정 모듈에만 적용되면 ADR 수준, 전반 tie-breaker 여야 원칙 수준)
+       2. "**'~First / ~Second' / '~First / ~Preferred'** 같은 우선순위 선언 형태 또는 유사한 **명제형 슬로건** 인가?" — 구현 방법이 아니라 가치 판단의 우선순위
+       3. "이 선언 때문에 **기존 ADR 일부를 재평가/소급 적용** 해야 하는가?" — 신규 ADR 과 달리 원칙은 과거 결정에도 소급적 영향
 
      reminder 이슈 제목 예시 `[#<원 PR 번호>] cross-validate 재시도 — Gemini capacity 복구 후`. 본문에 원 PR/ADR 링크 + 재시도 시 확인할 범주(범주 오류 / 암묵 전제 / 비목표 대조) 명시. API 복구 후 close 또는 재검증 결과 반영
 - 근거 (폴백 프로토콜): volt [#40](https://github.com/coseo12/volt/issues/40) — v2.13.0 / v2.15.0 박제 직후 Gemini 429 2회 관찰. harness [#107](https://github.com/coseo12/harness-setting/issues/107) 선례 (복구 후 재시도 이슈 박제 → 2차 성공 후 close)
@@ -395,7 +398,7 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 
 - **diff-only 리뷰의 한계** — LLM 코드 리뷰가 diff context 만 받으면 **base 파일의 기존 guard/유틸** 을 보지 못해 "이미 있는 것을 추가하라" 오탐이 발생한다. 프로젝트 내부 구조 참조 제안(존재 여부/위치 주장)은 base 파일 전체를 열어서 확인.
 - 근거 (외부 툴 실측): volt [#51](https://github.com/coseo12/volt/issues/51) — (A) Gemini 의 `setup-node@v4 cache:'npm'` + lockfile 부재 자동 skip 주장이 실측에서 `##[error]Dependencies lock file is not found` 로 반증 (PR [#158](https://github.com/coseo12/harness-setting/pull/158)). (B) `body || ''` guard 가 이미 존재하는 pr-review.yml 에 "추가하라" 오탐 — diff 만 읽고 base 파일 미확인 (PR [#147](https://github.com/coseo12/harness-setting/pull/147)).
-- **고유 발견의 수용 vs 후속 분리 3단 프로토콜** — #23 의 반려 기준을 보완하는 수용/분리 기준:
+- **고유 발견의 수용 vs 후속 분리 3단 프로토콜** — #23 의 반려 기준을 보완하는 수용/분리 기준. architect 에이전트 step 7 의 **결과 편입 4분류** (합의 / 이견 수용 / 기각 / 고유 발견 후속 분리) 는 아래 3단 프로토콜을 실행 단계로 펼친 운영 형태 — `.claude/agents/architect.md` step 7 참조:
   1. **합의 선별** — Claude 설계와 일치하는 Gemini 지적은 현재 PR 에 즉시 반영. 이견은 근거 비교 후 취사
   2. **고유 발견의 범위 체크** — Gemini 만의 제안이면 현재 스프린트 계약(특히 **비목표**)과 대조. 범위 내면 반영, 범위 밖(비목표와 상충)이면 **후속 이슈로 분리**. 판단 질문: "이 변경이 현재 PR 의 `Behavior Changes` 에 원 완료 기준과 직교하는 항목을 추가하는가?"
   3. **분리 시 박제 규칙** — 후속 이슈를 **즉시 생성**해 맥락 유실 방지. 본문에 Gemini 설계 스케치 인용 + `Builds on: #원PR` 링크 + 우선순위 초안(high / medium / low) 명시
