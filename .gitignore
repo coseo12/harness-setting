@@ -1,6 +1,8 @@
 # Harness 로그 (상태 파일은 추적)
 .harness/logs/
 .claude/logs/
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks/
 
 # OS
 .DS_Store
