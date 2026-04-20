@@ -74,17 +74,14 @@ test('agent SSoT drift guard: 필드 순서 이탈 시 실패 + 순서 키워드
   try {
     // qa.md 에서 `commit_sha` 와 `pr_url` 라인 순서 뒤집기 — 순서 drift
     const file = path.join(tmpDir, 'qa.md');
-    const text = fs.readFileSync(file, 'utf8');
-    const commitLineMatch = text.match(/^(\s*"commit_sha":[^\n]*)$/m);
-    const prLineMatch = text.match(/^(\s*"pr_url":[^\n]*)$/m);
-    assert.ok(commitLineMatch && prLineMatch, '테스트 사전조건: 두 필드 라인 발견');
-    // 두 라인 전체를 서로 교체
-    const swapped = text
-      .replace(commitLineMatch[0], '\0COMMIT_PLACEHOLDER\0')
-      .replace(prLineMatch[0], commitLineMatch[0])
-      .replace('\0COMMIT_PLACEHOLDER\0', prLineMatch[0]);
-    assert.notStrictEqual(swapped, text, '테스트 사전조건: swap 이 실제로 적용되어야 함');
-    fs.writeFileSync(file, swapped);
+    const lines = fs.readFileSync(file, 'utf8').split('\n');
+    const commitIdx = lines.findIndex((l) => /^\s*"commit_sha"\s*:/.test(l));
+    const prIdx = lines.findIndex((l) => /^\s*"pr_url"\s*:/.test(l));
+    assert.ok(commitIdx > -1 && prIdx > -1, '테스트 사전조건: 두 필드 라인 발견');
+    assert.ok(commitIdx < prIdx, '테스트 사전조건: 원본에서 commit_sha 가 pr_url 보다 앞에 있음');
+    // 두 인덱스 위치의 라인만 서로 스왑 — 의도: "두 필드 라인을 교환한다"
+    [lines[commitIdx], lines[prIdx]] = [lines[prIdx], lines[commitIdx]];
+    fs.writeFileSync(file, lines.join('\n'));
 
     const result = runVerify(tmpDir);
     assert.strictEqual(result.status, 1, `drift 감지 exit 1 기대. status=${result.status}`);

@@ -47,9 +47,13 @@ checked_fields=0
 extract_json_block() {
   local file="$1"
   awk '
+    # 1. "마무리 체크리스트 JSON 반환" 키워드가 나올 때까지 무시
     !seen && /마무리 체크리스트 JSON 반환/ { seen = 1; next }
+    # 2. 키워드 발견 후, 첫 ```json 코드블록 시작점을 찾음 (들여쓰기 허용)
     seen && !in_json && /^[[:space:]]*```json[[:space:]]*$/ { in_json = 1; next }
+    # 3. 코드블록 내부에서 닫는 ``` 를 만나면 즉시 처리 종료
     in_json && /^[[:space:]]*```[[:space:]]*$/ { exit }
+    # 4. 코드블록 내부에 있으면 해당 라인 수집
     in_json { print }
   ' "${file}"
 }
