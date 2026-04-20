@@ -7,6 +7,28 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.22.1] — 2026-04-20
+
+[#146](https://github.com/coseo12/harness-setting/issues/146) — 죽은 workflow `.github/workflows/agent-dispatch.yml` 제거 (PATCH).
+
+### Behavior Changes
+
+None — 실행 no-op 상태의 죽은 코드 삭제. 에이전트 행동 불변.
+
+### Removed
+
+- **`.github/workflows/agent-dispatch.yml`** — 실측 결과 완전한 죽은 코드로 판정하여 삭제:
+  - 매핑된 7개 `status:*` 라벨 (`status:todo` / `status:audit-passed` / `status:qa` / `status:qa-passed` / `status:stalled` / `status:agent-failed` + 이전에 있던 `status:review`) 전부 저장소에 부재. v2.22.0 에서 `status:review` 라벨 삭제로 마지막 연결도 끊김.
+  - 참조 스크립트 `dispatch-agent.sh` / `orchestrator.sh` 미존재. self-hosted runner 도 없음.
+  - 매핑된 에이전트 이름 (`auditor`, `integrator`) 은 현행 페르소나 세트 (architect/developer/pm/qa/reviewer) 와 불일치 — 구버전 잔재.
+  - 실행 로그 실측: 라벨 트리거 시 `DISPATCH_MAP[label] = undefined` → 코멘트 없음 → 실질 무동작.
+  - git history 에 보존되므로 향후 이벤트 기반 자동 dispatch 재도입 시 복구 가능.
+
+### Notes
+
+- 구 참조 문서 (`docs/OPS-REVIEW-REPORT.md` / `docs/report-final-audit.md` / `docs/report-renewal-retrospective.md`) 는 이력 기록용이므로 수정하지 않음.
+- 현 아키텍처는 `/next`, `/architect`, `/qa` 등 수동 슬래시 커맨드로 에이전트를 호출. 이벤트 기반 자동 dispatch 는 현재 운영 모델과 맞지 않음.
+
 ## [2.22.0] — 2026-04-20
 
 [#127](https://github.com/coseo12/harness-setting/issues/127) Plan 1 — 라벨 네이밍 `stage:*` / `status:*` 혼재 정리 (MINOR). 추가로 [#141](https://github.com/coseo12/harness-setting/issues/141) cross-validate 파싱 jq 전환 NO-OP ADR 박제.
