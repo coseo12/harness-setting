@@ -187,6 +187,13 @@ UI가 포함된 작업에서 4축으로 품질을 평가한다:
 - **"로컬 통과 = 안전" 가정 금지** — CI 가 실질 회귀 게이트로 동작하지 않으면 로컬 miss 가 곧 main 오염
 - 근거: volt [#48](https://github.com/coseo12/volt/issues/48) — harness [#153](https://github.com/coseo12/harness-setting/issues/153) (v2.24.0). `.github/workflows/ci.yml` 의 `detect-and-test` 잡이 `echo "Node.js ${node_version} 사용"` 만 수행하고 `npm test` 를 돌리지 않은 채 4개 PR (#144/#147/#150/#154) 이 머지됐던 사례. "staging 성공 ≠ 커밋 내용" (volt [#13](https://github.com/coseo12/volt/issues/13)) 의 파이프라인 버전
 
+### 다운스트림 harness update 부합성 사전 체크리스트
+`harness update` 이후 다운스트림 CI 에서 발생하는 반복 push-fail-fix 루프를 **사전 진단**으로 방지. 4단계 체크 (모노레포 재귀 호출 / 빌드 산출물 exports / 특수 빌드 도구 / 기존 전용 워크플로) + 4개 옵션 비교 (A 제거 / B shim / C divergent / D upstream 확장). 판정 애매 시 A 추천.
+
+- 상세: [docs/harness-update-compat-checklist.md](docs/harness-update-compat-checklist.md)
+- 근거: volt [#62](https://github.com/coseo12/volt/issues/62) — astro-simulator PR #270 6단계 push-fail-fix 실측 (2026-04-20)
+- 관련 실행 이슈: [harness#190](https://github.com/coseo12/harness-setting/issues/190) — upstream CI 에 pnpm workspace + WASM 스모크 fixture 추가 (volt #64)
+
 ### 다운스트림 실측이 최종 가드 — upstream 3중 방어 blindspot
 upstream 의 **단위 테스트 / reviewer / cross-validate** 가 모두 통과해도, 다운스트림 **실 사용 환경** 에서만 드러나는 결함이 있다. upstream 자기 저장소의 테스트 환경이 다운스트림의 환경 매트릭스 전체를 원리적으로 커버할 수 없기 때문. "CI 통과 ≠ 테스트 실행" 과는 **흡수가 아닌 직교 관계** — volt #48 은 "테스트 자체가 안 돈 경우", 본 교훈은 "테스트가 정상적으로 돌았으나 환경 매트릭스 차이로 결함 잔존" 을 다룬다.
 
@@ -439,6 +446,29 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 - 보수적 해석 편향 금지
 - 기존 코드 보존 관성 금지
 - 확신이 없으면 3번 재작업보다 1번 질문
+
+### 세션 의도 이탈 감지 (메인 오케스트레이터)
+단일 세션에서 **본래 사용자 의도** 에서 부수 작업으로 이탈하는 패턴을 감지하고 사용자에게 **명시적 선택 요청** 을 트리거한다. 인프라 작업 (harness update / tooling migration / CI 디버깅) 이 연쇄 실패를 만들면 원 의도가 묻힐 수 있다.
+
+- **이탈 시그널 4개** (2개 이상 충족 시 사용자 고지) — **런타임 실측 명령** 포함:
+  1. 메인 오케스트레이터가 **upstream 레포에 PR 3+ 생성** (같은 세션). 측정: `gh pr list --author @me --state merged --search "created:>=<세션 시작>"` 카운트
+  2. **릴리스 태그 증가 ≥ 프로젝트 이슈 증가** — 인프라 작업 비중이 도메인 작업을 역전. 측정: `git tag --contains HEAD` 와 본 세션 생성 이슈 수 비교 (원 의도 레포의 이슈 수)
+  3. (옵션) 세션 시간이 **본래 작업 예상 시간의 2배 초과** — 시간 추정은 주관적이므로 **보조 시그널** 로 강등 (시그널 1~2, 4 중 2개 충족이 우선 조건)
+  4. 같은 세션에 **관심사 혼합 4+ 트랙 병렬** — 원 의도 / 인프라 fix / 교차검증 / 후속 이슈 분리 중 4개 이상 동시. 측정: 세션 내 편집 파일의 `.claude/` / `docs/` / 원 의도 소스 / `.github/` / `test/` 등 **디렉토리 다양성** 4+ 개
+- **중간 대응 규약** — 시그널 발견 시:
+  1. upstream PR **2개 이상 연쇄 생성 직후** 사용자에게 명시적 선택 요청: **"원 의도 (예: X 작업) 복귀"** vs **"현 작업 (예: 인프라 fix 체인) 완결"**
+  2. 시그널 2/4 이상 충족 시 같은 확인 루틴 트리거
+  3. 사용자가 "현 작업 완결" 선택 시 원 의도는 **다음 세션으로 명시적 이월** (회고에 박제)
+- **사전 분리 권고** — 인프라 작업 (harness update / 릴리스 파이프라인 개선) 과 **도메인 작업 (Phase 착수 / 기능 구현) 을 별개 세션으로 분리**. harness update 가 예상 외 실패를 만들면 즉시 별도 세션으로 분할 선언
+- **세션 사후 평가** — 세션 종료 시 3축 평가 박제:
+  - 원 의도 충족도 (0~100%)
+  - 부수 작업 범위 (완결 / 진행중 / 포기)
+  - 분할 가능 여부 (세션 분리 했어야 했는가)
+- **예외 조건 (escape hatch 방지)** — 다음 **단 하나** 경우만 시그널 무시:
+  - **세션 시작 시점 이전** 에 사용자가 명시적으로 "세션 전환 허용" / "인프라 집중" / "릴리스 운영 세션" 모드를 선언 (예: 첫 메시지가 `/volt-review` / `/release-run` 등)
+  - **사후 재분류 금지** — 세션 도중 시그널 충족 후 "이건 인프라 모드였어" 식 자기 정당화로 예외 적용 **불가**. 사후 재분류는 volt [#63](https://github.com/coseo12/volt/issues/63) 관찰 대상 escape hatch 이며, 본 규약 자체의 실효성을 잃게 만든다
+  - 원 의도가 **객관적으로** 인프라 작업 (예: 세션 첫 명령이 harness CLI 호출 / 명시적 릴리스 orchestration) 인 경우도 동일 — 선언이 없어도 세션 시작 시점 판단으로 확인 가능
+- 근거: volt [#63](https://github.com/coseo12/volt/issues/63) — 2026-04-20 세션 실측. 사용자 의도 "astro-simulator P10-A 착수" 가 harness 3 릴리스 (v2.28.2 / v2.29.1 / v2.30.0) 디버깅으로 세션 시간 80% 흡수. P10-A 는 60% 만 충족. volt [#24](https://github.com/coseo12/volt/issues/24) (sub-agent 마무리 누락) + volt [#34](https://github.com/coseo12/volt/issues/34) (sub-agent multi-turn 이탈) 의 **메인 오케스트레이터 버전**
 
 ### 릴리스
 - **Semantic Versioning 분류 기준** (판정 애매 시 낮은 쪽 선택):
