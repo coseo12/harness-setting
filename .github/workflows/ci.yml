@@ -121,11 +121,17 @@ jobs:
         run: echo "Python 프로젝트 감지됨"
 
       # --- uv 경로 ---
-      - name: uv 설치 + sync + pytest (uv.lock)
+      # 공식 astral-sh/setup-uv action 사용 — `curl | sh` 패턴 대비 (a) 버전 고정 (b) 캐싱 (c) MITM/공급망 공격 표면 축소
+      # Gemini cross-validate (PR #178) 보안 권고 수용
+      - name: uv setup
+        if: hashFiles('uv.lock') != ''
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: uv sync + pytest (uv.lock)
         if: hashFiles('uv.lock') != ''
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          export PATH="$HOME/.local/bin:$PATH"
           uv sync --frozen
           uv run --no-sync pytest || [ $? = 5 ]
 
