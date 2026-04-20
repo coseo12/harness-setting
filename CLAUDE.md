@@ -187,6 +187,18 @@ UI가 포함된 작업에서 4축으로 품질을 평가한다:
 - **"로컬 통과 = 안전" 가정 금지** — CI 가 실질 회귀 게이트로 동작하지 않으면 로컬 miss 가 곧 main 오염
 - 근거: volt [#48](https://github.com/coseo12/volt/issues/48) — harness [#153](https://github.com/coseo12/harness-setting/issues/153) (v2.24.0). `.github/workflows/ci.yml` 의 `detect-and-test` 잡이 `echo "Node.js ${node_version} 사용"` 만 수행하고 `npm test` 를 돌리지 않은 채 4개 PR (#144/#147/#150/#154) 이 머지됐던 사례. "staging 성공 ≠ 커밋 내용" (volt [#13](https://github.com/coseo12/volt/issues/13)) 의 파이프라인 버전
 
+### 다운스트림 실측이 최종 가드 — upstream 3중 방어 blindspot
+upstream 의 **단위 테스트 / reviewer / cross-validate** 가 모두 통과해도, 다운스트림 **실 사용 환경** 에서만 드러나는 결함이 있다. upstream 자기 저장소의 테스트 환경이 다운스트림의 환경 매트릭스 전체를 원리적으로 커버할 수 없기 때문. "CI 통과 ≠ 테스트 실행" 의 확장: 심지어 테스트가 돌아도 **upstream 환경 = 다운스트림 환경**이 아니라서 결함 잔존.
+
+- **upstream 이 자기 저장소에서 감지 불가능한 blindspot 존재를 인정**. 3중 방어 (자동 테스트 + reviewer + cross-validate) 의 한계를 받아들이고, release 를 막는 대신 **다운스트림 → upstream 역방향 피드백 속도** 를 최대화
+- **upstream 사전 방어 3가지**:
+  1. **긴급 PATCH 파이프라인 템플릿** — CHANGELOG 엔트리 템플릿 / hotfix 브랜치 규약 / 태그 자동화 (release PR 형식 표준화)
+  2. **대표 다운스트림 명시** — "이 버전을 먼저 적용하는 다운스트림: X / Y" 문서화로 감지 속도 예측 가능
+  3. **회귀 가드 소급 승격** — 다운스트림에서 감지된 결함을 재현하는 테스트 fixture 를 upstream 에 통합. volt [#56](https://github.com/coseo12/volt/issues/56) "암묵 관례의 구조적 승격" 과 동일 패턴
+- **적용 가능 시나리오**: Rust crate ↔ downstream Cargo 빌드 / npm 패키지 ↔ downstream React 앱 / Docker 이미지 ↔ Kubernetes Pod / DB migration ↔ ETL 파이프라인 / LLM 모델 ↔ downstream agent 행동
+- 공통 조건: upstream 자기 테스트가 다운스트림 환경 매트릭스 전체를 커버 못함 + 다운스트림이 자동 CI/관찰 인프라 보유 + 양방향 보고 채널 존재
+- 근거: volt [#60](https://github.com/coseo12/volt/issues/60) — harness v2.28.2 pnpm `--if-present` 버그 (volt [#59](https://github.com/coseo12/volt/issues/59)) 가 upstream 3중 방어 모두 통과 후 다운스트림 astro-simulator#270 이 v2.28.2 적용 직후 CI red 로 최초 감지 → 19분 내 v2.29.1 복구. harness 저장소 자체는 npm 으로만 테스트하여 pnpm 경로가 자기 CI 에서 실행조차 안 된 구조적 한계
+
 ### workflow_dispatch 2단계 함정 (GitHub Actions)
 `workflow_dispatch` 트리거를 쓰는 workflow 는 default branch (보통 `main`) 반영 후에만 UI/CLI 에서 discover 된다. feature/develop 에만 머지된 상태에서는 `gh workflow run ... --ref develop` 이 `HTTP 404: workflow not found on the default branch` 로 실패한다. 추가로 workflow 가 PR 을 자동 생성하려 하면 저장소 Settings 의 `can_approve_pull_request_reviews` 가 기본 OFF 라서 `##[error]GitHub Actions is not permitted to create or approve pull requests` 로 거부된다.
 
@@ -381,11 +393,13 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
   | 4 | **순수주의 원칙 적용** | 원칙 (예: "Fact-First") 을 디폴트 동작으로 문구 그대로 구현 + 기존 UX 관습·접근성 고려 미흡 | "원칙 문구 그대로 적용하면 첫 사용자 인상/학습 곡선이 깨지는가?" "원칙 경로가 '언제든 1-클릭 거리' 인가?" | 디폴트는 **관습·교육적 기본값** 유지 + 원칙 경로를 **접근성 보장** 형태로 제공 (문구 변경 금지, 운영 해석으로 흡수) |
 
   체크리스트 통과 못 한 항목이 있으면 해당 부분을 cross-validate 호출 프롬프트에 **명시적 질문으로 삽입** ("B2 결합 감지 요청" 등) — Gemini 가 그 축에 집중하도록 유도.
-- **외부 툴 동작 주장은 실측 필수** — Gemini 의 개선 제안이 **외부 툴 / CI / 프레임워크 기본값의 세부 동작** 에 관한 주장일 때는 **실측 없이 수용 금지**. "툴이 알아서 처리한다" 류 추측성 서술은 특히 위험. 수용 전 4단계:
-  1. **공식 문서 확인** — Gemini 주장이 공식 문서에 명시되어 있는가? 추측성 기술("자동 skip", "알아서 건너뜀") 은 가드 필요
+- **외부 툴 동작 주장은 실측 필수** — Gemini 의 개선 제안이 **외부 툴 / CI / 프레임워크 기본값의 세부 동작** 에 관한 주장일 때는 **실측 없이 수용 금지**. "툴이 알아서 처리한다" 류 추측성 서술은 특히 위험. 수용 전 4단계 + Claude 자신이 **새 도구 flag 를 도입** 할 때도 동일 가드 적용 (셀프 위반 방지):
+  1. **공식 문서 확인** — 주장이 공식 문서 / CLI `--help` 출력 / 공식 README 에 명시되어 있는가? 추측성 기술("자동 skip", "알아서 건너뜀") 은 가드 필요. **LLM training data cache 의존 금지** — 버전 업데이트로 flag 동작이 바뀌었을 수 있음
   2. **CI / 샌드박스 실측** — 반영 전 별도 커밋 / draft PR 로 동작 확인
   3. **revert 가능한 단위 커밋** — 실측 반증 시 롤백이 용이하도록 작은 단위 커밋
   4. **오탐 근거 박제** — revert 시 커밋 메시지 + 파일 주석 + CHANGELOG Notes 3곳에 이유 명시 (미래 기여자의 재발굴 방지)
+  5. **같은 생태계 내 도구 간 flag 호환 가정 금지** (volt [#59](https://github.com/coseo12/volt/issues/59) 가드 셀프 위반 근거) — npm / pnpm / yarn / bun 는 모두 Node.js 생태계여도 CLI 는 **독립 설계**. 한 도구에서 동작하는 flag 가 다른 도구에서 같게 작동한다고 **복사 금지**. 각 도구 개별 검증 필수
+  6. **cross-validate 호출 프롬프트에 명시 질문 삽입** — 본 PR 이 새로 도입한 외부 도구 (CLI / 프레임워크 / 라이브러리) 가 있으면 프롬프트에 "**본 PR 이 도입한 `<도구>` 의 어떤 flag 를 사용하는가? 각 flag 가 공식 문서에 명시되어 있는가? 같은 생태계 내 다른 도구의 flag 를 복사한 것은 아닌가?**" 질문을 명시적으로 삽입. Gemini 의 "침묵" 이 곧 "안전" 이 아니다 — 주장하지 않으면 가드 미발동 (volt #59 관찰)
 - **검증 필수도 매트릭스**:
 
   | 주장 카테고리 | 검증 필수도 | 검증 방법 |
