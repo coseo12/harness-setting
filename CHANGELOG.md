@@ -7,6 +7,25 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.31.0] — 2026-04-20
+
+[#191](https://github.com/coseo12/harness-setting/pull/191) — volt [#62](https://github.com/coseo12/volt/issues/62) [#63](https://github.com/coseo12/volt/issues/63) 반영. 세션 의도 이탈 감지 + harness update 부합성 체크리스트 (MINOR). volt [#64](https://github.com/coseo12/volt/issues/64) 는 [harness#190](https://github.com/coseo12/harness-setting/issues/190) 실행 이슈로 분리.
+
+### Behavior Changes
+
+- **메인 오케스트레이터 세션 의도 이탈 감지 규약 신설** — CLAUDE.md `## 원칙` 에 '세션 의도 이탈 감지' 섹션. 이탈 시그널 4개 (upstream PR 3+ / 릴리스 태그 역전 / 세션 시간 × 2 보조 / 관심사 4+ 트랙) 중 **2개 이상 충족 시 사용자에게 '원 의도 복귀 vs 현 작업 완결' 명시 선택 요청** 의무. 각 시그널에 `gh` / `git` 런타임 측정 명령 박제. 예외 조건은 **세션 시작 시점 이전 사용자 선언 한정** + **사후 재분류 금지** (escape hatch 차단, reviewer #191 권고 #2). 근거: volt #63 — 2026-04-20 세션 실측 (P10-A 의도가 harness 3 릴리스로 80% 흡수)
+- **`docs/harness-update-compat-checklist.md` 신규 박제** — `harness update` 다운스트림 적용 전 4단계 사전 체크 (모노레포 재귀 호출 / 빌드 산출물 exports / 특수 빌드 도구 / 기존 전용 워크플로) + 4개 옵션 비교표 (A scripts.test 제거 / B no-op shim / C divergent / D upstream 확장). 판정 애매 시 A 추천. astro-simulator PR #270 6단계 실측 trace 수록. CLAUDE.md 실전 교훈에 참조 링크 박제. 근거: volt #62
+- **외부 툴 가드 "Claude 도입 / Gemini 제안 공통" 표제 유지** (v2.30.0 이어) + 본 릴리스에서 체크리스트 문서로 확장
+
+### Notes
+
+- **메타 소급 투명성** — 본 세션 자체가 volt #63 이탈 시그널 4/4 충족 (오늘 11번째 릴리스). 박제 당시에는 '원 의도 = 인프라 운영' 예외 조건으로 시그널 무시했으나, reviewer #191 권고 #2 가 이 escape hatch 를 정확히 지적 → '세션 시작 시점 이전 선언 한정 + 사후 재분류 금지' 규약 추가로 본 규약 자체의 실효성 강화. 자기 비판적 박제 완료
+- **Reviewer 권고 5건 전부 반영** — escape hatch 차단 / 런타임 측정 명령 박제 / 체크리스트 링크 경로 / Python/Rust drift 경고 / 실측 사례 주장 정정
+- **cross-validate 정상 경로 복구** — v2.30.0 (PR #185) 에서 Gemini capacity 소진 폴백 → 본 릴리스 (PR #191) 에서 정상 응답. [harness#189](https://github.com/coseo12/harness-setting/issues/189) reminder 이슈는 PR #185 대상이라 별도 재검증 대기
+- **Reviewer SSoT `bg_process_handoff` 5번째 variance** — PR #191 에서 `{}` 반환. 누적 5회 (#167 누락 / #170 null / #178 누락 / #185 `{}` / #191 `{}`). [harness#184](https://github.com/coseo12/harness-setting/issues/184) (런타임 SSoT 검증) 긴급도 누적 임계 도달
+- **오늘 2026-04-20 11번째 릴리스** — v2.24.0 → ... → v2.30.0 → v2.31.0. 본 릴리스로 볼트 캡처 6건 (#56~#61) + 신규 3건 (#62~#64) 중 8건 harness 반영 완료, 1건 (#64) harness#190 실행 이슈로 분리. 볼트-반영 왕복이 세션 내 완결된 최초 사례이자 volt #63 관찰의 원천
+
+
 ## [2.30.0] — 2026-04-20
 
 [#185](https://github.com/coseo12/harness-setting/pull/185) — volt #59 #60 반영. cross-validate 가드 2차 방어선 + 다운스트림 실측 최종 가드 (MINOR).

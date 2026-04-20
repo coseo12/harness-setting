@@ -1,6 +1,6 @@
 {
   "name": "@seo/harness-setting",
-  "version": "2.30.0",
+  "version": "2.31.0",
   "description": "Claude Code 워크플로우 템플릿 — 1인 개발자-AI 페어 프로그래밍 최적화",
   "bin": {
     "harness": "./bin/harness.js"
