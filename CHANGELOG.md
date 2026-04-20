@@ -7,6 +7,26 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.28.2] — 2026-04-20
+
+[#175](https://github.com/coseo12/harness-setting/issues/175) — CI 템플릿 (`.github/workflows/ci.yml`) 의 `detect-and-test` job 에 pnpm 프로젝트 지원 추가 (PATCH — bug fix).
+
+### Behavior Changes
+
+- **pnpm 프로젝트**: 이전에 `sh: 1: pnpm: not found` 로 실패하던 `detect-and-test` 가 정상 동작. `pnpm/action-setup@v4` + `setup-node cache='pnpm'` + `pnpm install --frozen-lockfile` + `pnpm test --if-present` 경로 신규
+- **npm 프로젝트**: 영향 없음. 기존 npm 경로에 `hashFiles('pnpm-lock.yaml') == ''` 배타 조건만 추가 (lock 파일 우선순위 명시)
+- **lock 없는 Node 프로젝트**: 영향 없음
+
+### Fixed
+
+- **CI `detect-and-test` pnpm 지원** — `.github/workflows/ci.yml` 에 pnpm-lock.yaml 감지 분기 추가. 패키지 매니저 우선순위 명시: `pnpm-lock.yaml > package-lock.json > (lock 없음, npm fallback)`. pnpm 과 npm step 은 `hashFiles` 조건으로 **배타 실행** (lock 충돌 시 pnpm 우선)
+- v2.15.0 (#153) 에서 `detect-and-test` 가 "감지만" 에서 "실제 실행" 으로 확장됐을 때 누락된 pnpm 경로 복구. 다운스트림 관찰: astro-simulator#270 에서 v2.15.0 → v2.28.1 업데이트 시 CI red
+
+### Notes
+
+- pnpm 버전은 `package.json::packageManager` 필드에서 자동 감지 (pnpm/action-setup@v4 기본 동작). `packageManager` 필드 부재 시 action 이 명시 에러 → 다운스트림에 명확한 시그널
+- PATCH 분류 근거: 기존 npm 프로젝트 행동 불변 + pnpm 프로젝트는 "실패 → 복구" 범주 (다른 결과가 아닌 원래 의도대로 동작). `### Behavior Changes` 는 frozen 파일 변경 원칙(CLAUDE.md `### 릴리스`) 에 따라 명시
+
 ## [2.28.1] — 2026-04-20
 
 v2.26.0 ~ v2.28.0 의 `package.json` `version` bump 누락 복구 + 회귀 가드 도입 (PATCH).
