@@ -7,6 +7,22 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.27.0] — 2026-04-20
+
+[#167](https://github.com/coseo12/harness-setting/pull/167) — volt 이슈 2건 (#53 #54) 반영. 스프린트 계약 측정법 4단계 확장 + 장기 테스트 이원화 규범 (MINOR).
+
+### Behavior Changes
+
+- **측정법 검증 우선 원칙 4단계 확장** — 기존 3단계 ((0) 측정 방법 검증 → (1) 식/구현 수정 → (2) 알고리즘 교체) 에 **(3) 데이터 신뢰성 재확인** 추가. (0)~(2) "도구 측" (식·샘플링·적분기·알고리즘) 전수 수행 + 측정 도구가 synthetic/이상 fixture 에서 예상 동작 확인된 후에만 발동. fixture 출처 재확인 (발행 주체·epoch·좌표계·단위) → 이론 평형/경계값 독립 계산 → 데이터 이슈 판정 시 현 스프린트 범위 밖 후속 이슈로 분리 + 세 위치 박제. 의사결정 질문 2개 (도구 정상 확인 / fixture 신뢰성 확인). 범용 적용 대상: 물리 시뮬 / ML 평가 / 성능 벤치 / API 계약 테스트. 근거: volt [#53](https://github.com/coseo12/volt/issues/53) — astro-simulator P9 D5-b Laplace resonance 측정에서 `solar-system.json` Galilean 4체 `meanLongitudeDeg` JPL epoch 불일치가 초기 Laplace 인자 φ₀=218° (이론 평형 180° 대비 38° 벗어남 → circulation 영역) 원인이던 사례
+- **장기 테스트 이원화 규범 추가** — `.claude/skills/run-tests/SKILL.md` 에 "장기 테스트 이원화 (volt #54)" 섹션 신규. 장기 적분 / E2E / 외부 리소스 / stress 테스트를 `#[ignore]` 류 어트리뷰트로 분리 + CI `test-fast` / `test-long-integration` 독립 job (`continue-on-error: true`) 구성. 언어별 마킹 매핑 (Rust `#[ignore = "..."]` / Jest·Vitest `*.slow.test.ts` suffix + config 분리 또는 `describe.skip` + `RUN_SLOW` env / pytest `@pytest.mark.slow` / Go `//go:build slow` / JUnit `@Tag("slow")`). GitHub Actions `actions/cache@v4` 는 동일 key 시 job 간 공유가 기본이므로 **명시적 접두사 분리 필수** (`cargo-fast-*` / `cargo-long-*`). 재발 감지 신호 4개 + 남용 경계 포함. 근거: volt [#54](https://github.com/coseo12/volt/issues/54) — astro-simulator P9 M4 에서 30분+ 교착 → 9.27s (200× 단축, 5분 목표 32× 여유)
+
+### Notes
+
+- **cross-validate dogfooding 실증** — PR [#167](https://github.com/coseo12/harness-setting/pull/167) 에서 Gemini 가 `.claude/skills/run-tests/SKILL.md` 의 JUnit 행이 `@scripts/setup-stage-labels.sh("slow")` 로 "잘못 기재됨" 이라고 주장. 실측 확인 결과 실제 파일은 `@Tag("slow")` 로 올바름 — **Gemini 환각 오탐**. v2.26.0 에서 박제한 [volt #51](https://github.com/coseo12/volt/issues/51) "외부 툴 동작 주장은 실측 필수" + "diff-only 리뷰 한계" 가드의 **첫 실측 성공 사례**. 맹목 수용 회피 + 실측 기각 근거 PR 코멘트 박제. 정상 경로 + 오탐 기각 사례 모두 포함.
+- **Reviewer SSoT 2필드 누락 관찰** — Reviewer sub-agent 가 반환한 마무리 체크리스트 JSON 에 `spawned_bg_pids` / `bg_process_handoff` 2필드 생략. `.claude/agents/reviewer.md` 파일 자체에는 9필드 전부 기재되어 있고 SSoT 검증 스크립트 45/45 통과. sub-agent 가 system prompt 의 최신 업데이트를 안정적으로 반영하지 못한 구조적 한계 — v2.26.0 CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료` 에서 "메인 오케스트레이터가 감점 처리" 로 규약한 패턴의 첫 실측 재현. 동일 패턴 3회 이상 관찰되면 SSoT 강제 방법 연구 후속 이슈로 분리 검토 (compile 규약 기준).
+- **Reviewer 권고 3건 전부 반영** — (#1) Jest/Vitest `test.todo` 가 "구현 대기" 표식이라 "장기 테스트 분리" 의미와 부정합 → `*.slow.test.ts` suffix + config 분리 / `RUN_SLOW` env 분기로 수정 / (#2) GitHub Actions 캐시 동일 key 공유가 기본이라 "독립 캐시 키" 가 암묵적 주장 — yaml 예시에 `cargo-fast-*` / `cargo-long-*` 접두사 명시 + "기본 동작 아님 — 명시적 설정 필수" 문구 보강 / (#3) CLAUDE.md 항목 10 의 volt #32 + #53 근거를 한 줄 250+ 자 → 중첩 불릿 2개로 분리하여 가독성 개선.
+- v2.26.0 이후 **1시간 내 연속 릴리스** — Phase 분리 릴리스 리듬 (volt [#30](https://github.com/coseo12/volt/issues/30)) 조건 (backward-compat + 완결 Behavior Change 집합 + 사용자 동의) 부합. v2.26.0 과 v2.27.0 은 서로 독립 관찰 가능 (측정법 확장은 스프린트 계약 독립 / 장기 테스트 분리는 run-tests 스킬 독립).
+
 ## [2.26.0] — 2026-04-20
 
 [#164](https://github.com/coseo12/harness-setting/pull/164) — volt 이슈 8건 (#43 #45 #46 #47 #48 #49 #50 #51 #52) 반영. cross-validate 외부 툴 가드 + sub-agent SSoT 2필드 확장 + record-adr Concrete Prediction + run-tests Flaky 진단 루트 (MINOR).
