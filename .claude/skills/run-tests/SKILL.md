@@ -186,6 +186,64 @@ kill $DEV_PID
 - 스크린샷 (모바일 + 데스크톱)
 - 핵심 사용자 흐름 성공 여부
 
+## 장기 테스트 이원화 (volt #54) — 일상 경로 5분 내 완주
+
+장기 적분 / E2E / 외부 리소스 호출 / stress 테스트가 일상 테스트 경로에 혼재하면 TDD 루프가 교착된다. **장기 테스트는 `#[ignore]` 류 어트리뷰트로 분리 + CI 에 독립 job (`continue-on-error: true`) 구성**. 일상 경로 5분 내 완주를 보장하는 규범.
+
+### 마킹 규약 (언어별)
+
+| 언어/프레임워크 | 마킹 | CI 실행 |
+|---|---|---|
+| Rust | `#[ignore = "<사유>; run with --include-ignored in CI"]` | `cargo test --lib -- --include-ignored` |
+| Jest/Vitest | `test.todo` / `describe.skip` + tag 주석 | `vitest --grep "<tag>"` 또는 `RUN_SLOW=1 jest` |
+| pytest | `@pytest.mark.slow` (conftest 에서 `--run-slow` 훅) | `pytest --run-slow` |
+| Go | `t.Skip(...)` + build tag `//go:build slow` | `go test -tags slow ./...` |
+| JUnit (Java) | `@Tag("slow")` + Maven `-DexcludedGroups=slow` | Maven profile 전환 |
+
+**공통 원칙**:
+- 사유 문자열 필수 — 재현 조건 박제 (예: `"long-integration"` / `"e2e"` / `"requires-network"`)
+- 규약 문구 통일 — `grep` 검색 용이. 프로젝트 상단 주석에 사용 태그 목록 명시
+
+### CI 워크플로 이원화 패턴
+
+```yaml
+jobs:
+  test-fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --release --lib   # 또는 npm test / pytest 등
+    # 실패 시 PR 차단
+
+  test-long-integration:
+    runs-on: ubuntu-latest
+    continue-on-error: true    # 빠른 경로 실패 시만 머지 차단
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --release --lib -- --include-ignored
+    # 실패는 nightly 알림 / 대시보드만
+```
+
+**핵심 제약**: 두 job 이 **독립 캐시 키** 사용. 빠른 경로 재실행이 장기 경로 cache 를 무효화하지 않도록.
+
+### 재발 감지 신호 (정기 감사 항목)
+
+- 로컬 일상 테스트 경로가 이전 대비 **5배+ 소요**
+- CI 빠른 경로 캐시 무효화 빈도 증가
+- 개발자가 전체 테스트 없이 **개별 테스트만 실행하는 습관** 형성 (빠른 경로 신뢰 저하 신호)
+- Rust 의 경우 `target/debug/` 디렉토리 크기 폭증 (동시 test binary 누적 — volt #52 좀비 누적과 연쇄)
+
+### 주의사항
+
+- **`#[ignore]` 남용 경계** — "불편한 테스트" 를 숨기는 용도로 쓰면 장기 경로가 커버리지 블랙홀이 된다. 사유 문자열 + CI 실측 시간 기록 필수
+- **CI 장기 경로 모니터링** — `continue-on-error: true` 는 빠른 경로 **보호** 일 뿐. 장기 실패를 오래 방치하지 않도록 dashboard / nightly 알림 필수
+- **남용 방지 regression 가드**: 전체 테스트 개수 대비 ignore 비율이 일정 임계값 (예: 20%) 을 넘으면 재평가. ignore 목록을 주기적으로 훑어 "이제 빠른 경로로 돌려도 되는가" 재분류
+- **cross-compile 경로**: `#[cfg(not(target_arch = "wasm32"))]` 등과 조합 시 CI matrix 확장 영향 확인
+
+### 실측 사례
+
+volt [#54](https://github.com/coseo12/volt/issues/54) — astro-simulator P9 M4: 6건 `#[ignore]` 적용으로 **30분+ 교착 → 9.27s (200× 단축, 5분 목표의 32× 여유)**. CI `--include-ignored` 경로는 216.9s (3분 36초) 로 독립 실행. 대상: `mercury_perihelion_precession_eih` / `yoshida_mercury_perihelion_regression` / `earth_perihelion_eih_within_5_percent` 등 100+ 년 적분 테스트.
+
 ## Flaky 진단 루트 (volt #50) — concurrency=1 누르기 금지
 
 병렬 테스트 flaky 발견 시 `--test-concurrency=1` / `--jobs 1` / CI retry 플래그로 **누르는 것은 증상 마스킹**. 근본 원인은 보통 공유 리소스 / 카테고리 오분류 / I/O race 이고, 임시 조치는 (1) 실행 시간 수배 증가 (2) 근본 원인 은폐 (3) 다른 flaky 감지 능력 저하 세 단점. **실패 시 stderr 에서 영향받은 객체를 특정** 하여 원인 추적으로 바로 연결한다.

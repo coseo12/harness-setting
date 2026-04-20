@@ -129,7 +129,13 @@ AI는 자기 작업을 과도하게 긍정 평가하는 경향이 있으므로, 
    - **CHANGELOG Notes** — 미래 관찰자용 기록 (재발견 시 "누락"으로 오인 방지)
 8. 반대 함정: "완료 기준에 있으니 무조건 테스트 작성" (의존성 복잡도 무시한 단발성 부채) vs "ROI 낮다고 조용히 스킵" (재조정 박제 누락). 둘 다 금지.
 9. 근거: volt [#31](https://github.com/coseo12/volt/issues/31) — harness #92 Phase 2 merge 스킵 테스트에서 git fixture 구축 비용이 검증 대상 1줄 대비 역전되어 주석 계약 + 인접 속성 테스트로 대체한 사례
-10. **수치 DoD 미달 시 측정 방법 검증 우선** — DoD 수치가 미달이면 **(0) 측정 방법 검증 → (1) 식/구현 수정 → (2) 알고리즘 교체** 순으로 접근한다. 샘플링/윈도우/노이즈 특성이 미달의 진짜 원인인 경우가 잦다. 특히 신호가 약할 때(측정 대상 ≪ baseline) noise 가 이론값 방향으로 우연히 pull 되어 선행 Phase 의 "우연 성공" 기록으로 남아 있을 수 있다. 측정법 전환 전 식부터 수정하면 이미 올바른 식을 "틀렸다" 고 오진하는 역방향 손실이 발생한다. 근거: volt [#32](https://github.com/coseo12/volt/issues/32) — 지구 GR 세차 측정에서 EIH 식 structural bias 로 오진한 현상이 실제로는 `min_r` 샘플링 노이즈였고, LRL 벡터 + Newton baseline subtraction 측정법 전환으로 드러남.
+10. **수치 DoD 미달 시 측정 방법 검증 우선** — DoD 수치가 미달이면 **(0) 측정 방법 검증 → (1) 식/구현 수정 → (2) 알고리즘 교체 → (3) 데이터 신뢰성 재확인** 4단계로 접근한다. 샘플링/윈도우/노이즈 특성이 미달의 진짜 원인인 경우가 잦다. 특히 신호가 약할 때(측정 대상 ≪ baseline) noise 가 이론값 방향으로 우연히 pull 되어 선행 Phase 의 "우연 성공" 기록으로 남아 있을 수 있다. 측정법 전환 전 식부터 수정하면 이미 올바른 식을 "틀렸다" 고 오진하는 역방향 손실이 발생한다.
+   - **(0)~(2) 는 "도구 측" (식·샘플링·적분기·알고리즘) 검증** — 측정 도구 자체의 결함을 배제
+   - **(3) 데이터 신뢰성 재확인은 "입력 측" 검증** — fixture / 상수 / 외부 참조 데이터의 epoch·좌표계·단위·발행 주체를 원본 대조. (0)~(2) 전수 수행 + 측정 도구가 synthetic/이상 fixture 에서 예상 동작 확인된 후에만 발동 (조기 실행 금지 — 도구 결함을 데이터 탓으로 돌리는 역방향 오진)
+   - **(3) 절차**: ① fixture 출처 재확인 (발행 주체·epoch·좌표계·단위) → ② 이론 평형/경계값 독립 계산으로 fixture 값이 정상 영역 내에 있는지 검증 → ③ 데이터 이슈로 판정 시 현 스프린트 범위 밖 후속 이슈로 분리 + 코드 assertion 제거 + `#[ignore]` 유지 + **세 위치 박제** (코드 주석 / PR 본문 / CHANGELOG — 항목 7 참조)
+   - **의사결정 질문 2개**: "측정 도구가 synthetic/이상 fixture 에서 예상 동작하는가?" (도구 정상 확인) + "fixture 값이 측정 대상의 이론 평형/경계 내에 있는가?" (데이터 신뢰성 확인)
+   - **범용 적용**: 물리 시뮬레이터 (fixture epoch / 좌표계) / ML 모델 평가 (데이터셋 label noise, sampling bias) / 성능 벤치마크 (benchmark fixture vs 실제 production) / API 계약 테스트 (mock/stub vs 실제 endpoint 응답)
+   - 근거: volt [#32](https://github.com/coseo12/volt/issues/32) — 지구 GR 세차 측정에서 EIH 식 structural bias 로 오진한 현상이 실제로는 `min_r` 샘플링 노이즈였고, LRL 벡터 + Newton baseline subtraction 측정법 전환으로 드러남 (3단계 원칙 도출). volt [#53](https://github.com/coseo12/volt/issues/53) — astro-simulator P9 D5-b Laplace resonance 측정에서 (0)~(2) 전수 후에도 미달. 원인이 `solar-system.json` Galilean 4체 `meanLongitudeDeg` JPL 원본의 epoch 불일치로 **초기 Laplace 인자 φ₀=218° (이론 평형 180° 대비 38° 벗어남 → circulation 영역)** 임이 드러남. 도구·적분기·식 모두 정상 + 입력 데이터 측 결함으로 4단계 확장 도출
 
 ### 마일스톤 회고 루틴
 
