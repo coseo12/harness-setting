@@ -7,6 +7,29 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.28.1] — 2026-04-20
+
+v2.26.0 ~ v2.28.0 의 `package.json` `version` bump 누락 복구 + 회귀 가드 도입 (PATCH).
+
+### Behavior Changes
+
+None — metadata 전용 복구. `.claude/` / `CLAUDE.md` / 스킬·에이전트 **콘텐츠 변경 없음**. 에이전트 행동 불변.
+
+### Fixed
+
+- **`package.json::version` 을 `2.25.0` → `2.28.1`** — v2.26.0 / v2.27.0 / v2.28.0 의 chore release 3 PR 이 CHANGELOG 만 업데이트하고 `package.json::version` 을 bump 하지 않은 누락 복구. 다운스트림이 `harness update` 실행 시 `package.json::version` 기준으로 upstream 버전을 판정하는 경우 v2.25.0 에 고정돼 v2.26.0~v2.28.0 의 Behavior Changes 가 metadata 상으로는 "2.25.0" 으로 인식되던 불일치 해소. 실제 파일 해시는 최신이었으므로 다운스트림 콘텐츠 drift 는 없었음
+
+### Added
+
+- **`scripts/verify-release-version-bump.sh`** — CHANGELOG `## [X.Y.Z]` 최신 엔트리와 `package.json::version` 일치 여부 검증. 불일치 시 stderr 에 상세 불일치 보고 + exit 1. `.github/workflows/ci.yml` `detect-and-test` 에 통합되어 PR 머지 전 자동 차단. 본 릴리스 누락 사례 같은 drift 를 구조적으로 방지
+- CI `detect-and-test` 에 "release version bump 가드" step 신규 추가 (기존 agent SSoT drift 가드와 동일 패턴)
+
+### Notes
+
+- 이번 누락의 직접 원인은 세션 3연속 릴리스 (v2.26.0/v2.27.0/v2.28.0) 에서 chore release PR 워크플로 체크리스트에 `package.json::version` bump 가 명시되지 않은 암묵적 관례. 과거 릴리스 (v2.22.1~v2.25.0) 에서는 실제로 bump 되었으나 절차 문서화 부재. 본 PATCH 의 `verify-release-version-bump.sh` 가드가 암묵 관례를 **구조적 검증** 으로 승격
+- 본 PATCH 는 `### Behavior Changes: None` 이지만 `.claude/` frozen 파일은 **건드리지 않음** (`package.json` + `CHANGELOG.md` + `scripts/` + `.github/` 만 변경). 다운스트림 `harness update` 는 `package.json::version` 필드만 갱신 받고 에이전트·스킬 콘텐츠는 이미 v2.28.0 수준으로 최신 상태
+- volt [#13](https://github.com/coseo12/couple-of-dots/issues/13) "커밋 성공 ≠ 의도한 변경 커밋됨" 의 릴리스 파이프라인 버전 — metadata 누락도 "조용한 실패" 의 한 형태. 향후 동일 패턴 방지 위해 CI 가드 도입
+
 ## [2.28.0] — 2026-04-20
 
 [#170](https://github.com/coseo12/harness-setting/pull/170) — volt [#55](https://github.com/coseo12/volt/issues/55) "원칙 선언 직후 cross-validate — Claude 편향 4종 + ADR 재도입 트리거" 반영. 단일 이슈 4 서브항목 (MINOR).
