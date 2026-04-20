@@ -45,7 +45,12 @@ jobs:
 
       - name: pnpm test
         if: hashFiles('pnpm-lock.yaml') != ''
-        run: pnpm test --if-present
+        # `pnpm run --if-present <script>` 는 pnpm 8+ 공식 지원. `--if-present` 를
+        # pnpm 의 플래그로 인식하여 script args 로 forward 하지 않는다.
+        # 반대로 `pnpm test --if-present` 는 `--if-present` 가 script args 로 전달되어
+        # 모노레포의 `pnpm -r test --if-present` 형태가 되고, vitest/jest 등 런너가
+        # 알 수 없는 옵션으로 실패 (#181).
+        run: pnpm run --if-present test
 
       # --- yarn 경로 (pnpm-lock 없을 때만) ---
       # yarn berry (v2+) vs classic (v1) 감지:

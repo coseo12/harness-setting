@@ -7,6 +7,25 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.29.1] — 2026-04-20
+
+[#181](https://github.com/coseo12/harness-setting/issues/181) — CI pnpm 경로 `--if-present` 인자 forwarding 버그 수정 (PATCH — bug fix).
+
+### Behavior Changes
+
+- **pnpm 프로젝트**: `pnpm test --if-present` 에서 `--if-present` 가 script args 로 forward 되던 버그 수정. 모노레포에서 `pnpm -r test --if-present` 형태가 되어 vitest/jest 등 런너에서 "Unknown option `--ifPresent`" 으로 실패하던 현상 해소. 이제 `pnpm run --if-present test` (pnpm 8+ 공식 지원) 로 pnpm 이 `--if-present` 를 자체 플래그로 인식
+- **npm / yarn / lock 없는 프로젝트**: 영향 없음
+
+### Fixed
+
+- **`.github/workflows/ci.yml` `pnpm test` step** — `pnpm test --if-present` → `pnpm run --if-present test`. v2.28.2 (#176) 에서 pnpm 경로 도입 시 npm `--if-present` 패턴을 그대로 이식한 것이 원인. pnpm 은 npm 과 달리 `--if-present` 를 네이티브로 인식하지 않음
+
+### Notes
+
+- 다운스트림 관찰: [astro-simulator#270](https://github.com/coseo12/astro-simulator/pull/270) v2.28.2 적용 시 `detect-and-test` red. 본 릴리스 적용으로 green
+- yarn 경로는 `yarn test` + `node -e` scripts.test 존재 체크로 우회 구현되어 있어 동일 버그 없음 (#178). npm 은 native `--if-present` 지원으로 정상
+- 기술부채 관점: yarn 경로의 `node -e` 우회도 추후 `yarn run --if-present test` (yarn 1.x/2+ 모두 지원) 로 단순화 가능하나 본 PATCH 범위 외 — 동작은 정상이므로 후속 리팩토링 후보
+
 ## [2.29.0] — 2026-04-20
 
 [#178](https://github.com/coseo12/harness-setting/pull/178) — CI `detect-and-test` 다언어 실 실행 복구 + Node.js yarn 지원 (MINOR).
