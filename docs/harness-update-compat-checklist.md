@@ -1,5 +1,7 @@
 # harness update 부합성 사전 체크리스트
 
+> **본 체크리스트의 목표**: `harness update` 이후 발생할 수 있는 예상치 못한 CI 실패와 그로 인한 반복적인 push-fail-fix 디버깅 시간을 **사전 진단** 으로 방지한다.
+>
 > harness-setting 을 다운스트림 프로젝트에 `harness update --check` / `--apply-all-safe` 적용 **전** 에 수행하는 구조 부합성 점검. v2.15.0 에서 `detect-and-test` 가 "감지만" 에서 "실제 실행" 으로 확장된 이후 다운스트림 특수 구조 (pnpm 모노레포 / WASM / dist-based exports 등) 와 부합하지 않아 push-fail-fix 루프에 빠지는 패턴이 반복 관찰됨 (volt [#62](https://github.com/coseo12/volt/issues/62) / [#64](https://github.com/coseo12/volt/issues/64)). 본 체크리스트로 사전 이탈 감지.
 
 ## 언제 수행하는가
