@@ -7,6 +7,29 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.23.0] — 2026-04-20
+
+[#145](https://github.com/coseo12/harness-setting/issues/145) — 공통 JSON 스키마 (SSoT) drift 자동 가드 도입 (MINOR).
+
+### Behavior Changes
+
+- **`scripts/verify-agent-ssot.sh` 신규 검증 스크립트** — CLAUDE.md `### sub-agent 검증 완료 ≠ GitHub 박제 완료` 의 공통 코어 필드 7개 (`commit_sha` / `pr_url` / `pr_comment_url` / `labels_applied_or_transitioned` / `auto_close_issue_states` / `blocking_issues` / `non_blocking_suggestions`) 가 5개 에이전트 파일 (architect / developer / pm / qa / reviewer) 의 `## 마무리 체크리스트 JSON 반환` 섹션에 모두 존재하고 선언 순서를 유지하는지 검증. drift 시 누락 파일/필드/순서 이탈 지점을 stderr 에 보고하고 exit 1.
+- **CI `detect-and-test` 에 drift 가드 step 추가** — `.github/workflows/ci.yml` 이 `hashFiles('scripts/verify-agent-ssot.sh')` 조건으로 본 스크립트를 실행. PR 머지 전 자동 차단 게이트.
+- **PR 템플릿 체크박스 추가** — SSoT 코어 필드 수정 PR 시 5개 에이전트 파일 동기화 + 로컬 `verify-agent-ssot.sh` pass 확인 명시.
+- **CLAUDE.md SSoT 블록에 자동 가드 안내 1줄 박제** — 이 블록 수정 시 5개 에이전트 파일 동기화 의무 + 스크립트 경로 참조.
+
+### Added
+
+- **`test/agent-ssot-drift.test.js`** (node:test, 4 케이스, 총 52 → 56 tests):
+  1. 정상 상태 5 files × 7 fields = 35 checks pass
+  2. 필드 제거 → exit 1 + 누락 필드 이름 보고
+  3. 필드 순서 이탈 → exit 1 + 순서 키워드 보고
+  4. 에이전트 파일 누락 → exit 1 + 파일 없음 메시지
+
+### Notes
+
+- 착수 중 **CI `detect-and-test` 잡의 Node.js 브랜치가 실측 no-op** (범용 언어 detect 템플릿으로 `echo` 만 수행, `npm test` 미실행) 임을 발견. 본 릴리스에서 `scripts/verify-agent-ssot.sh` 전용 step 은 추가했으나 `npm test` 자체 복구는 **후속 이슈 [#153](https://github.com/coseo12/harness-setting/issues/153) 으로 분리** (medium 우선순위).
+
 ## [2.22.1] — 2026-04-20
 
 [#146](https://github.com/coseo12/harness-setting/issues/146) — 죽은 workflow `.github/workflows/agent-dispatch.yml` 제거 (PATCH).
