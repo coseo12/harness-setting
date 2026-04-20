@@ -7,6 +7,25 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.28.0] — 2026-04-20
+
+[#170](https://github.com/coseo12/harness-setting/pull/170) — volt [#55](https://github.com/coseo12/volt/issues/55) "원칙 선언 직후 cross-validate — Claude 편향 4종 + ADR 재도입 트리거" 반영. 단일 이슈 4 서브항목 (MINOR).
+
+### Behavior Changes
+
+- **Claude 자체 편향 4종 셀프 체크리스트** — CLAUDE.md `## 교차검증` 에 추가. cross-validate 호출 **전** Claude 자신의 산출물을 ① 낙관적 일정 산정 ② 결합 관계 간과 ③ 폐기 프레이밍 선호 ④ 순수주의 원칙 적용 4축에 대조하는 루틴 추가. 각 편향의 징후·사전 감지 질문·보정 방향 매트릭스로 구조화. 미통과 축은 cross-validate 호출 프롬프트에 **명시 질문으로 삽입** 하여 Gemini 가 그 축에 집중하도록 유도
+- **ADR `## 재도입 트리거` 섹션 신설 + 필수화** — record-adr 스킬 본문 템플릿에 신규 섹션. 상태별 3분기 운영: (1) Deprecated / Superseded / 폐기·보류 결정 → **필수** (2) 외부 조건부 경계 있는 Accepted (tier-A/B, 베타 범위 등) → **선택** (3) 외부 조건 없는 일반 Accepted → **작성 금지** (불필요 섹션 혼란 방지). 필수 내용: 재도입 검토 조건 (시간 함수 — 기술 성숙도 / 사용자 전환 / 외부 표준) + Graceful Degradation 경로 + 재도입 시 선행 작업. 금지 항목에 "폐기·보류 결정의 재도입 트리거 누락 금지" 추가
+- **cross-validate reminder 이슈 앵커 3 → 4 확장** — 기존 3개 (CRITICAL 개정 / ADR 신규·개정·폐기 / MINOR 이상 Behavior Changes) 에 **"프로젝트 원칙·철학 선언"** 추가. scope creep 차단을 위해 3개 식별 질문 (모두 yes 여야 해당): (a) 프로젝트 전반 의사결정의 tie-breaker 역할 (b) "~First / ~Second" 우선순위 슬로건 형태 (c) 기존 ADR 재평가/소급 적용 필요. ADR 보다 추상도 높은 상위 원칙에서도 단일 모델 편향 고위험 노출
+- **architect step 7 cross-validate 결과 편입 규약 4분류** — 기존 "박제" 만 요구하던 막연함을 4분류 (합의 / 이견 수용 / Claude 재분석 기각 / 고유 발견 후속 분리) + **Claude 편향 셀프 체크 통과 여부 1줄** 기록 의무로 고정. `### 교차검증 반영 사항` 서브섹션 이름 통일 (파일 내 3곳 drift 해소). CLAUDE.md `## 교차검증` 3단 프로토콜 ↔ architect step 7 4분류 양방향 참조 확보
+
+### Notes
+
+- **셀프 dogfooding 3중 중첩** — 본 PR 이 박제한 체계 3개 (편향 체크리스트 / 앵커 확장 / 결과 편입 4분류) 가 **모두 자기 자신에게 소급 적용**됨. cross-validate 호출 프롬프트에 `CROSS_VALIDATE_ANCHOR="MINOR-behavior-change+principle-declaration"` 로 신설 앵커 첫 시험. architect step 7 4분류를 PR 코멘트에 실시간 소급 기록. 편향 셀프 체크 소급 실행 (② 결합 관계 감지 → A/C 동일 섹션 2변경의 의미 독립성을 cross-validate 프롬프트에 명시 질문 삽입 → Gemini 합의 판정). volt [#42](https://github.com/coseo12/volt/issues/42) "박제 직후 cross-validate 셀프 적용" **8번째 연속 관찰** 갱신.
+- **Gemini cross-validate 고유 발견 1건 수용** — record-adr SKILL.md 금지 조항의 "CLAUDE.md 참조 없이 의도 파악 불가" 문맥 의존성 지적을 합의 수용. 스킬 문서는 자기 완결적이어야 한다는 원칙에 부합. 커밋 `97230d8f` 로 "기술 성숙도 / 사용자 전환 / 외부 표준은 모두 시간 함수" / "LLM/인간 공통 폐기 프레이밍 선호 편향에 대한 구조적 가드" 문장 내 요약 추가. Gemini 오탐 0건 (PR [#167](https://github.com/coseo12/harness-setting/pull/167) JUnit 환각과 다른 정상 경로).
+- **Reviewer 6 권고 대응**: 4건 반영 (#1 architect 섹션명 drift / #2 CLAUDE.md ↔ architect step 7 양방향 참조 / #3 앵커 4 식별 질문 3개 / #5 Accepted 분기 3분기) + 1건 기각 (#4 편향 표 확장 운영 규칙 — 명시 안 해도 기본값) + 1건 본 Notes 로 수용 (#6 셀프 dogfooding 박제).
+- **Reviewer SSoT 값 타입 관찰** — Reviewer 가 `spawned_bg_pids: null` + `bg_process_handoff: null` 반환. CLAUDE.md 규약 "누락 field 는 `null` 또는 빈 배열/객체로 명시" 에 합치 (스키마 위반 아님). 다만 `.claude/agents/reviewer.md` 설명 불릿 기본값은 `[]` + `"none"`. PR [#167](https://github.com/coseo12/harness-setting/pull/167) 에서 관찰한 "필드 자체 누락" 과 다른 형태 — **같은 sub-agent 가 같은 체크리스트 필드를 매번 다른 방식으로 반환하는 variance** 관찰. 3회 이상 관찰되면 SSoT 강제 방법 (예: type-level JSON schema validation) 연구 후속 이슈 분리 검토.
+- v2.26.0 → v2.27.0 → v2.28.0 **1시간 내 3연속 릴리스** — Phase 분리 리듬 (volt [#30](https://github.com/coseo12/volt/issues/30)) 유지. 각 릴리스는 독립 관찰 가능 (SSoT 2필드 / 측정법 4단계 / 편향 체크리스트+앵커 확장).
+
 ## [2.27.0] — 2026-04-20
 
 [#167](https://github.com/coseo12/harness-setting/pull/167) — volt 이슈 2건 (#53 #54) 반영. 스프린트 계약 측정법 4단계 확장 + 장기 테스트 이원화 규범 (MINOR).
