@@ -136,36 +136,50 @@ jobs:
           uv run --no-sync pytest || [ $? = 5 ]
 
       # --- poetry 경로 ---
+      # NOTE (reviewer #178 권고 반영):
+      # - setup-python cache 지시어를 설치 도구 정의 시점에 쓰면 첫 실행에서 캐시 스킵 경고 발생 (도구 미존재).
+      #   → `cache:` 는 도구 설치 후 별도 재설정이 이상적이나 action 한계상 생략하고 캐시 없이 진행
+      # - `python-version-file: 'pyproject.toml'` 는 `[project].requires-python` 또는 `[tool.poetry].python` 필드 부재 시 실패.
+      #   → python-version '3.x' 로 fallback (프로젝트가 특정 버전 고정 원하면 pyproject.toml 에 직접 명시)
+      # - `poetry install` 이 dev-dependencies 에 pytest 를 포함한다고 암묵 전제하면 `poetry run pytest` 가 command not found.
+      #   → `poetry install` 이후 `poetry run python -c 'import pytest'` 로 감지 실패 시 `poetry run pip install pytest` 로 명시 보강
       - name: Python setup (poetry)
         if: hashFiles('poetry.lock') != '' && hashFiles('uv.lock') == ''
         uses: actions/setup-python@v5
         with:
-          python-version-file: 'pyproject.toml'
-          cache: 'poetry'
+          python-version: '3.x'
 
       - name: poetry install + pytest
         if: hashFiles('poetry.lock') != '' && hashFiles('uv.lock') == ''
         run: |
           pipx install poetry || pip install --user poetry
           poetry install --no-interaction --no-ansi
+          poetry run python -c "import pytest" 2>/dev/null || poetry run pip install pytest
           poetry run pytest || [ $? = 5 ]
 
       # --- pipenv 경로 ---
+      # NOTE (reviewer #178 권고 반영): Pipfile python_version 필드 부재 시 setup-python 실패 가능 → '3.x' fallback.
+      # pipenv sync --dev 도 dev-packages 에 pytest 없으면 `pipenv run pytest` 가 실패 → 감지 후 명시 설치
       - name: Python setup (pipenv)
         if: hashFiles('Pipfile.lock') != '' && hashFiles('uv.lock') == '' && hashFiles('poetry.lock') == ''
         uses: actions/setup-python@v5
         with:
-          python-version-file: 'Pipfile'
-          cache: 'pipenv'
+          python-version: '3.x'
 
       - name: pipenv install + pytest
         if: hashFiles('Pipfile.lock') != '' && hashFiles('uv.lock') == '' && hashFiles('poetry.lock') == ''
         run: |
           pip install --user pipenv
           pipenv sync --dev
+          pipenv run python -c "import pytest" 2>/dev/null || pipenv run pip install pytest
           pipenv run pytest || [ $? = 5 ]
 
       # --- pip 경로 (requirements.txt 또는 pyproject.toml 의 PEP 621 메타데이터) ---
+      # 배타 조건: uv.lock / poetry.lock / Pipfile.lock 모두 없을 때. 세 가지 감지 파일 중 하나 이상 있으면 실행:
+      #   1) requirements.txt (우선) → pip install -r
+      #   2) pyproject.toml → pip install -e .[dev] 시도 → 실패 시 pip install -e .
+      #   3) setup.py (legacy) → pip install -e .
+      # pyproject.toml 이 if 조건과 run 분기 양쪽에 등장하는 이유: uv/poetry 가 아닌 단순 PEP 621 프로젝트도 pip 가 처리
       - name: Python setup (pip / pyproject)
         if: (hashFiles('pyproject.toml') != '' || hashFiles('setup.py') != '' || hashFiles('requirements.txt') != '') && hashFiles('uv.lock') == '' && hashFiles('poetry.lock') == '' && hashFiles('Pipfile.lock') == ''
         uses: actions/setup-python@v5
@@ -205,17 +219,19 @@ jobs:
       # ============================================================
       # Rust 생태계
       # ============================================================
-      # cargo test --lib 기본 실행. 장기 테스트 이원화 (volt #54) 는 다운스트림이
+      # cargo test --lib 기본 실행 (debug 빌드). 장기 테스트 이원화 (volt #54) 는 다운스트림이
       # 별도 test-long-integration job 으로 확장 — 본 step 은 일상 경로만
+      # NOTE (reviewer #178 권고 반영): 기존 `--release` 옵션은 "일상 경로" 의도와 상충 (일상은 빠른 debug 빌드).
+      # release 빌드 검증이 필요한 프로젝트는 별도 job 에서 `cargo test --release --lib` 실행 권장.
       - name: Rust toolchain setup
         if: hashFiles('Cargo.toml') != ''
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
 
-      - name: cargo test (일상 경로, --lib)
+      - name: cargo test (일상 경로, --lib, debug)
         if: hashFiles('Cargo.toml') != ''
-        run: cargo test --release --lib
+        run: cargo test --lib
 
       # ============================================================
       # 기타 (Makefile 폴백)

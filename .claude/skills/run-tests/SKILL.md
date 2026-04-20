@@ -23,8 +23,8 @@ description: |
 | `pnpm-lock.yaml` | pnpm | `pnpm install --frozen-lockfile && pnpm test --if-present` |
 | `yarn.lock` + `.yarnrc.yml` | yarn berry (v2+) | `yarn install --immutable && yarn test` |
 | `yarn.lock` (`.yarnrc.yml` 부재) | yarn classic (v1) | `yarn install --frozen-lockfile && yarn test` |
-| `bun.lockb` | Bun | `bun install && bun test` (또는 `bun run test`) |
-| `deno.lock` / `deno.json` | Deno | `deno test` |
+| `bun.lockb` | Bun | `bun install && bun test` (또는 `bun run test`) ¹ |
+| `deno.lock` / `deno.json` | Deno | `deno test` ¹ |
 | `package-lock.json` | npm | `npm ci && npm test --if-present` |
 | `package.json` (lock 없음) | npm fallback | `npm install --no-audit --no-fund --ignore-scripts && npm test --if-present` |
 
@@ -39,6 +39,8 @@ description: |
 | `pyproject.toml` (lock 없음) | pip + PEP 621 | `pip install -e .[dev] \|\| pip install -e . && pytest` |
 | `setup.py` (legacy) | pip | `pip install -e . && pytest` |
 
+> ¹ **Bun / Deno — 감지 테이블 정의만, CI 자동 실행 미구현**: 현재 `.github/workflows/ci.yml` 에는 Bun/Deno 경로 step 없음. 다운스트림이 직접 step 추가 필요 (volt #49 주석-구현 drift 경계). 향후 harness 에 추가 검토 — volt 후속 이슈 대상.
+>
 > **pytest exit code 5** (수집된 테스트 0건) 은 CI 에서 경고로 처리 권장: `pytest || [ $? = 5 ]`
 
 ### 기타 언어
