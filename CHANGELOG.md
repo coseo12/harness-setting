@@ -7,6 +7,24 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [2.22.0] — 2026-04-20
+
+[#127](https://github.com/coseo12/harness-setting/issues/127) Plan 1 — 라벨 네이밍 `stage:*` / `status:*` 혼재 정리 (MINOR). 추가로 [#141](https://github.com/coseo12/harness-setting/issues/141) cross-validate 파싱 jq 전환 NO-OP ADR 박제.
+
+### Behavior Changes
+
+- **`.github/workflows/pr-review.yml` 라벨 체계 일원화** — PR 이 열리면 기존 `status:review` 대신 **`stage:review`** 부착. 연관 이슈에 대해서도 `status:in-progress` 제거 → `stage:dev` 제거 + `stage:review` 부착으로 전환. 에이전트 파일 (architect/developer/pm/qa/reviewer) + `scripts/setup-stage-labels.sh` 가 이미 `stage:*` 일관 사용 중이었고, workflow 만 구 체계에 머물러 있던 혼재를 해소.
+- 저장소 라벨 `status:review` 는 release 머지 후 삭제 예정 (구 workflow 가 main 에 반영되기 전까지 `status:review` 자동 부착 지속). 에이전트 실 사용 라벨 세트 = `stage:*` 6개 (planning / design / dev / review / qa / done) 로 일원화.
+
+### Added
+
+- **ADR `20260420-jq-based-parsing-no-op.md`** ([#141](https://github.com/coseo12/harness-setting/issues/141)) — `parse-cross-validate-outcome.sh` 의 jq 기반 전환을 **기각** 한 NO-OP 결정 박제. 후보 비교 (jq+fallback / jq 필수 / NO-OP) + 알려진 한계 (parse 정규식의 `\"` 해석 실패, 실 사용 필드 값이 enum/경로/번호라 raw `"` 구조적 제외) + 재검토 트리거 6개.
+- **경계 가드 테스트** (`test/parse-cross-validate-outcome-boundary.test.js`) — write/parse round-trip 을 `\` / tab / newline / CR 4종 + 혼합 `JSON.parse` 검증으로 지속 관측 (테스트 47 → 52).
+
+### Notes
+
+- #127 A (SSoT 중복 해소) 와 B-extended (`agent-dispatch.yml` 의 `status:*` 7개 라벨 분석) 는 본 PR 범위 밖 — 후속 이슈로 분리.
+
 ## [2.21.0] — 2026-04-19
 
 [#131](https://github.com/coseo12/harness-setting/issues/131) Phase B — 잔존 권고 2건 (4, 7) + reviewer/qa non-blocking 2건. `cross_validate.sh` probe 옵트아웃 / sleep cap 상한 / 공통 파싱 헬퍼 + fatal stdout 헤더 규약 박제.
