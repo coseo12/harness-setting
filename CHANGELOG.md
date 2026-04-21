@@ -7,6 +7,54 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.0.0] — 2026-04-22
+
+[#196](https://github.com/coseo12/harness-setting/issues/196) — `.github/workflows/` 책임 분리 (**MAJOR** — breaking: 파일 rename + 카테고리 재분류). volt [#62](https://github.com/coseo12/volt/issues/62) 실측 (astro-simulator PR #270 6단계 push-fail-fix 루프) 근거.
+
+### Behavior Changes
+
+- **`.github/workflows/harness-*.yml` 만 frozen (upstream 소유)** — `lib/categorize.js` 규칙 변경. 이전에는 `.github/workflows/` 디렉토리 전체가 frozen 이었음. **다운스트림 ci.yml 을 이제 자유롭게 수정 가능** — upstream `harness update --apply-all-safe` 가 더 이상 ci.yml 을 덮어쓰지 않는다. 근거: volt #62 에서 관찰된 "upstream 가드 vs 다운스트림 빌드 혼재" 구조 문제 해소
+- **`.github/workflows/ci.yml` → user-only 로 재분류** — 말미 harness 전용 가드 블록 (agent SSoT / release version bump / CLAUDE.md 각인 / CLAUDE.md 링크) 4개가 신규 `harness-guards.yml` 로 이동. ci.yml 에는 `detect-and-test` (다언어 자동 감지/실행) 만 잔존
+- **`.github/workflows/harness-guards.yml` 신설 (frozen)** — upstream 전용 가드 workflow. 각 step 은 `hashFiles('scripts/verify-*.sh') != ''` 조건으로 보호돼 해당 스크립트 미보유 다운스트림에선 조용히 스킵
+- **`.github/workflows/pr-review.yml` → `harness-pr-review.yml` rename** — 내부 `name:` 도 `Harness PR 자동 리뷰 트리거` 로 갱신. harness- prefix 관습 준수
+- **자동 마이그레이션 hook 도입** — `lib/migrations/2.31.0-to-3.0.0.js` 가 3단 매칭으로 기존 다운스트림을 자동 전환:
+  - **6a** (ci.yml 순정 v2.31.0) → 완전 덮어쓰기
+  - **6b** (detect-and-test 수정 + 가드 블록 byte-exact 원형) → 가드 블록만 제거
+  - **6c** (가드 블록 자체 수정) → 스킵 + stderr 수동 가이드 (`docs/harness-ci-migration.md`)
+- **백업 보장** — 모든 마이그레이션 경로가 원본 ci.yml / pr-review.yml 을 `.harness/backup/ci-split-<ISO-timestamp>/` 에 자동 보존. 실패 시 수동 복원 경로 명확
+- **마이그레이션 실패 시 `exit 1` 금지** — 6c 경로는 notes + stderr 경고 반환, `harness update` 전체가 실패하지 않도록 보장 (CLAUDE.md "매니페스트 최신 ≠ 파일 적용 완료" 교훈)
+- **`docs/frozen-file-split.md` / `docs/harness-update-compat-checklist.md` 갱신** — v3.0.0 책임 경계 명문화. 기존 "옵션 C (divergent 수정)" 의 단점이 해소됐음을 명시
+- **`docs/harness-ci-migration.md` 신설** — 6c 경로 발동 시 수동 마이그레이션 가이드 (단계별 체크리스트 + 제거 대상 step 목록)
+
+### Migration Guide (다운스트림)
+
+```bash
+# 1. harness update 실행 (자동 마이그레이션 시도)
+npx github:coseo12/harness-setting update --apply-all-safe
+
+# 2. 출력에서 분기 확인:
+#    - "가드 블록 제거 완료 (6a/6b 경로)" → 성공
+#    - "6c — 사용자 수정 감지" (stderr) → 수동 절차 필요 → docs/harness-ci-migration.md
+
+# 3. 검증
+npx github:coseo12/harness-setting doctor
+```
+
+자세한 경로 판정 로직: [docs/decisions/20260421-workflows-responsibility-split.md](docs/decisions/20260421-workflows-responsibility-split.md) §3단 매칭.
+
+### Notes
+
+- **MAJOR 정당화 근거** — `lib/categorize.js` 의 공개 계약 (카테고리 분류 규칙) 이 변경됐고, 파일 rename (`pr-review.yml` → `harness-pr-review.yml`) 이 다운스트림 브랜치 보호 룰의 required check 이름에도 영향. SemVer 분류 기준상 "하위 호환 깨지는 변경" 에 해당
+- **ADR 박제** — `docs/decisions/20260421-workflows-responsibility-split.md` (후보 비교 4개 축 + 결정 근거 + Concrete Prediction 3개 + 재검토 트리거 4개). architect 코멘트에 "생성 완료" 로 표기됐으나 디스크엔 부재였던 누락을 보완
+- **Concrete Prediction 실증** — (1) 다운스트림 ci.yml 커스터마이즈 유지 확인 / (2) upstream harness-guards.yml 자동 전파 / (3) 멱등성 (2회차 변경 0) 3건 모두 테스트로 검증 완료 (`test/ci-split-migration.test.js` 7 테스트 통과)
+- **Phase 분리 고려** — 본 릴리스는 카테고리 변경 + 파일 rename + 마이그레이션을 한 번에 묶었다. Phase 1 (categorize 수정) + Phase 2 (마이그레이션) 분리도 검토했으나, Phase 1 단독 배포 시 기존 다운스트림에서 "가드 블록이 ci.yml 과 harness-guards.yml 양쪽에서 실행" 되는 상태가 발생해 backward-compat 조건 불만족 → 단일 릴리스로 통합. CLAUDE.md `### 릴리스` "Phase 분리 리듬" 판정 기준 적용
+- **upstream 3중 방어 blindspot 인지** — 다운스트림 실 적용이 최종 가드 (CLAUDE.md 교훈). 본 PR 머지 후 대표 다운스트림 (astro-simulator) 에서 `harness update` 실행 결과를 1차 모니터링 대상. 6c 경로 발동 빈도가 재검토 트리거
+
+### Breaking Changes Summary
+
+다운스트림이 본 릴리스 적용 시 **수동 개입이 필요한 유일한 경우**는 `.github/workflows/ci.yml` 의 가드 블록을 **byte-exact 원형에서 벗어나게 수정**한 경우 (6c 경로). 이 경우 `docs/harness-ci-migration.md` 를 참조한 수동 절차 필요. 그 외 모든 경우 `harness update` 1회 실행으로 자동 마이그레이션.
+
+
 ## [2.31.0] — 2026-04-20
 
 [#191](https://github.com/coseo12/harness-setting/pull/191) — volt [#62](https://github.com/coseo12/volt/issues/62) [#63](https://github.com/coseo12/volt/issues/63) 반영. 세션 의도 이탈 감지 + harness update 부합성 체크리스트 (MINOR). volt [#64](https://github.com/coseo12/volt/issues/64) 는 [harness#190](https://github.com/coseo12/harness-setting/issues/190) 실행 이슈로 분리.
