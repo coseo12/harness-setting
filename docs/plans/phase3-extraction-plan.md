@@ -19,7 +19,7 @@
 | 교차검증 (360~435) | 14,939 | 21% |
 | 원칙 (436~531) | 10,321 | 15% |
 
-### 실전 교훈 블록 목록 (18개)
+### 실전 교훈 블록 목록 (17개 — CLAUDE.md 실측)
 | 블록 | bytes | 외부 참조 (파일 수) | 추출 티어 |
 |---|---:|---:|---|
 | sub-agent 검증 완료 ≠ GitHub 박제 완료 | 5,642 | **10** | Tier 1 |
@@ -27,13 +27,13 @@
 | 다운스트림 실측이 최종 가드 | 2,553 | 1 | **Tier 2 (#195 흡수)** |
 | workflow_dispatch 2단계 함정 | 2,296 | 0 | Tier 2 |
 | 주석 계약 vs 구현 drift | 2,175 | 1 | Tier 2 |
-| CI 통과 ≠ 테스트 실행 | 1,748 | 0 | Tier 2 |
+| CI 통과 ≠ 테스트 실행 | 1,748 | 0 | **Tier 2** |
 | 신규 데이터 ≠ 신규 코드 — ADR 예측 재현 | 1,710 | 0 | Tier 2 |
 | headless 브라우저 검증 ≠ 실 브라우저 동작 | 1,704 | 0 | Tier 2 |
 | sub-agent multi-turn 라운드 이탈 | 1,533 | 0 | Tier 2 |
 | 인계 항목 실측 재검증 — NO-OP ADR | 914 | 2 | Tier 3 (유지) |
 | 신규 함수 ≠ 신규 구현 | 885 | 0 | Tier 3 (유지) |
-| 다운스트림 harness update 부합성 | 753 | 0 | Tier 3 (유지 or 통합) |
+| 다운스트림 harness update 부합성 | 753 | 0 | **Tier 2 (기존 docs/harness-update-compat-checklist.md 링크 통합)** |
 | 커밋 성공 ≠ 의도한 변경 커밋됨 | 723 | 0 | Tier 3 (유지) |
 | 빌드 성공 ≠ 동작하는 앱 | 563 | 0 | Tier 3 (유지) |
 | display-only 버그 패턴 | 287 | 0 | Tier 3 (유지) |
@@ -79,7 +79,7 @@
 | 신규 데이터 ≠ 신규 코드 | 1,710 | `docs/lessons/data-not-code-extension.md` |
 | headless 브라우저 검증 | 1,704 | `docs/lessons/headless-browser-verification.md` |
 | sub-agent multi-turn 라운드 이탈 | 1,533 | `docs/lessons/sub-agent-multiturn-drift.md` |
-| 다운스트림 harness update 부합성 | 753 | `docs/lessons/harness-update-compat-checklist.md` (기존 `docs/harness-update-compat-checklist.md` 이전 + 확장) |
+| 다운스트림 harness update 부합성 | 753 | **기존 `docs/harness-update-compat-checklist.md` 로 링크 통합** (신규 파일 생성 금지, CLAUDE.md 는 기존 파일 포인터 1줄로 축약) |
 | **교차검증 섹션 전체** | 14,939 | `docs/guides/cross-validate-protocol.md` (+ #194 flag 가드 템플릿 반영) |
 
 **CLAUDE.md 본문 치환 포맷** (각 블록):
@@ -93,14 +93,15 @@
 **Phase 3-A 후 예상 size**: 43,305 − 26,900 = **약 16,400 chars** (목표 35k 훨씬 이하)
 
 **완료 기준**:
-- [ ] `docs/lessons/` 디렉토리 신설 + 7 파일
+- [ ] `docs/lessons/` 디렉토리 신설 + 6 파일 (`harness update 부합성` 은 신규 파일 생성 없이 기존 `docs/harness-update-compat-checklist.md` 로 링크 통합)
 - [ ] `docs/guides/cross-validate-protocol.md` 생성 + #194 템플릿 반영
 - [ ] `docs/lessons/ci-and-downstream-verification.md` 에 #195 실측/가정 라벨 규약 반영
-- [ ] CLAUDE.md 본문 8 블록 → 포인터 치환
+- [ ] CLAUDE.md 본문 Tier 2 블록 8 개 → 포인터 치환 (7 블록 → `docs/lessons/` + 1 블록 → 기존 `docs/harness-update-compat-checklist.md`) + 교차검증 섹션 → `docs/guides/cross-validate-protocol.md`
 - [ ] `bash scripts/verify-docs-links.sh` 통과 (Phase 2 신규 가드)
 - [ ] `bash scripts/verify-claudemd-size.sh` 통과 (예산 여유 확인)
 - [ ] `bash scripts/verify-agent-ssot.sh` 통과
 - [ ] 한글 U+FFFD 검증
+- [ ] step 0 사전 조사 결과 PR 본문 상단 박제
 
 **릴리스 분류**: **MINOR** (#195 라벨 규약 추가 = 행동 변화, #194 는 PATCH 이나 결합 시 MINOR 따라감)
 
@@ -161,13 +162,29 @@ Phase 3-A 만으로 목표 (35k 이하) 달성 가능 → **Phase 3-B 는 선택
 
 ## 6. 참조 업데이트 체크리스트 (Phase 3-A 실행 시)
 
-### 6.1 Phase 3-A 에서 참조 업데이트 대상
-- `.claude/agents/*.md` (5 파일) — 만약 실전 교훈 블록 섹션 앵커를 참조하면 `docs/lessons/` 경로로 치환 (본 리서치에선 Tier 2 블록의 에이전트 참조 **없음** 확인 — 추가 확인은 실행 PR 에서)
-- `scripts/verify-*.sh` 주석 — 실전 교훈 블록 위치 표기를 `docs/lessons/` 로 치환 (본 리서치 기준 sub-agent 검증 = Tier 1 만 해당. Tier 2 에는 영향 없음)
+### 6.1 사전 확인 (Phase 3-A step 0 — 실행 직전 필수)
+
+Phase 1 지침 §7.3 "SSoT 결합 체크리스트" 는 "감축 대상 블록을 선정하기 **전에** 참조 depth 전수 조사" 를 요구. 본 설계 PR 은 Tier 2 블록의 **키워드 참조** 조사만 수행했고, **정확한 섹션 앵커 참조는 실행 PR 직전 재확인** 단계로 지연.
+
+Phase 3-A 실행 시 step 0 으로 다음 명령 전수 실행 + 결과를 실행 PR 본문에 박제:
+
+```bash
+# 각 Tier 2 블록 제목을 인수로 순회
+for block in "CI 통과" "다운스트림 실측" "workflow_dispatch" "주석 계약" "신규 데이터" "headless 브라우저 검증" "sub-agent multi-turn" "다운스트림 harness update 부합성"; do
+  echo "=== ${block} ==="
+  rg -n "${block}" .claude/ scripts/ docs/ test/ .github/ --iglob '!CLAUDE.md'
+done
+```
+
+- **키워드 매치 0건** → 해당 블록은 본문 포인터만 치환, 외부 참조 업데이트 불필요
+- **키워드 매치 1+ 건** → 파일별 실제 사용 맥락 확인 (단순 이름 사용 vs 섹션 링크). 섹션 링크면 `docs/lessons/*.md` 경로로 치환
+
+### 6.2 Phase 3-A 에서 참조 업데이트 확정 대상 (현재까지 확인됨)
+- `scripts/verify-*.sh` 주석 — 본 리서치 기준 sub-agent 검증 = Tier 1 만 해당. Tier 2 에는 영향 없음
 - `docs/guides/claudemd-governance.md` §7.1 — 현재 확인된 결합 중 `sub-agent 검증 완료` 만 명시. Phase 3-A 는 이 블록 유지 → 문서 수정 불필요
 - `CHANGELOG.md` — Phase 3-A release 시 Behavior Changes 섹션에 #195 라벨 규약 + Tier 2 블록 이동 기록
 
-### 6.2 교차검증 섹션 추출 특이사항
+### 6.3 교차검증 섹션 추출 특이사항
 - **`### 교차검증` 섹션은 `## 교차검증` 의 상위 레벨** — 실제 섹션은 `## 교차검증 (cross-validate)` 하나뿐, `### ` 서브헤더 없음
 - 추출 시 CLAUDE.md 는 `## 교차검증` 을 다음 포맷으로 치환:
 
@@ -185,6 +202,7 @@ Phase 3-A 만으로 목표 (35k 이하) 달성 가능 → **Phase 3-B 는 선택
 
 ## 7. 실행 순서 (Phase 3-A PR)
 
+0. **사전 조사 (필수, §6.1)** — Tier 2 블록 제목별 `rg` 전수 조사 + 결과를 PR 본문 상단에 박제. 키워드 매치 0건 확인 후 단순 치환, 1+ 건은 파일별 맥락 분석
 1. **리서치 재확인** — 본 계획 기준으로 추출 대상 재측정 (bytes drift 가능성, 중간에 CLAUDE.md 수정됐을 수 있음)
 2. **`docs/lessons/` 디렉토리 신설**
 3. **블록 단위 커밋** — 각 블록을 1 커밋으로 분리 (회귀 원인 추적 용이):
@@ -222,18 +240,19 @@ Phase 3-A 만으로 목표 (35k 이하) 달성 가능 → **Phase 3-B 는 선택
 ```
 harness #199 Phase 3-A — 실전 교훈 Tier 2 블록 + 교차검증 섹션 추출.
 
-참조:
-- 설계 계획: docs/plans/phase3-extraction-plan.md
-- 지침: docs/guides/claudemd-governance.md §5 (가지치기 프로토콜)
-- Phase 2 강제: scripts/verify-claudemd-size.sh / verify-docs-links.sh
+선독 필수:
+- docs/plans/phase3-extraction-plan.md — 설계 계획 (전체 선독)
+- docs/guides/claudemd-governance.md §5 (가지치기) + §7.3 (SSoT 결합 체크리스트)
+- Phase 2 강제 도구: scripts/verify-claudemd-size.sh / verify-docs-links.sh
 
 작업:
 1. feature/199-phase3-extraction-a 브랜치를 develop 에서 분기
-2. 설계 계획 §3 Phase 3-A 완료 기준을 순서대로 구현
-3. 블록 단위 커밋 + 참조 업데이트 커밋 분리
-4. #195/#194/#199 auto-close 문법 (Closes 각각 반복) 확인
-5. cross-validate code 실행 (Gemini capacity 부족 시 reminder 이슈 박제)
-6. reviewer/qa → 머지 승인 요청
+2. **step 0 (설계 §7 step 0)** — Tier 2 블록 제목별 rg 전수 조사 + 결과 PR 본문 상단 박제
+3. 설계 계획 §3 Phase 3-A 완료 기준을 순서대로 구현
+4. 블록 단위 커밋 + 참조 업데이트 커밋 분리
+5. 커밋 메시지/PR 본문에 `Closes #195`, `Closes #194`, `Closes #199` **각 keyword 반복 문법** 준수
+6. cross-validate code 실행 (Gemini capacity 부족 시 reminder 이슈 박제)
+7. reviewer/qa → 머지 승인 요청
 
 목표: CLAUDE.md 35,000 chars 이하로 복귀.
 ```
