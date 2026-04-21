@@ -62,6 +62,7 @@ v2.31.0 까지 `.github/workflows/` 전체 디렉토리는 `lib/categorize.js:19
 5. **`lib/migrations/2.31.0-to-3.0.0.js`** 신규 작성 — 기존 migrations 패턴에 자연 합류 (3단 매칭: 6a / 6b / 6c)
 6. **`docs/harness-ci-migration.md`** — 6c 경로 수동 가이드
 7. **`docs/frozen-file-split.md`** / **`docs/harness-update-compat-checklist.md`** 갱신
+8. **`lib/copy-template.js`** — **코드 수정 불필요**. `.github/` 디렉토리 재귀 복사 방식이므로 `harness init` 신규 프로젝트는 자동으로 새 구조 (harness-guards.yml + harness-pr-review.yml + user-only ci.yml) 를 획득. 생명주기 양 끝(신규/기존)이 모두 커버됨을 실행 계획에 명시 (교차검증 Gemini 제안 수용)
 
 ### 핵심 결정 (요약)
 
