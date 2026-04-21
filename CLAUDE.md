@@ -498,6 +498,11 @@ sub-agent에 적응적 질답·설계 같은 multi-turn 세션을 위임할 때,
 - 에이전트/스킬/설정을 삭제하거나 변경할 때, docs/ 하위 관련 문서를 확인하고 업데이트한다
 - 삭제된 구성요소를 참조하는 문서가 남아 있으면 안 된다
 
+### CLAUDE.md 비대화 방지
+- CLAUDE.md 는 **각인층** — 세션 시작 즉시 상기돼야 행동이 바뀌는 규칙만. 매트릭스(3행+)·코드블록(5라인+)·프로토콜(3스텝+)·근거 체인(이슈 2+) 은 `docs/` 로 추출하고 1~3 줄 포인터만 남긴다.
+- 정량 게이트: **35k chars** warn / **40k** PR warn (신규 인라인 블록 금지) / **45k** CI fail. 임계 초과 시 올바른 대응은 "예외 박제" 가 아니라 **기존 블록 가지치기 (각인층 → 참조층 이동)**.
+- 예외는 ADR 로만 박제 (`docs/decisions/<YYYYMMDD>-claudemd-exception-<topic>.md`) — 사유·대체 불가 근거·재검토 조건 필수. 상세 프로토콜: [docs/guides/claudemd-governance.md](docs/guides/claudemd-governance.md)
+
 ### 파일명 규칙
 - **기본**: kebab-case (`user-profile.ts`, `api-client.js`)
   - 이유: macOS APFS(case-insensitive) ↔ Linux(case-sensitive) 간 유령 파일/충돌 방지
