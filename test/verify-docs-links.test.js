@@ -154,3 +154,23 @@ test('실제 CLAUDE.md 는 통과 (링크 유효성 회귀 가드)', () => {
   assert.equal(result.code, 0);
   assert.match(result.stdout, /모두 유효/);
 });
+
+// leading slash 링크는 프로젝트 루트 기준으로 해석되어야 한다.
+// path.resolve 로 구현하면 파일 시스템 루트로 빠져나가 오탐이 나는데,
+// 현재는 path.join 을 쓰므로 올바르게 동작한다. 교차검증 오탐 (Gemini 의
+// path.resolve 전환 제안) 이 재발하면 이 테스트가 터져서 차단한다.
+test('leading slash 링크도 프로젝트 루트 기준으로 해석', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '- 루트 상대: [claudemd](/CLAUDE.md)',
+    '- 루트 상대: [script](/scripts/verify-agent-ssot.sh)',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /모두 유효/);
+    assert.match(result.stdout, /2건/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
