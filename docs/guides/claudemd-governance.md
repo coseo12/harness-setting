@@ -63,31 +63,35 @@
 
 ---
 
-## 3. 정량 게이트 (char 단위, 한글 UTF-8 보정)
+## 3. 정량 게이트 (char 단위, Unicode code point)
 
 | 임계 | 동작 | 도구 |
 |---|---|---|
 | **35k chars** | 경계 경보 | `harness doctor` warn |
 | **40k chars** | PR 체크 warn | `verify-claudemd-size.sh` (신규 인라인 블록 금지 안내) |
-| **45k chars** | CI fail | `verify-claudemd-size.sh` in `detect-and-test` |
+| **45k chars** | CI fail | `verify-claudemd-size.sh` in `harness-guards` |
+
+> **SSoT (#203)**: 위 임계값은 [`lib/claudemd-size-constants.js`](../../lib/claudemd-size-constants.js) 에서 단일 선언되며 `lib/verify-claudemd-size.js` / `lib/doctor.js` 가 이를 import 한다. 변경 시 SSoT 1곳만 수정하면 모든 가드가 자동 동기화.
 
 ### 3.1 절대불변 아님 (Gemini 제안 4)
 위 수치는 **현재 Claude Code 내부 경고(40k)와 본 저장소의 실측 기반(42.6k)** 을 근거로 설정한 실용적 경계이다.
 
 - 향후 에이전트 컨텍스트 크기 / 어텐션 특성 데이터가 축적되면 **재조정 가능**
 - 중요한 것은 임계값이 아니라 **임계를 통한 검토·제어 시스템** 그 자체
-- 재조정 시 본 가이드 + 검사 스크립트를 동일 PR 에서 갱신
+- 재조정 시 `lib/claudemd-size-constants.js` 한 곳만 수정 + 본 가이드 표 갱신 (동일 PR)
 
 ### 3.2 char 카운트 방법
-한글은 UTF-8 3바이트이므로 `wc -c` (바이트) 가 아닌 **문자 수** 기준:
+
+Node 기반 구현 (`lib/verify-claudemd-size.js`) 이 `[...str].length` 로 **Unicode code point 단위** 측정. locale 독립 (#203).
 
 ```bash
-# POSIX 환경
-wc -m CLAUDE.md
-
-# macOS (기본 wc 가 로케일 의존)
-LC_ALL=en_US.UTF-8 wc -m CLAUDE.md
+# 공식 게이트 실행 — locale 영향 없음
+bash scripts/verify-claudemd-size.sh
+# 또는 직접 Node 호출
+node lib/verify-claudemd-size.js
 ```
+
+> **이전 shell 구현의 한계 (#203 해소)**: `LC_ALL=en_US.UTF-8 wc -m` 은 self-hosted runner 에서 해당 locale 미설치 시 POSIX 로 폴백 → 바이트 수 (한글 62% 부풀림, 실측: 70,500 vs 실제 43,305) 오탐 유발. Node 포트로 완전 해소.
 
 ---
 

@@ -174,3 +174,109 @@ test('leading slash 링크도 프로젝트 루트 기준으로 해석', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ---- #203 엣지케이스 추가 ----
+
+test('tilde 펜스 (~~~) 내부 링크는 스킵', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '~~~markdown',
+    '예시: [ghost](docs/this-file-does-not-exist.md)',
+    '~~~',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /0건/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('HTML 주석 내부 링크는 스킵 (multi-line)', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '<!-- 주석 안의 placeholder: [ghost](docs/nonexistent.md) -->',
+    '실제 링크: [real](CLAUDE.md)',
+    '<!--',
+    '여러 줄',
+    '[also-ghost](docs/also-missing.md)',
+    '-->',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /1건/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('4-space 들여쓰기 코드블록은 스킵', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '일반 링크: [real](CLAUDE.md)',
+    '',
+    '    예시: [ghost](docs/indented-block-missing.md)',
+    '    또다른: [ghost2](docs/also-missing.md)',
+    '',
+    '본문 복귀.',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /1건/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('reference-style 링크 정의도 검증 대상 (깨진 ref → exit 1)', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '본문에서 [text][real-ref] + [other][ghost-ref] 참조.',
+    '',
+    '[real-ref]: CLAUDE.md',
+    '[ghost-ref]: docs/nonexistent-ref.md',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /docs\/nonexistent-ref\.md/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('reference-style 링크 정의 (유효) 는 검증 통과', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '본문 [text][ref1] + [other][ref2].',
+    '',
+    '[ref1]: CLAUDE.md',
+    '[ref2]: scripts/verify-agent-ssot.sh',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /2건/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('외부 URL 의 reference-style 정의는 스킵', () => {
+  const { dir, file } = makeTempClaudeMd([
+    '# 테스트',
+    '[github][gh-ref] 참조.',
+    '',
+    '[gh-ref]: https://github.com/coseo12/harness-setting',
+  ].join('\n'));
+  try {
+    const result = run(file);
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /0건/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
