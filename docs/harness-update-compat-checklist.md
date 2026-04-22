@@ -8,6 +8,8 @@
 
 > **본 체크리스트는 v2.29.0 기준 Node.js 모노레포 중심**. v2.29.0 에서 Python / Go / Rust / yarn 경로가 확장됐으나 동일 구조 (editable install + build 산출물 exports) 는 Python (`pyproject.toml` extras / setuptools editable) / Rust (`cargo build --lib` 후 dist) 에도 존재 가능. 해당 생태계 다운스트림은 본 체크리스트를 **Node.js → Python/Rust 로 유추 적용** 하되, 별도 경로 체크리스트 확장은 후속 이슈로 추적.
 
+> **v3.0.0 업데이트** — `.github/workflows/ci.yml` 이 **user-only** 로 재분류됐다 (이슈 [#196](https://github.com/coseo12/harness-setting/issues/196), [ADR 20260421-workflows-responsibility-split](decisions/20260421-workflows-responsibility-split.md)). 다운스트림이 ci.yml 을 자유롭게 수정해도 **이제 upstream 과 충돌하지 않는다**. 본 체크리스트 **4번 (기존 전용 테스트 워크플로)** 의 "옵션 C (divergent 수정)" 단점이 사라짐 — 원하는 방식대로 ci.yml 을 수정할 수 있다. upstream 가드 (SSoT drift 등) 는 `.github/workflows/harness-guards.yml` 로 분리돼 독립 동작한다.
+
 ## 언제 수행하는가
 
 - **harness MAJOR / MINOR 업데이트 적용 전** 에 1회
