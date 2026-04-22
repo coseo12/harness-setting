@@ -7,6 +7,53 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.1.0] — 2026-04-22
+
+v3.0.0 이후 누적된 **2개 PR 통합 릴리스**. MINOR 분류는 [#195](https://github.com/coseo12/harness-setting/issues/195) 의 "N 적용 시나리오" 라벨 규약 (에이전트 행동 변화) 에 의해 결정. #194 / #199 / #207 동반 수록.
+
+**포함 범위**:
+
+- [#207](https://github.com/coseo12/harness-setting/issues/207) — `cross_validate.sh` diff 2000줄 초과 SIGPIPE 회귀 수정 (PATCH, bug fix) — PR [#211](https://github.com/coseo12/harness-setting/pull/211)
+- [#199](https://github.com/coseo12/harness-setting/issues/199) — CLAUDE.md 비대화 방지 Phase 3-A (실전 교훈 Tier 2 + 교차검증 추출, **MINOR**) — PR [#212](https://github.com/coseo12/harness-setting/pull/212)
+- [#195](https://github.com/coseo12/harness-setting/issues/195) — "N 적용 시나리오" 실측/가정 라벨 규약 + 박제 문턱 공식 (**MINOR**, #199 와 함께 흡수)
+- [#194](https://github.com/coseo12/harness-setting/issues/194) — cross-validate flag 가드 검증 명령 템플릿 (PATCH, #199 와 함께 흡수)
+
+### Behavior Changes — #199 Phase 3-A 실전 교훈 + 교차검증 추출 (MINOR)
+
+- **CLAUDE.md 각인층 대폭 감축** — 43,305 → 28,470 chars (**34% 감축**, 목표 35k 대비 17% 여유). Tier 2 실전 교훈 7 블록 + 교차검증 섹션 전체를 `docs/lessons/` + `docs/guides/` 로 추출. CLAUDE.md 는 1~3 줄 포인터만 유지
+- **신규 `docs/lessons/` 디렉토리** — 실전 교훈 전용 (6 파일): `ci-and-downstream-verification.md` / `workflow-dispatch-pitfalls.md` / `comment-implementation-drift.md` / `data-not-code-extension.md` / `headless-browser-verification.md` / `sub-agent-multiturn-drift.md`
+- **신규 `docs/guides/cross-validate-protocol.md`** — 교차검증 섹션 전문 (폴백 프로토콜 / 편향 체크리스트 / 검증 매트릭스 / 고유 발견 3단 프로토콜)
+- **`.claude/skills/run-tests/SKILL.md` 참조 경로 갱신** — `CLAUDE.md "주석 계약 vs 구현 drift"` → `docs/lessons/comment-implementation-drift.md` 로 치환
+
+### Behavior Changes — #195 '적용 시나리오' 라벨 규약 (MINOR)
+
+- **"N 적용 시나리오" 근거 박제 시 `[실측]` / `[가정]` 라벨 필수** — 라벨 없는 시나리오 동등 나열 금지. 1회 관찰을 N 시나리오로 일반화 주장할 때의 남용 방지
+- **박제 문턱 공식** — 실측 ≥ 1 + 가정 ≥ 3 + 공통 조건 매트릭스 (3조건 동시 충족). 반영 위치: `docs/lessons/ci-and-downstream-verification.md`
+- **미래 승격 트리거** — `[가정]` 관찰 시 `[실측]` 라벨로 갱신 + 박제 문턱 재평가 (관찰 이슈 링크 필수)
+- **소급 적용** — volt #60 (다운스트림 실측이 최종 가드) 의 5 시나리오 중 npm↔React 만 `[실측]`, 나머지 4개는 `[가정]` 로 라벨 부여
+
+### Behavior Changes — #194 cross-validate flag 가드 검증 명령 템플릿 (PATCH)
+
+- **flag 호환성 검증 템플릿** — `<tool> --help | grep -A 2 <flag>` (공식 지원 여부 판정). 반영 위치: `docs/guides/cross-validate-protocol.md` §6.3
+- **실측 예시 2건** — pnpm `--if-present` (미지원, 서브커맨드 형태 필수) / npm `--if-present` (공식 지원, 직접 사용). volt #59 셀프 위반 재발 방지
+- **판정 기준 3가지** — 결과 존재 (지원) / 결과 없음 (미지원, 복사 금지) / 애매 (공식 문서 재확인)
+
+### Behavior Changes — #207 cross-validate diff truncation (PATCH)
+
+- **`cross_validate.sh` 의 `echo | head -2000` → `printf | awk 'NR<=2000'`** 로 교체 — `set -euo pipefail` 하에서 파이프 버퍼(64KB) 초과 시 SIGPIPE 로 조기 exit 141 되던 버그. awk 는 EOF 까지 입력 소비하여 SIGPIPE 회피
+- **회귀 가드 신설** — `test/cross-validate-diff-truncation.test.js` (gh/gemini mock 으로 3000 라인 / 1000 라인 두 분기 검증)
+
+### Phase 3-B 판단 (#199 Phase 3 완결)
+
+Phase 3-A 만으로 목표 (35k) 달성 + 여유 확보. Tier 1 블록 (sub-agent 검증 완료 5,642 bytes / 매니페스트 최신 3,711 bytes) 은 10 파일 / 5 파일 SSoT 결합 복잡도가 높고 현 28k 수준에서 추가 감축 이득 작음. **Phase 3-B 불필요 — #199 완결**. 후속 발견 [#213](https://github.com/coseo12/harness-setting/issues/213) (`docs/lessons/README.md` 목차) 은 별도 이슈로 분리 (Phase 3-B 재평가 시점과 묶어 처리 가능).
+
+### Notes
+
+- cross-validate PR #212 결과 `applied` (종합 양호) — 단일 모델 편향 노출 확보. Gemini 고유 발견 1건 (`docs/lessons/README.md` 목차) 은 현 스프린트 비목표로 #213 후속 이슈 분리
+- diff 가 큰 PR 검증 시 #207 수정이 선행 적용되어 Gemini 호출 도달 성공 (2000 라인 초과 diff 에서 조용한 exit 재발 방지)
+
+---
+
 ## [3.0.0] — 2026-04-22
 
 v2.31.0 이후 누적된 **5개 PR 통합 릴리스**. MAJOR 분류는 [#196](https://github.com/coseo12/harness-setting/issues/196) 의 breaking change (파일 rename + 카테고리 재분류) 에 의해 결정. 포함된 MINOR 2건 (#197 / #200) 의 Behavior Changes 도 본 엔트리에 수록.
