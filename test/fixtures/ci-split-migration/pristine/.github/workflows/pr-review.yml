@@ -1,0 +1,55 @@
+name: PR 자동 리뷰 트리거
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    branches: [develop, main]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    # Draft PR은 라벨 부착 스킵
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: PR에 리뷰 대기 라벨 추가
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // stage:* 체계로 일원화 (#127 Plan 1) — 에이전트 파일/setup-stage-labels.sh 와 prefix 일치
+            // PR 이 열리는 시점은 developer 단계 종료 → reviewer 단계 대기이므로 stage:review 부착
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['stage:review']
+            });
+
+            // PR 본문에서 이슈 번호 추출
+            const body = context.payload.pull_request.body || '';
+            // Closes, Fixes, Resolves 등 GitHub 표준 키워드 모두 인식
+            const issueMatch = body.match(/(?:Closes|Fixes|Resolves)\s+#(\d+)/i);
+            if (issueMatch) {
+              const issueNumber = parseInt(issueMatch[1]);
+              // 관련 이슈를 stage:dev (developer 진행 중) 에서 stage:review 로 전이
+              // stage:dev 라벨이 없을 수도 있으므로 try/catch 로 안전 처리
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  name: 'stage:dev'
+                });
+              } catch (e) {
+                // 라벨이 없으면 무시
+              }
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['stage:review']
+              });
+            }
