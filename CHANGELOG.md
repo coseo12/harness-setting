@@ -7,6 +7,38 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.1.1] — 2026-04-22
+
+v3.1.0 이후 누적된 **2개 PR 통합 PATCH 릴리스**. 행동 변화 없음 (문서 + 가드 강화).
+
+**포함 범위**:
+
+- [#213](https://github.com/coseo12/harness-setting/issues/213) — `docs/lessons/` 목차 README + `scripts/verify-lessons-readme.sh` 동기화 가드 (PATCH) — PR [#216](https://github.com/coseo12/harness-setting/pull/216)
+- [#203](https://github.com/coseo12/harness-setting/issues/203) — `verify-docs-links.js` 엣지케이스 + 상수 SSoT + locale 독립성 (PATCH) — PR [#217](https://github.com/coseo12/harness-setting/pull/217)
+
+### Behavior Changes: None — 내부 도구 강화 + 문서
+
+frozen 파일 (`lib/` / `scripts/` / `docs/lessons/`) 이 변경되어 다운스트림 `harness update` 시 반영되나, 에이전트가 같은 입력에 다르게 동작하지 않음. 본 섹션 명시는 CLAUDE.md `### 릴리스` 규약 (PATCH 도 frozen 변경 시 `### Behavior Changes` 명시) 준수.
+
+### 내부 변경 요약
+
+**#213 (PR #216)** — `docs/lessons/` 확장 대비 선제적 인덱스
+- `docs/lessons/README.md` 신규 — 6 파일 목차 (제목 / 1줄 요지 / 관련 볼트 이슈)
+- `scripts/verify-lessons-readme.sh` 신규 — `docs/lessons/*.md` ↔ README 동기화 drift 자동 차단
+- `.github/workflows/harness-guards.yml` — 신규 가드 step 통합
+
+**#203 (PR #217)** — verify 인프라 robustness 3종
+- `verify-docs-links.js` 엣지케이스: tilde 펜스 / HTML 주석 / 4-space 들여쓰기 / reference-style 링크 정의
+- `lib/claudemd-size-constants.js` SSoT 신설 — 35k/40k/45k 임계값을 3 위치 하드코딩에서 1 파일로 통합
+- `lib/verify-claudemd-size.js` Node 포트 — self-hosted runner 에서 `LC_ALL=en_US.UTF-8` locale 미설치 시 62% byte 부풀림 오탐 차단. `scripts/verify-claudemd-size.sh` 는 thin wrapper 로 잔존 (호환 100%)
+
+### Notes
+
+- 세션 누적 실측: PR #211 (v3.1.0 포함) 에서 도입한 awk 교체가 PR #212 / #217 의 large diff cross-validate 를 정상 통과시킴 (2000 라인 초과 조용한 exit 재발 0건)
+- `docs/lessons/` 가 10+ 파일로 확장될 때 Phase 3-B (Tier 1 블록 이동) 와 묶어 재평가 가능 — #213 후속 이슈 제안에 명시
+
+---
+
 ## [3.1.0] — 2026-04-22
 
 v3.0.0 이후 누적된 **2개 PR 통합 릴리스**. MINOR 분류는 [#195](https://github.com/coseo12/harness-setting/issues/195) 의 "N 적용 시나리오" 라벨 규약 (에이전트 행동 변화) 에 의해 결정. #194 / #199 / #207 동반 수록.

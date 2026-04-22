@@ -56,3 +56,10 @@ jobs:
       - name: CLAUDE.md 상대 링크 무결성 가드
         if: hashFiles('scripts/verify-docs-links.sh') != ''
         run: bash scripts/verify-docs-links.sh
+
+      # docs/lessons/ README 동기화 가드 (#213)
+      # Phase 3-A 에서 신설된 docs/lessons/ 디렉토리의 목차 README 누락 방지.
+      # 신규 레슨 파일이 README "파일 목록" 표에 등록되지 않으면 exit 1 로 PR 머지 차단.
+      - name: docs/lessons README 동기화 가드
+        if: hashFiles('scripts/verify-lessons-readme.sh') != ''
+        run: bash scripts/verify-lessons-readme.sh
