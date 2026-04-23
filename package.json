@@ -2,6 +2,10 @@
   "name": "@seo/harness-setting",
   "version": "3.3.0",
   "description": "Claude Code 워크플로우 템플릿 — 1인 개발자-AI 페어 프로그래밍 최적화",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coseo12/harness-setting.git"
+  },
   "bin": {
     "harness": "./bin/harness.js"
   },
