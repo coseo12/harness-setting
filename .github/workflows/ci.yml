@@ -277,6 +277,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        # pnpm/action-setup@v4 는 기본적으로 root package.json::packageManager 를 참조하나
+        # upstream 은 npm 프로젝트라 packageManager 필드가 없다. fixture 의 package.json 명시 필수.
+        with:
+          package_json_file: test/fixtures/${{ matrix.fixture }}/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 20
