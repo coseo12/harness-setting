@@ -70,6 +70,7 @@ harness-setting 자체는 **npm 단일 프로젝트**. CI `.github/workflows/ci.
 
 ```
 test/fixtures/pnpm-monorepo/
+├── .gitignore                # node_modules / dist (구조도 명시 — Gemini 교차검증 반영)
 ├── package.json              # packageManager: "pnpm@X", scripts.test: "pnpm -r build && pnpm -r test"
 ├── pnpm-workspace.yaml       # packages: ["packages/*"]
 ├── pnpm-lock.yaml            # fixture 전용 lockfile (frozen-lockfile 실행용)
@@ -118,7 +119,8 @@ fixture-smoke-test:
 - [ ] 의도적 regression 커밋으로 job red 증명 (예: fixture root `scripts.test` 를 `pnpm -r test --if-present` 로 변경 → vitest `Unknown option` 실패 → revert). PR 본문에 실패 Actions 링크 박제
 - [ ] 유닛 테스트 1개 추가 — `test/ci-split-migration/fixture-smoke-test.test.js` (이름 예시). ci.yml 에 `fixture-smoke-test` job 선언 + 최소 fixture 파일 존재 정규식 가드
 - [ ] `docs/harness-update-compat-checklist.md` 체크리스트 1~2 항목 (모노레포 재귀 호출 / dist-based exports) 이 fixture 로 실측 검증됨을 상호 참조 추가 (양방향 링크)
-- [ ] (가드) `package.json::files` 에 `test/` 가 포함되지 않음을 실측 확인 (현재 `bin/`, `lib/`, `.claude/`, `.github/`, `docs/`, `scripts/`, `CLAUDE.md`, `README.md` 만 — fixture 유출 없음)
+- [ ] **(필수 보안 가드)** `package.json::files` 에 `test/` 가 포함되지 않음을 실측 확인 + **유닛 테스트 1개 추가** (`package.json::files` 배열에 `test` / `test/` 접두어 문자열 부재 검증). 현재 `bin/`, `lib/`, `.claude/`, `.github/`, `docs/`, `scripts/`, `CLAUDE.md`, `README.md` 만 — fixture 유출 없음. 재발 방지를 위해 자동 테스트로 영속 가드 (Gemini 교차검증 권고 격상)
+- [ ] (DX) 루트 `package.json::scripts` 에 `test:fixture` 추가 (`cd test/fixtures/pnpm-monorepo && pnpm install && pnpm test` 류) — 로컬 개발자가 fixture 단독 실행 가능 (Gemini 교차검증 반영)
 - [ ] CHANGELOG `v3.2.0` 엔트리 추가 — `### Behavior Changes` 섹션 포함 (MINOR 분류 근거 박제)
 
 ### 테스트 ROI 5문 체크 (CLAUDE.md 스프린트 계약 §6)
@@ -187,6 +189,21 @@ fixture-smoke-test:
 
 - `pnpm install --frozen-lockfile` 이 실패하면 CI red. fixture 의 `package.json` 의존성을 바꾸면 lockfile 도 동기 업데이트 필수
 - developer 체크리스트에 "fixture 의존성 변경 시 lockfile 재생성 + 커밋" 명시
+
+### 교차검증 반영 사항
+
+박제 직후 Gemini 1회 교차검증 수행 (`cross_validate.sh architecture <본 ADR>`). outcome=applied, exit 0. Claude 편향 4종 셀프 체크 통과 (낙관적 일정: 재검토 #1 정량 모니터링 / 결합 간과: 5개 위험 명시 / 폐기 프레이밍: 없음 / 순수주의: 의도적 red + 유닛 가드 실용 결합).
+
+- **합의 (즉시 반영)**:
+  - `.gitignore` 를 최종 fixture 구조도에 명시 (기존 위험 #3 만 언급 → 구조도에도 박제해 구현 누락 차단)
+  - 루트 `package.json::scripts` 에 `test:fixture` 추가 — 로컬 DX 개선 (완료 기준에 추가)
+- **이견 수용 (권고 격상)**:
+  - 원안: "유닛 테스트 가드에 `test/` 가 `files` 에 포함되지 않음 검증 항목 추가 **권장**"
+  - 수정: "**필수 보안 가드**" 로 격상 + 자동 테스트 영속 가드 명시. 근거: 다운스트림 `harness update` 로 fixture 가 유출되면 다운스트림 저장소 크기 급증 + 선언되지 않은 경로 포함 리스크. Gemini "매우 중요한 가드, 실수로라도 발생해서는 안 될 문제" 지적 수용
+- **Claude 재분석으로 기각한 Gemini 제안**:
+  - `CONTRIBUTING.md` 에 lockfile 재생성 규칙 추가 — 현 저장소에 `CONTRIBUTING.md` 부재. 위험 #5 박제 위치 (ADR 본문) 로 충분 + ADR 이 곧 SSoT. 별도 기여 문서 신설은 범위 밖
+- **고유 발견 (후속 분리)**:
+  - 없음 (Gemini 제안 모두 본 ADR 스프린트 범위 내에서 처리 가능)
 
 ## 관련
 
