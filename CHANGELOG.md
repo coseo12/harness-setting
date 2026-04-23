@@ -7,6 +7,47 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.4.0] — 2026-04-23
+
+v3.3.0 이후 누적된 **MINOR 릴리스** — PATCH (회귀 가드 영속화) + MINOR (cross-validate / reviewer / CLAUDE.md 행동 규칙 각인) 혼합. MINOR 분류는 에이전트 지시어·스킬 절차 행동 변경으로 결정.
+
+**포함 범위**:
+
+- [#228](https://github.com/coseo12/harness-setting/issues/228) — 6c 리포팅 회귀 가드 3건 (PATCH) — PR [#231](https://github.com/coseo12/harness-setting/pull/231)
+- volt #66 / #67 / #69 반영 (MINOR, /volt-review) — PR [#232](https://github.com/coseo12/harness-setting/pull/232)
+
+### Behavior Changes
+
+- **cross-validate 스킬 §결과 분석에 "단계 0 수용 전 실측 sanity check" 선행 추가 (volt [#66](https://github.com/coseo12/volt/issues/66))** — Gemini 가 제안한 **수치 DoD 재정의·물리/환경 제약** 은 ADR/계약 박제 전 1회 실측으로 자가모순 확인 선행. AI (Gemini+Claude 공유) "엄격한 DoD = 안전" 편향으로 self-contradiction 을 간과하는 경향 차단. 교차검증 자체로는 이 편향을 걸러내지 못하므로 실측이 유일한 가드
+- **reviewer 에이전트 §절차에 "파괴적 리팩토링 체크리스트" (step 4) 추가 (volt [#69](https://github.com/coseo12/volt/issues/69))** — 상수 제거·SSoT 이동·함수 폐기 PR 에 4단계 점검 의무화: `(Grep) 저장소 전체 검색` / `(Dead Reference) 주석 SSoT 참조 확인` / `(Invariant Test) 상대 비율 불변식 테스트` / `(ADR Prediction) 예측 대비 실측 diff`. 주 모듈에서 상수 폐기 + 위성 모듈 독립 선언 잔존으로 상대 비율/스케일 drift 를 조용히 생성하는 "은닉 상수 drift" 패턴 차단. step 5/6 번호 재매핑
+- **CLAUDE.md 실전 교훈 §"인계 항목 실측 재검증" 에 "조사 국면 확장" 추가 (volt [#67](https://github.com/coseo12/volt/issues/67))** — Explore 정적 분석이 `(C) 미결정` 반환 시 20~30줄 debug 스크립트 실측 선행 권장. 정적 분석은 주석·타입 시그니처까지만 본다 — runtime 조건 분기 omission 버그는 실측이 유일한 확정 경로
+- **CLAUDE.md §"교차검증" 에 "수용 전 실측 sanity check" cross-ref 1줄 추가** — cross-validate 스킬 단계 0 과 교차 참조
+- **CLAUDE.md §"주석 계약 vs 구현 drift" 에 "숨은 상수 변형" cross-ref 1줄 추가** — reviewer 파괴적 리팩토링 체크리스트와 교차 참조
+
+### 내부 변경 요약
+
+**#228 (PR #231)** — 6c 리포팅 회귀 가드 3건 (non-blocking 제안 영속화)
+- `test/ci-6c-report-url.test.js` — 테스트 3건 추가 (132 → 135 pass)
+  - `REPORT_ISSUE_BASE_URL` ↔ `package.json::repository.url` drift 가드 (포크/리네임 조기 감지)
+  - `collectEnvMeta` `unreadable` 경로 (chmod 000, win32 skip, root readable silent skip)
+  - 극단 긴 `harnessVersion` 현 동작 영속 관찰 — 갈래 (a) 관찰만 선택 (premature abstraction 회피)
+- `package.json` — npm 표준 `repository` 필드 추가 (drift 가드 SSoT). metadata 만, 행동 변화 없음
+
+**volt #66 #67 #69 (PR #232)** — harness 행동 규칙 승격
+- `.claude/skills/cross-validate/SKILL.md` — §결과 분석 단계 0 추가 (+1 line)
+- `.claude/agents/reviewer.md` — §절차 step 4 파괴적 리팩토링 체크리스트 추가 + 5/6 번호 재매핑 + 카테고리 볼드 레이블 (+9 / -2 lines, cross-validate Gemini 제안 수용 후속 커밋 포함)
+- `CLAUDE.md` — cross-ref 3줄 추가 (+3 lines, 28470 → 29533 code points, 35k 임계 여유 5467)
+
+### Notes
+
+- **volt #65 (auto-close 비결정) / #68 (Fact-First 가시성 침식) 은 의도적 스킵** — #65 는 1회 관찰 (본문 자체가 3회 대기 명시), #68 은 astro-simulator 도메인 특수로 일반 원칙이 기존 CRITICAL #3 / "빌드 성공 ≠ 동작" 으로 커버됨. 지식 컴파일 규약 준수 (1회 관찰 즉시 규칙화 금지)
+- **cross-validate 박제 직후 루틴 (volt #23) 실측 재현** — PR #232 자체를 Gemini 로 교차검증 (outcome=applied). 고유 발견 "볼드 레이블" 1건 수용 → 후속 커밋 `ee5f5588`. CLAUDE.md 크기 주의 권고는 §비대화 방지 정량 게이트로 기 커버됨 (오탐 아님, 중복 반영 불필요)
+- **Gemini API 429 재시도 5회 후 정상 응답** — capacity 소진 중에도 스크립트 레벨 retry 로 완주. claude-only 폴백 박제 불필요 (outcome=applied)
+- **PR #231 QA sub-agent 의 `chmod 000` 회귀 가드 변조-원복 사이클** — 3건 모두 기대대로 FAIL 재현 후 원복 확인, 작업 트리 clean. 회귀 감지 실효성 검증 완료
+- 선행 관찰: volt [#66](https://github.com/coseo12/volt/issues/66) / [#67](https://github.com/coseo12/volt/issues/67) / [#69](https://github.com/coseo12/volt/issues/69)
+
+---
+
 ## [3.3.0] — 2026-04-23
 
 v3.2.0 이후 **단일 PR MINOR 릴리스** — v3.0.0 `.github/workflows/` 책임 분리 마이그레이션의 6c 경로 리포팅 자동화. 사용자 수정 감지로 자동 분리가 스킵된 다운스트림이 환경 메타를 담은 **pre-filled GitHub 이슈 URL** 로 원클릭 리포트할 수 있도록 확장.
