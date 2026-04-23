@@ -28,6 +28,27 @@ v3.0.0 부터 `.github/workflows/` 가 책임 경계로 분리됐다:
 
 6a/6b 는 자동 완료. 6c 는 자동 분리가 위험하므로 수동 절차가 필요하다.
 
+## 6c 감지 시 리포팅 (선택적이나 권장)
+
+`harness update --apply-all-safe` 가 6c 경로를 감지하면 stderr 로 **`[ACTION REQUIRED]` 헤더 + pre-filled 이슈 URL** 을 출력한다. 예:
+
+```
+[ACTION REQUIRED] harness: ci.yml 가드 블록 마이그레이션 스킵 (6c — 사용자 수정 감지)
+  수동 가이드: docs/harness-ci-migration.md
+  리포트 (pre-filled URL, 클릭 후 관찰/동기만 보완): https://github.com/coseo12/harness-setting/issues/new?template=6c-migration-report.md&title=...&body=...
+```
+
+URL 을 브라우저에서 열면 `.github/ISSUE_TEMPLATE/6c-migration-report.md` 템플릿이 로드되며, 다음 환경 메타가 **자동 채워져 있다**:
+
+- harness version (다운스트림 `node_modules/@seo/harness-setting/package.json::version`)
+- Node version (`process.version`)
+- OS (`process.platform-process.arch`, 예: `darwin-arm64`)
+- ci.yml sha256 앞 12자리 (이슈 중복 제출 식별용)
+
+제출자는 남은 섹션 (가드 블록 수정 방법 / 수정 동기 / upstream 확장 제안) 만 보완하면 된다. 본 리포트는 upstream 이 6c 경로 발동 빈도·패턴을 수집해 향후 자동 분리 로직이나 공식 `--verbose` 같은 옵션을 검토하는 근거가 된다 (ADR `## 결과·재검토 조건` 연계).
+
+> URL 만 클릭하고 닫아도 괜찮다 — 이슈 제출 의무는 없다. 제출이 부담스럽다면 수동 마이그레이션만 진행하고 넘어가도 된다.
+
 ## 수동 마이그레이션 절차 (6c 경로)
 
 ### 1. 사전 백업
