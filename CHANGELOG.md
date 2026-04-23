@@ -7,7 +7,13 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
-## [Unreleased]
+## [3.3.0] — 2026-04-23
+
+v3.2.0 이후 **단일 PR MINOR 릴리스** — v3.0.0 `.github/workflows/` 책임 분리 마이그레이션의 6c 경로 리포팅 자동화. 사용자 수정 감지로 자동 분리가 스킵된 다운스트림이 환경 메타를 담은 **pre-filled GitHub 이슈 URL** 로 원클릭 리포트할 수 있도록 확장.
+
+**포함 범위**:
+
+- [#208](https://github.com/coseo12/harness-setting/issues/208) — 6c 경로 리포팅 자동화 (pre-filled URL + 마크다운 템플릿, MINOR) — PR [#227](https://github.com/coseo12/harness-setting/pull/227)
 
 ### Behavior Changes
 
