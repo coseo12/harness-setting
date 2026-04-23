@@ -55,6 +55,14 @@ test('fixture-smoke-test job 이 핵심 step 패턴을 유지한다', () => {
 
   // 필수 step 패턴
   assert.match(block, /pnpm\/action-setup@v\d+/, 'pnpm/action-setup@v4 사용');
+  // pnpm/action-setup 은 upstream 이 npm 프로젝트 (root package.json 에 packageManager 없음)
+  // 이므로 fixture package.json 을 명시적으로 가리켜야 한다. 이 파라미터 누락은 CI 에서
+  // "Error: No pnpm version is specified" 로 즉시 실패 (관찰 완료). 영속 가드 필요.
+  assert.match(
+    block,
+    /package_json_file:\s*test\/fixtures\/\$\{\{\s*matrix\.fixture\s*\}\}\/package\.json/,
+    'pnpm/action-setup 에 package_json_file 명시 (upstream packageManager 부재 보호)',
+  );
   assert.match(block, /actions\/setup-node@v\d+/, 'actions/setup-node 사용');
   assert.match(block, /node-version:\s*20/, 'node-version 20 고정');
   assert.match(block, /cache:\s*['"]pnpm['"]/, 'pnpm cache 활성');
