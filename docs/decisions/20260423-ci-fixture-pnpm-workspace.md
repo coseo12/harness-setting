@@ -111,6 +111,8 @@ fixture-smoke-test:
         pnpm run --if-present test
 ```
 
+> **각주 (Amendment 2026-04-23, v3.2.0 릴리스 반영)**: upstream 루트 `package.json` 에 `packageManager` 필드가 없어 `pnpm/action-setup@v4` 가 자동 감지 실패. 실제 구현 (PR #223) 은 `pnpm/action-setup@v4` step 에 `with: package_json_file: test/fixtures/${{ matrix.fixture }}/package.json` 를 명시해 fixture 내부 `packageManager` 를 참조하게 했다. 위 블록은 원 설계 예시이며, 실제 적용본은 `.github/workflows/ci.yml` 을 기준으로 한다. 설계 결정 축 (β / 최소 fixture / 의도적 red + 유닛 가드) 은 불변.
+
 ### 스프린트 완료 기준 (측정 가능)
 
 - [ ] `test/fixtures/pnpm-monorepo/` 디렉토리 존재 + 최소 7 파일 (`package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml` / `packages/lib/{package.json,src/index.ts}` / `packages/app/{package.json,src/index.test.ts}`)
