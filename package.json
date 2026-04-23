@@ -6,7 +6,8 @@
     "harness": "./bin/harness.js"
   },
   "scripts": {
-    "test": "node --test \"test/**/*.test.js\""
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:fixture": "cd test/fixtures/pnpm-monorepo && pnpm install --frozen-lockfile && pnpm run --if-present test"
   },
   "files": [
     "bin/",

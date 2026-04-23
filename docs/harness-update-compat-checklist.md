@@ -24,6 +24,8 @@
 
 **Yes** 이면 CI 의 `npm test` / `pnpm test` 호출 시 **모든 workspace 가 빌드·테스트에 참여**. 각 workspace 가 CI 환경에서 정상 동작하는지 개별 확인 필요. 특히 빌드 산출물 의존이 있으면 다음 항목으로.
 
+> **실측 fixture 쌍둥이** — 본 체크 항목은 [`test/fixtures/pnpm-monorepo/`](../test/fixtures/pnpm-monorepo/) 로 upstream CI 에서 실측 검증된다 (issue [#190](https://github.com/coseo12/harness-setting/issues/190), [ADR 20260423-ci-fixture-pnpm-workspace](decisions/20260423-ci-fixture-pnpm-workspace.md)). fixture root `scripts.test` 가 `pnpm -r --filter ./packages/lib run build && pnpm -r run test` 로 재귀 호출 + 빌드 선행을 재현. 다운스트림에서 동일 구조라면 upstream `fixture-smoke-test` job 초록 = 해당 경로가 CI 에서 동작함이 보증.
+
 ### 2. 빌드 산출물 기반 exports 의존
 
 - [ ] 워크스페이스 중 `package.json::exports` / `main` / `module` 이 `dist/...` / `build/...` / `lib/...` 을 가리키는 항목이 있는가?
@@ -31,6 +33,8 @@
 **Yes** 이면 `pnpm install` / `npm ci` 직후 **import 불가 상태**. 빌드 선행 필요 → harness 의 detect-and-test 단순 `install → test` 파이프라인 **부적합**. 선택:
 - 사전 `build` step 추가 (`pnpm -r build && pnpm -r test`) — 다운스트림 전용 ci.yml 수정 필요
 - 또는 `scripts.test` 를 빌드 포함 명령으로 (`pnpm -r build && pnpm -r --stream test`)
+
+> **실측 fixture 쌍둥이** — [`test/fixtures/pnpm-monorepo/packages/lib/`](../test/fixtures/pnpm-monorepo/packages/lib/) 의 `package.json` 이 `main: ./dist/index.js` + `exports["."]` dist 경로를 유지하고, [`packages/app/`](../test/fixtures/pnpm-monorepo/packages/app/) 이 `workspace:*` 로 이를 소비한다. fixture root `scripts.test` 가 lib build 를 선행 실행하여 v2.28.2 / v2.29.1 부류 dist-based exports 의존 regression 을 upstream PR 단계에서 차단. 상세: [ADR 20260423](decisions/20260423-ci-fixture-pnpm-workspace.md).
 
 ### 3. 특수 빌드 도구 의존
 
@@ -77,6 +81,8 @@ harness v2.15.0 → v2.29.1 적용 시 6회 연속 push-fail-fix 루프:
 
 ## 관련
 
+- [`test/fixtures/pnpm-monorepo/`](../test/fixtures/pnpm-monorepo/) — 본 체크리스트 1~2 항목의 **실측 쌍둥이 fixture** (issue [#190](https://github.com/coseo12/harness-setting/issues/190))
+- [ADR 20260423-ci-fixture-pnpm-workspace](decisions/20260423-ci-fixture-pnpm-workspace.md) — fixture 설계 (축 3개 비교)
 - volt [#62](https://github.com/coseo12/volt/issues/62) — 본 체크리스트 원안
 - volt [#64](https://github.com/coseo12/volt/issues/64) — upstream CI 에 pnpm/WASM 스모크 fixture 추가 제안 (별도 실행 이슈)
 - volt [#60](https://github.com/coseo12/volt/issues/60) — "다운스트림 실측이 최종 가드" (본 체크리스트의 상위 원칙)

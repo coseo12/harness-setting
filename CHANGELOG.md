@@ -7,6 +7,24 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+### Behavior Changes
+
+- **CI `fixture-smoke-test` job 추가 (`.github/workflows/ci.yml`)** — pnpm workspace + dist-based exports 경로를 upstream PR 단계에서 실측 검증. v2.28.2 (`pnpm: not found`) / v2.29.1 (`--if-present` forwarding) 부류 regression 이 upstream 에서는 초록이고 다운스트림에서만 빨강으로 드러나던 blindspot 차단. 다운스트림에 직접 영향 없으나, harness 자체 릴리스 품질 향상으로 `harness update` 회귀 빈도 감소 기대
+- **`package.json::files` 누수 가드 영속화 (`test/package-files-no-test-leak.test.js`)** — `test/fixtures/*` 가 실수로 `files` 배열에 포함돼 다운스트림에 publish 되는 것을 유닛 테스트로 차단. Gemini 교차검증에서 "매우 중요한 보안 가드" 로 격상
+- **DX: 루트 `scripts.test:fixture` 추가** — 로컬에서 `npm run test:fixture` 로 fixture 독립 실행 가능 (`cd test/fixtures/pnpm-monorepo && pnpm install --frozen-lockfile && pnpm run --if-present test`)
+
+### Notes
+
+- 이 Unreleased 섹션은 **MINOR 릴리스 `v3.2.0`** 으로 통합 예정. 버전 bump 와 릴리스 노트 재구성은 별도 release PR 에서 처리
+- 신규 fixture: `test/fixtures/pnpm-monorepo/` — `@fixture/lib` (dist-based exports) + `@fixture/app` (workspace:* 소비) 최소 구조
+- 설계 ADR: [docs/decisions/20260423-ci-fixture-pnpm-workspace.md](docs/decisions/20260423-ci-fixture-pnpm-workspace.md) — 축 3개 (job 구조 β / 최소 fixture / 의도적 red + 유닛 가드) 비교
+- 범위 밖 (후속 이슈): WASM fixture, yarn/bun matrix 확장
+- 근거 이슈: [#190](https://github.com/coseo12/harness-setting/issues/190), 선행 관찰 volt [#62](https://github.com/coseo12/volt/issues/62) / [#64](https://github.com/coseo12/volt/issues/64)
+
+---
+
 ## [3.1.2] — 2026-04-23
 
 v3.1.1 이후 누적된 **단일 PR PATCH 릴리스**. 행동 변화 없음 (도구 + ADR 추가, 에이전트 파일 미수정).
