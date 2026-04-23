@@ -257,3 +257,37 @@ jobs:
       #   - CLAUDE.md 각인 예산 가드
       #   - CLAUDE.md 상대 링크 무결성 가드
       # ============================================================
+
+  # ============================================================
+  # fixture-smoke-test — 다운스트림 pnpm workspace 경로 실측 가드
+  # (issue #190, ADR: docs/decisions/20260423-ci-fixture-pnpm-workspace.md)
+  #
+  # 배경: upstream 저장소는 npm 단일 프로젝트라 detect-and-test 의 pnpm 분기가
+  # 평상시 실행되지 않는다 → v2.28.2 / v2.29.1 부류 regression 이 upstream 에서
+  # 초록, 다운스트림에서만 빨강으로 드러나는 blindspot 발생.
+  # 본 job 은 test/fixtures/pnpm-monorepo 로 pnpm workspace + dist-based exports
+  # 실측 경로를 확보해 PR 머지 전에 차단한다.
+  # matrix.fixture 는 향후 확장 지점 (예: yarn-monorepo, pnpm-wasm-monorepo).
+  # ============================================================
+  fixture-smoke-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fixture: [pnpm-monorepo]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        # pnpm/action-setup@v4 는 기본적으로 root package.json::packageManager 를 참조하나
+        # upstream 은 npm 프로젝트라 packageManager 필드가 없다. fixture 의 package.json 명시 필수.
+        with:
+          package_json_file: test/fixtures/${{ matrix.fixture }}/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: test/fixtures/${{ matrix.fixture }}/pnpm-lock.yaml
+      - name: fixture install + test
+        working-directory: test/fixtures/${{ matrix.fixture }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run --if-present test
