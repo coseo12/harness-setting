@@ -7,6 +7,35 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.1.2] — 2026-04-23
+
+v3.1.1 이후 누적된 **단일 PR PATCH 릴리스**. 행동 변화 없음 (도구 + ADR 추가, 에이전트 파일 미수정).
+
+**포함 범위**:
+
+- [#184](https://github.com/coseo12/harness-setting/issues/184) — sub-agent 반환 JSON SSoT 런타임 variance 검증 (PATCH + ADR) — PR [#220](https://github.com/coseo12/harness-setting/pull/220)
+
+### Behavior Changes: None — 도구 + ADR 추가
+
+신규 `lib/verify-agent-return.js` / `scripts/verify-agent-return.sh` 는 메인 오케스트레이터 opt-in 호출 도구이며 에이전트 파일(`.claude/agents/*.md`)은 미수정. hook 자동화 없음 → 에이전트가 같은 입력에 다르게 동작하지 않음. 본 섹션 명시는 CLAUDE.md `### 릴리스` 규약 (PATCH 도 frozen 변경 시 `### Behavior Changes` 명시) 준수.
+
+### 내부 변경 요약
+
+**#184 (PR #220)** — 정적 `verify-agent-ssot.sh` 의 blindspot (sub-agent 런타임 반환 variance) 해소
+- `docs/decisions/20260422-subagent-runtime-variance-defense.md` 신규 — ADR 박제 (후보 A/B/C/D 비교, 채택 A: 메인 post-parse 헬퍼)
+- `lib/verify-agent-return.js` 신규 — 9 코어 필드 존재 + 타입 + enum 검증. `--json` / `--file` / `--stdin` 3 입력 모드
+- `scripts/verify-agent-return.sh` 신규 — Node 호출 thin wrapper (shell 호환)
+- `test/verify-agent-return.test.js` 신규 — 16 테스트 (3 variance 패턴 실측 재현: #167/#178 필드 누락, #170 null 이탈)
+
+### Notes
+
+- volt [#57](https://github.com/coseo12/volt/issues/57) "3회 박제 규약" 발동 근거 실측 — #167 / #170 / #178 3건에서 정적 45/45 pass + 런타임 variance 병존 관찰
+- 후보 B (jq schema) 는 ADR 20260420 (jq NO-OP) 와 상충하여 기각 — ADR 간 일관성 유지
+- 후보 C (LLM 자가 체크) 는 variance 원인 = 검증 주체의 논리적 약점으로 기각
+- 후보 D (3층 방어) 는 본 범위 외 — ADR "미래 확장 여지" 에 명시
+
+---
+
 ## [3.1.1] — 2026-04-22
 
 v3.1.0 이후 누적된 **2개 PR 통합 PATCH 릴리스**. 행동 변화 없음 (문서 + 가드 강화).
