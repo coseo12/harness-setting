@@ -7,6 +7,38 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.3.0] — 2026-04-23
+
+v3.2.0 이후 **단일 PR MINOR 릴리스** — v3.0.0 `.github/workflows/` 책임 분리 마이그레이션의 6c 경로 리포팅 자동화. 사용자 수정 감지로 자동 분리가 스킵된 다운스트림이 환경 메타를 담은 **pre-filled GitHub 이슈 URL** 로 원클릭 리포트할 수 있도록 확장.
+
+**포함 범위**:
+
+- [#208](https://github.com/coseo12/harness-setting/issues/208) — 6c 경로 리포팅 자동화 (pre-filled URL + 마크다운 템플릿, MINOR) — PR [#227](https://github.com/coseo12/harness-setting/pull/227)
+
+### Behavior Changes
+
+- **v3.0.0 마이그레이션 6c 경로 stderr 포맷 확장 (`lib/migrations/2.31.0-to-3.0.0.js`)** — 사용자 수정 감지로 자동 분리가 스킵될 때 stderr 메시지 앞에 `[ACTION REQUIRED]` 헤더가 붙고, 환경 메타 (harness version / Node version / OS / ci.yml sha256 앞 12자리) 가 **pre-filled 된 GitHub 이슈 URL** 이 출력된다. 사용자는 URL 을 클릭해 `.github/ISSUE_TEMPLATE/6c-migration-report.md` 템플릿으로 이동 후 관찰/동기만 보완해 제출할 수 있다. `notes` 배열 내용도 동일하게 확장
+- **신규 이슈 템플릿 `.github/ISSUE_TEMPLATE/6c-migration-report.md`** — 6c 경로 리포트 전용 classic markdown 템플릿. 환경 메타 자동 수집 + 관찰/동기/재현 섹션 구조 제공. 라벨은 기존 `enhancement` + `scope:framework` 재사용 (신규 라벨 생성 없음)
+- **수동 가이드 (`docs/harness-ci-migration.md`) §"6c 감지 시 리포팅" 섹션 신규** — stderr URL 사용법과 pre-filled 필드 명세. 제출 의무는 없음 (선택적)
+
+### 내부 변경 요약
+
+**#208** — 6c 경로 리포팅 자동화 (volt-style downstream 시그널 수집)
+
+- `lib/migrations/2.31.0-to-3.0.0.js` — `collectEnvMeta(cwd)` / `build6cReportUrl(meta)` 헬퍼 추가 (테스트에서 import 가능하도록 `_helpers` 로 export). 6c 분기 stderr / notes 에 ACTION REQUIRED 헤더 + pre-filled URL 삽입. 기존 6a / 6b / already-migrated 경로와 멱등성 불변
+- `.github/ISSUE_TEMPLATE/6c-migration-report.md` 신규 — frontmatter + 환경 메타 / 관찰 내용 / 재현 정보 섹션
+- `test/ci-6c-report-url.test.js` 신규 — 10 테스트 (collectEnvMeta 3 경로, URL 포맷 / 환경 메타 삽입 / title 식별자 / 한글·특수문자 round-trip / URL 길이 / raw 한글 부재 / 6c 통합 / 템플릿 파일 존재)
+- `docs/harness-ci-migration.md` — "6c 감지 시 리포팅" 섹션 추가
+
+### Notes
+
+- URL 길이는 표준 메타 기준 약 1.4KB 로 GitHub 제한 (~8KB) 대비 여유
+- body 파라미터는 환경 메타 섹션만 자동 채우고 나머지는 placeholder 로 둠 (전체 템플릿 복제 시 drift 위험 + URL 팽창). GitHub 이 `body=` 제공 시 `template=` 의 본문을 교체하는 동작에 대응
+- 라벨 `migration:6c` 는 기존에 존재하지 않아 신규 생성 없이 `enhancement` + `scope:framework` 조합 재사용 (신규 라벨 도입 여부는 본 범위 밖)
+- 선행 관찰: PR [#206](https://github.com/coseo12/harness-setting/pull/206) ADR 교차검증 (Gemini 2.5-pro) 고유 발견 — 범위 밖으로 #208 분리
+
+---
+
 ## [3.2.0] — 2026-04-23
 
 v3.1.2 이후 **단일 PR MINOR 릴리스** — CI 자체 검증 경로 확장. upstream 3중 방어의 다운스트림 blindspot (pnpm workspace + dist-based exports) 을 fixture 로 영속 가드.
