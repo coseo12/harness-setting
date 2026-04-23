@@ -1,0 +1,5 @@
+# fixture 안에 설치되는 런타임 산출물은 커밋하지 않는다
+# (CI 는 frozen-lockfile 로 매번 재설치, 로컬 개발자도 동일)
+node_modules/
+packages/*/node_modules/
+packages/*/dist/

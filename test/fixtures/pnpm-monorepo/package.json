@@ -1,0 +1,14 @@
+{
+  "name": "@fixture/pnpm-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "harness CI fixture — pnpm workspace + dist-based exports regression guard (issue #190)",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "pnpm -r --filter ./packages/lib run build",
+    "test": "pnpm -r --filter ./packages/lib run build && pnpm -r run test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

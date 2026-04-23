@@ -7,6 +7,39 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.2.0] — 2026-04-23
+
+v3.1.2 이후 **단일 PR MINOR 릴리스** — CI 자체 검증 경로 확장. upstream 3중 방어의 다운스트림 blindspot (pnpm workspace + dist-based exports) 을 fixture 로 영속 가드.
+
+**포함 범위**:
+
+- [#190](https://github.com/coseo12/harness-setting/issues/190) — CI fixture: pnpm workspace 스모크 테스트 (MINOR + ADR) — PR [#223](https://github.com/coseo12/harness-setting/pull/223)
+
+### Behavior Changes
+
+- **CI `fixture-smoke-test` job 추가 (`.github/workflows/ci.yml`)** — pnpm workspace + dist-based exports 경로를 upstream PR 단계에서 실측 검증. v2.28.2 (`pnpm: not found`) / v2.29.1 (`--if-present` forwarding) 부류 regression 이 upstream 에서는 초록이고 다운스트림에서만 빨강으로 드러나던 blindspot 차단. 다운스트림에 직접 영향 없으나, harness 자체 릴리스 품질 향상으로 `harness update` 회귀 빈도 감소 기대
+- **`package.json::files` 누수 가드 영속화 (`test/package-files-no-test-leak.test.js`)** — `test/fixtures/*` 가 실수로 `files` 배열에 포함돼 다운스트림에 publish 되는 것을 유닛 테스트로 차단. Gemini 교차검증에서 "매우 중요한 보안 가드" 로 격상
+- **DX: 루트 `scripts.test:fixture` 추가** — 로컬에서 `npm run test:fixture` 로 fixture 독립 실행 가능 (`cd test/fixtures/pnpm-monorepo && pnpm install --frozen-lockfile && pnpm run --if-present test`)
+
+### 내부 변경 요약
+
+**#190 (PR #223)** — upstream self-coverage 확장
+- `test/fixtures/pnpm-monorepo/` 신규 — `@fixture/lib` (dist-based exports) + `@fixture/app` (`workspace:*` 소비) 최소 구조 13 파일 (`.gitignore` / `package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml` / `packages/{lib,app}/*`)
+- `.github/workflows/ci.yml` — 신규 `fixture-smoke-test` job (matrix.fixture 확장 지점 + `package_json_file` 명시로 root `packageManager` 부재 대응)
+- `docs/decisions/20260423-ci-fixture-pnpm-workspace.md` 신규 — ADR 박제 (축 3개 비교)
+- `docs/harness-update-compat-checklist.md` — 체크리스트 1~2 항목 ↔ fixture 양방향 링크
+- `test/ci-fixture-smoke-test.test.js` / `test/package-files-no-test-leak.test.js` 신규 — 유닛 가드 2개 (CI job 선언 정규식 + `files` 누수 blacklist/whitelist 이중 방어)
+- `scripts.test:fixture` DX 스크립트
+
+### Notes
+
+- regression signature 는 pnpm 9 에서 `--if-present` forwarding 이 재현되지 않아 **dist-based exports 의존 실패** 로 전환 (v2.29.1 의도를 더 정확히 표현). 실패 Actions 링크는 PR #223 에 박제
+- ADR §최종 CI job 구조 블록에 `package_json_file` 각주 추가 (reviewer non-blocking 제안 #1, footnote 로 Amendment 해결)
+- 범위 밖 (후속 이슈): WASM fixture (ADR 위험 #4), yarn/bun matrix 확장 (ADR 재검토 조건 #3)
+- 선행 관찰: volt [#62](https://github.com/coseo12/volt/issues/62) / [#64](https://github.com/coseo12/volt/issues/64)
+
+---
+
 ## [3.1.2] — 2026-04-23
 
 v3.1.1 이후 누적된 **단일 PR PATCH 릴리스**. 행동 변화 없음 (도구 + ADR 추가, 에이전트 파일 미수정).
