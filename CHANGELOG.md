@@ -7,6 +7,52 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.5.0] — 2026-04-25
+
+v3.4.0 이후 누적된 **MINOR 릴리스** — 볼트 6개 이슈 (#71 #70 #68 #72 #74 #73 #75 #76) 의 하네스 반영. MINOR 분류는 `qa.md` / `pm.md` 에이전트 행동 규칙 신규 + CLAUDE.md 스프린트 계약 6-a / 10-a sub-rule 추가로 결정.
+
+**포함 범위**:
+
+- volt #71 / #70 / #68 반영 (MINOR, /volt-review) — PR [#235](https://github.com/coseo12/harness-setting/pull/235)
+- volt #72 / #74 / #73 / #75 / #76 반영 (MINOR, /volt-review) — PR [#236](https://github.com/coseo12/harness-setting/pull/236)
+
+### Behavior Changes
+
+- **CLAUDE.md §"스프린트 계약" 에 6-a "순수 함수 추출 우선 원칙" 신규 (volt [#71](https://github.com/coseo12/volt/issues/71))** — ROI 5문 체크의 "yes 편향" 을 차단하는 보강 3문 + 분기 조건이 입력 타입만으로 결정 / 사이드 이펙트가 반환값 소비로 분리 가능 / 다른 컨텍스트 재사용 여지 — 3조건 중 하나라도 해당 시 **ROI 체크 결과와 무관하게 추출 + 단위 테스트 우선**. "테스트 생략 판정의 drift" 도 회귀 생성원 (volt #49 의 역방향)
+- **CLAUDE.md §"스프린트 계약" 에 10-a "메인 오케스트레이터 SSoT JSON 부호 규약 자기 점검" 신규 (volt [#73](https://github.com/coseo12/volt/issues/73) / [#75](https://github.com/coseo12/volt/issues/75))** — SSoT JSON 필드명이 의미 단어 (`regression` / `error` / `loss` / `diff`) 를 포함할 때 부호 규약은 필드명만으론 판정 불가. 메인 오케스트레이터가 수치 DoD 판정 전 **리포트 본문 선행 확인 + 부호 규약 인용** 의무. 극단값 (±100% 이상) 은 부호 규약 재확인 자동 트리거. 항목 10 "측정 방법 검증 우선" 의 메인 오케스트레이터 버전
+- **CLAUDE.md §"빌드 성공 ≠ 동작하는 앱" 에 "monorepo dist stale 변형" sub-bullet 추가 (volt [#70](https://github.com/coseo12/volt/issues/70))** — monorepo core 패키지 `src/` 수정 후 앱 dev 서버가 기존 `dist/` 아티팩트를 참조해 수정 미반영. QA 재검증이 결정적으로 동일 실패를 재현해 "수정 효과 없음" 오판 유도. 방어: `pnpm --filter <pkg> build` 선행 + dev 재기동 / `--watch` / tsconfig `paths` src 직접 매핑
+- **CLAUDE.md §"빌드 성공 ≠ 동작하는 앱" 에 "엄격 원칙 + 동적 적응 부재 함정" sub-bullet 추가 (volt [#68](https://github.com/coseo12/volt/issues/68))** — 단일 축 엄격 원칙 (사실성/정확/무결) + 동적 문맥 적응 부재 = 자동 검증 PASS / 실사용 실패. 원칙 박제 직후 실 뷰포트 시뮬레이션 필수. 상세: [docs/lessons/strict-principle-dynamic-context.md](docs/lessons/strict-principle-dynamic-context.md)
+- **CLAUDE.md §"빌드 성공 ≠ 동작하는 앱" 에 "DoD PASS ≠ 제품 동작" sub-bullet 추가 (volt [#72](https://github.com/coseo12/volt/issues/72) / [#74](https://github.com/coseo12/volt/issues/74))** — 수치 DoD 전부 PASS 여도 기본 진입 화면 (default URL) 이 빈 화면인 UX 회귀 가능. **원칙 폐기 ADR 은 downstream UX 계약 전체 재검증 동반 필수**. UX DoD 는 성능 DoD 와 별도 축으로 박제. 상세: [docs/lessons/ux-dod-vs-product-behavior.md](docs/lessons/ux-dod-vs-product-behavior.md)
+- **CLAUDE.md §"sub-agent multi-turn 라운드 이탈" 에 "PM 이슈 DoD 구조 drift 재현" 각주 추가 (volt [#76](https://github.com/coseo12/volt/issues/76))** — volt #34 가 1회성 교훈이 아닌 반복 패턴임을 확증 (astro-simulator P11-B.2 PM 재계약에서 원본 D5 재배치로 사라진 사례)
+- **`.claude/agents/qa.md` §2 브라우저 검증 선행 조건 체크리스트 (volt [#70](https://github.com/coseo12/volt/issues/70))** — monorepo core 수정 시 build → dev 재기동 선행 조건 추가. "수정 미반영 false-positive" 차단
+- **`.claude/agents/pm.md` multi-turn 라운드 이어받기 규칙 §"DoD 구조 유지 제약" 신규 (volt [#76](https://github.com/coseo12/volt/issues/76))** — 원본 DoD ID 의미 변경 금지 / 사용자 응답은 각 DoD 파라미터 (수치/경계/선택지) 만 조정 / 라운드 N+1 출력에 **DoD 변경 전/후 diff 명시 의무**. 원본 DoD 구조 변경 요구 감지 시 **재계약 필요를 명시적으로 알리고 사용자 재확인 후 진행**
+
+### 내부 변경 요약
+
+**volt #71 #70 #68 (PR #235)** — ROI 보강 + monorepo dist + 엄격 원칙 함정
+- `CLAUDE.md` — 스프린트 계약 6-a 신규 + 빌드 성공 ≠ 동작 섹션 sub-bullet 2건 (+12 lines)
+- `.claude/agents/qa.md` — §2 선행 조건 체크리스트 (+11 lines)
+- `docs/lessons/strict-principle-dynamic-context.md` — 신규 (+67 lines)
+- `docs/lessons/README.md` — 인덱스 1줄 추가
+
+**volt #72 #74 #73 #75 #76 (PR #236)** — UX DoD + SSoT 부호 규약 + PM DoD 구조 drift
+- `CLAUDE.md` — 10-a sub-rule / UX DoD sub-bullet / #76 각주 (+3 lines)
+- `.claude/agents/pm.md` — §"DoD 구조 유지 제약" 신규 섹션 (+18 lines)
+- `docs/lessons/ux-dod-vs-product-behavior.md` — 신규 (+71 lines)
+- `docs/lessons/README.md` — 인덱스 1줄 추가
+
+### Notes
+
+- **CLAUDE.md 각인 예산** — 31,425 → 33,166 chars (35,000 warn 임계 여유 1,834). 다음 볼트 반영 사이클에서 경고 임계 돌파 가능성 있음. 실전 교훈 블록 중 일부를 `docs/lessons/` 로 추가 승격 검토 필요
+- **volt #65 (auto-close 비결정) 스킵 지속** — 1회 관찰 상태 유지. 본 릴리스에서도 재현 추적 대기. 지식 컴파일 규약 "3회 이상 관찰 시 행위 규칙 박제" 미충족
+- **cross-repo 볼트 이슈 non-close 정합** — volt 이슈는 auto-close 대상이 아니므로 harness 릴리스 후 수동 close 또는 `capture-merge` 스킬로 처리
+- **볼트 이슈 중복 통합 패턴** — #72=#74, #73=#75 는 같은 사례를 재캡처한 중복 이슈. 통합 반영 시 lesson 1 파일 + rule 1 항목으로 처리, CHANGELOG 에는 양쪽 링크 명시
+- **PR #235 reviewer non-blocking 권고** (docs/lessons README 진입 추가 / lessons 서두에 volt 원본 vs 승격 분화 목적 선언 / qa.md §2-선행 번호 관습) — 본 릴리스 범위 밖 후속 이슈 후보
+- **PR #236 reviewer non-blocking 권고** (CLAUDE.md 여유 1,834 chars warn 임계 근접 / 10-a 단락 560 chars 재현 사례 누적 시 분기 / 실전 교훈 블록 근거 표기 방식 명시화) — 마찬가지로 후속 이슈 후보
+- 선행 관찰: volt [#68](https://github.com/coseo12/volt/issues/68) / [#70](https://github.com/coseo12/volt/issues/70) / [#71](https://github.com/coseo12/volt/issues/71) / [#72](https://github.com/coseo12/volt/issues/72) / [#73](https://github.com/coseo12/volt/issues/73) / [#74](https://github.com/coseo12/volt/issues/74) / [#75](https://github.com/coseo12/volt/issues/75) / [#76](https://github.com/coseo12/volt/issues/76)
+
+---
+
 ## [3.4.0] — 2026-04-23
 
 v3.3.0 이후 누적된 **MINOR 릴리스** — PATCH (회귀 가드 영속화) + MINOR (cross-validate / reviewer / CLAUDE.md 행동 규칙 각인) 혼합. MINOR 분류는 에이전트 지시어·스킬 절차 행동 변경으로 결정.
