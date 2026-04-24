@@ -147,6 +147,7 @@ AI는 자기 작업을 과도하게 긍정 평가하는 경향이 있으므로, 
    - 근거:
      - volt [#32](https://github.com/coseo12/volt/issues/32) — 지구 GR 세차 측정에서 EIH 식 structural bias 로 오진한 현상이 실제로는 `min_r` 샘플링 노이즈. LRL 벡터 + Newton baseline subtraction 측정법 전환으로 드러남 (**3단계 원칙 도출**)
      - volt [#53](https://github.com/coseo12/volt/issues/53) — astro-simulator P9 D5-b Laplace resonance 측정에서 (0)~(2) 전수 후에도 미달. 원인이 `solar-system.json` Galilean 4체 `meanLongitudeDeg` JPL 원본의 epoch 불일치로 **초기 Laplace 인자 φ₀=218° (이론 평형 180° 대비 38° 벗어남 → circulation 영역)** 임이 드러남. 도구·적분기·식 모두 정상 + 입력 데이터 측 결함으로 **4단계 확장 도출**
+10-a. **메인 오케스트레이터 SSoT JSON 부호 규약 자기 점검 (volt [#73](https://github.com/coseo12/volt/issues/73) / [#75](https://github.com/coseo12/volt/issues/75))** — sub-agent 반환 SSoT JSON 필드명이 의미 단어 (`regression` / `error` / `loss` / `diff` 등) 를 포함할 때 필드값의 **부호 규약은 필드명만으론 판정 불가**. 메인 오케스트레이터가 수치 DoD 판정 전 **리포트 본문 (linked path) 을 먼저 읽고 부호 규약 확인** 필수. 특히 극단값 (±100% 이상, ±50% 이상 등) 은 부호 규약 재확인의 **자동 트리거**. sub-agent 텍스트 요약 ("5/5 PASS") 과 JSON 수치가 모순처럼 보이면 **해석이 틀렸을 가능성 먼저 의심** — DoD 위반 확정 전 본문 인용 필수. 항목 10 "측정 방법 검증 우선" 의 **메인 오케스트레이터 버전** — AI 자기 과대/과소 평가는 sub-agent 뿐 아니라 메인에도 적용. 근거: astro-simulator P11-B.2 PR #322 에서 `D4_regression_pct: {"idle": 366.2}` 를 메인이 "+366% 회귀" 로 역해석. 실제는 "+366% 개선" (fps 21.23→98.97). 리포트 본문은 `+366.2% 개선` 으로 명확 표기.
 
 ### 마일스톤 회고 루틴
 
@@ -186,6 +187,7 @@ UI가 포함된 작업에서 4축으로 품질을 평가한다:
 
 - **monorepo dist stale 변형 (volt [#70](https://github.com/coseo12/volt/issues/70))**: pnpm workspace 등에서 core 패키지 `src/` 수정 후 앱 dev 서버가 **기존 `dist/` 아티팩트를 참조** 해 수정 미반영. QA 재검증이 **결정적으로 동일 실패** 를 재현해 "수정 효과 없음" 으로 오판하기 쉽다. 증상: (1) dev 재시작 없이 새로고침만 한 경우 (2) 결정적 재현 (flaky 아님) (3) vitest/CI 는 pass (src 직접 import). **방어**: monorepo core 수정 시 `pnpm --filter <pkg> build` 선행 + dev 재기동, 또는 `--watch` 병행, 또는 tsconfig `paths` 로 src 직접 매핑. QA 에이전트는 브라우저 검증 선행 조건 체크리스트 적용 (`.claude/agents/qa.md` §2 전 선행 조건).
 - **엄격 원칙 + 동적 적응 부재 함정 (volt [#68](https://github.com/coseo12/volt/issues/68))**: "사실성 / 정확 / 무결" 같은 단일 축 원칙만 강하게 선언되고 **뷰포트·해상도·카메라 거리 등 동적 문맥 적응이 부재** 하면 자동 검증은 PASS 인데 실 디스플레이에서 UX 가 깨진다 (극단 스케일 렌더링 / AR·VR / GIS 등). 원칙 박제 직후 "이 원칙이 실 뷰포트/디바이스 분포에서 어떻게 작동하는가" 시뮬레이션 필수. 상세·체크리스트: [docs/lessons/strict-principle-dynamic-context.md](docs/lessons/strict-principle-dynamic-context.md).
+- **DoD PASS ≠ 제품 동작 (volt [#72](https://github.com/coseo12/volt/issues/72) / [#74](https://github.com/coseo12/volt/issues/74))**: 성능·정합성 수치 DoD (`screenshot diff < 15%` / `bench 회귀 < 5%` / `idle fps ≥ 30`) 전부 PASS 여도 **기본 진입 화면 (URL 파라미터 없음)** 이 사실상 빈 화면인 UX 회귀 가능. 브라우저 3단계 검증이 focus 상태 위주면 default 진입 상태가 검증 공백. **원칙 폐기 ADR 은 downstream UX 계약 전체 재검증 동반 필수** (폐기할 디폴트 UX 계약의 대체 계약 박제). UX DoD 는 성능 DoD 와 별도 축 — 예: `DoD-UX-1: 기본 진입 후 3초 이내 ≥5개 body 가 ≥4px 로 렌더`. 상세·체크리스트: [docs/lessons/ux-dod-vs-product-behavior.md](docs/lessons/ux-dod-vs-product-behavior.md).
 
 ### CI 통과 ≠ 테스트 실행
 "언어 자동 감지" 범용 CI 템플릿이 `echo` 만 수행하고 실제 `npm test` 를 돌리지 않는 경우 — 초록 체크 머지 뒤에도 테스트 미실행. 실행 시간/Actions 로그/CI 구조 3개 진단 신호로 감지, 고의적 실패 PR 실측으로 게이트 작동 확인.
@@ -312,6 +314,7 @@ sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 
 ### sub-agent multi-turn 라운드 이탈 — 매트릭스 일관성 검증
 sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운드에서 이탈한다. SendMessage 는 **이전 라운드 매트릭스를 본문에 인라인 재첨부** ("권고 A" 참조 레이블만으론 부족). 메인 오케스트레이터가 핵심 키워드 대조로 이탈 즉시 감지.
 - 상세: [docs/lessons/sub-agent-multiturn-drift.md](docs/lessons/sub-agent-multiturn-drift.md)
+- **PM 이슈 DoD 구조 drift 재현 (volt [#76](https://github.com/coseo12/volt/issues/76))**: astro-simulator P11-B.2 PM 재계약에서 원본 D5 (Osculating 관찰 리포트) 가 라운드 2 에서 D3b (screenshot diff) 의 7 moon 대상으로 **재배치되면서 사라짐**. 라운드 N+1 이 사용자 응답을 받아 **DoD 자체 (ID·산출물·의미) 를 재배치**. 예방: PM 에이전트 프롬프트에 "원본 DoD 재구조화 금지 / 사용자 응답은 각 DoD 의 파라미터 (수치/경계/선택지) 만 조정 / 라운드 N+1 출력에 원본 DoD 변경 전/후 diff 명시" 제약 박제 (`.claude/agents/pm.md`). volt #34 가 **1회성 교훈이 아닌 반복 패턴** 임을 확증.
 
 ### headless 브라우저 검증 ≠ 실 브라우저 동작
 `agent-browser` / Playwright headless (특히 swiftshader adapter) 는 3D/WebGPU 경로에서 부분 freeze 로 false positive 를 낸다. "headless 8/8 PASS" 만 믿지 말 것. 시각 효과 포함 작업은 `status:review` 전 **실 Chrome GUI 수동 검증 최소 1회** 필수. CRITICAL #3 의 확장.
