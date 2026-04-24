@@ -18,7 +18,8 @@ CLAUDE.md `## 실전 교훈` 섹션에서 추출된 상세 문서 디렉토리. 
 | [data-not-code-extension.md](data-not-code-extension.md) | 레이어/플러그인/스키마 구조에서 "데이터만 추가, 코드 변경 0" 을 ADR Concrete Prediction 으로 박제하여 추상화 건강성 실증 | [#47](https://github.com/coseo12/volt/issues/47) |
 | [headless-browser-verification.md](headless-browser-verification.md) | Playwright headless + swiftshader 는 3D/WebGPU 경로에서 부분 freeze false positive. 실 Chrome GUI 수동 검증 필수 | [#33](https://github.com/coseo12/volt/issues/33) |
 | [strict-principle-dynamic-context.md](strict-principle-dynamic-context.md) | 단일 축 엄격 원칙 + 동적 적응 부재는 자동 검증 PASS / 실사용 실패를 생성 (뷰포트·해상도 등 동적 문맥 시뮬레이션 필수) | [#68](https://github.com/coseo12/volt/issues/68) |
-| [sub-agent-multiturn-drift.md](sub-agent-multiturn-drift.md) | sub-agent multi-turn 세션에서 세부 매트릭스가 라운드 간 이탈. SendMessage 로 이전 라운드 매트릭스 재첨부 필수 | [#34](https://github.com/coseo12/volt/issues/34) |
+| [sub-agent-multiturn-drift.md](sub-agent-multiturn-drift.md) | sub-agent multi-turn 세션에서 세부 매트릭스가 라운드 간 이탈. SendMessage 로 이전 라운드 매트릭스 재첨부 필수 | [#34](https://github.com/coseo12/volt/issues/34) / [#76](https://github.com/coseo12/volt/issues/76) |
+| [ux-dod-vs-product-behavior.md](ux-dod-vs-product-behavior.md) | 수치 DoD 전부 PASS 여도 사용자가 인지하는 제품은 회귀 가능. 원칙 폐기 ADR 은 downstream UX 계약 재검증 동반 + UX DoD 별도 박제 필수 | [#72](https://github.com/coseo12/volt/issues/72) / [#74](https://github.com/coseo12/volt/issues/74) |
 | [workflow-dispatch-pitfalls.md](workflow-dispatch-pitfalls.md) | `workflow_dispatch` 는 default branch 반영 후에만 discover + PR 자동 생성 권한 기본 OFF 2단계 함정 | [#45](https://github.com/coseo12/volt/issues/45) |
 
 ## 신규 파일 추가 루틴
