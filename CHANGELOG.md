@@ -7,6 +7,28 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [3.6.0] — 2026-04-25
+
+v3.5.0 이후 **MINOR 릴리스** — volt #77 반영 (메인 오케스트레이터 단계 게이트 + headless self-compare 자명 PASS 함정). MINOR 분류는 메인 오케스트레이터의 sub-agent 단계 진행 정책 (행동 제약) 추가로 결정.
+
+**포함 범위**:
+
+- volt #77 반영 (MINOR, /volt-review) — PR [#242](https://github.com/coseo12/harness-setting/pull/242)
+
+### Behavior Changes
+
+- **CLAUDE.md §"sub-agent 검증 완료 ≠ GitHub 박제 완료" 에 "메인 오케스트레이터 단계 게이트" 신규 (volt [#77](https://github.com/coseo12/volt/issues/77))** — `developer → reviewer → qa → 사용자/머지` 순서 강제. developer sub-agent 의 self-compare 자명 PASS 함정 (자기 변경분 baseline 을 자기 변경분으로 비교 → mismatch=0) 을 reviewer/qa 단계가 차단. 예외: docs only / chore (행동 변화 없음 — "행동 변화 vs 문서 변경 판정 질문" 적용). volt #24 (sub-agent 박제 누락) / #33 (headless 한계) / #72 (DoD PASS ≠ 제품 동작) 의 워크플로 게이트 변형. 상세: [docs/lessons/headless-browser-verification.md](docs/lessons/headless-browser-verification.md)
+
+### 내부 변경 요약
+
+- `CLAUDE.md` line 312 — 1줄 포인터 항목 추가 (cross-validate Gemini 권고로 5줄 → 1줄 압축, sha `8eefd921`)
+- `docs/lessons/headless-browser-verification.md` — "baseline self-compare 자명 PASS 함정" 단락 신규 (증상 / 원인 분해 / 차단 규약 / CRITICAL #3 와의 관계)
+
+### Notes
+
+- **cross-validate 박제 직후 1회 루틴 완수** — Gemini 2.5 Pro 교차검증 (2026-04-25 18:53) 에서 "1줄 포인터 약속 vs 실제 길이 불일치" 지적 수용 → CLAUDE.md 항목 압축 (5줄 → 1줄, 709 chars 감소). 합의 1건, 이견 0건, 고유 발견 0건. 로그: `.claude/logs/cross-validate-code-20260425-185312.log`
+- volt #77 은 cross-repo 이슈로 GitHub auto-close 미동작 (이미 CLOSED 상태). 본 릴리스는 harness 측 박제용
+
 ## [3.5.0] — 2026-04-25
 
 v3.4.0 이후 누적된 **MINOR 릴리스** — 볼트 6개 이슈 (#71 #70 #68 #72 #74 #73 #75 #76) 의 하네스 반영. MINOR 분류는 `qa.md` / `pm.md` 에이전트 행동 규칙 신규 + CLAUDE.md 스프린트 계약 6-a / 10-a sub-rule 추가로 결정.
