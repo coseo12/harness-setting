@@ -25,7 +25,7 @@ developer sub-agent 가 자기 변경분의 baseline 을 자기 변경분으로 
 - **원인 분해**:
   1. baseline 자체로 비교 → 회귀 신호 0
   2. 단순 mismatch ≤ 임계 비교만 수행 → 시각 회귀 시그니처 불특정
-  3. headless chromium swiftshader 가 사용자 환경 (`channel: 'chrome'`) 과 다른 LOD/fallback 경로를 탐 → 특정 회귀 (예: `detect-gpu-tier='c'` 강제 경로) 가 headless 에서만 트리거
+  3. headless chromium swiftshader 가 사용자 환경 (`channel: 'chrome'`) 과 다른 LOD/fallback 경로를 탄다 → 특정 회귀 (예: `detect-gpu-tier='c'` 강제 경로) 가 headless 에서만 트리거
 - **차단 규약**:
   - **메인 오케스트레이터 단계 게이트**: `developer → reviewer → qa → 사용자/머지` 순서 강제. developer 마무리 후 reviewer/qa 건너뛰기 금지. 예외는 docs only / chore (행동 변화 없음)
   - **reviewer/qa 가 별도 가드 강제**: (a) `channel: 'chrome'` (실 Chrome 바이너리) (b) 도메인 특화 픽셀 검증 (sphere/billboard 판별, 특정 색상 존재, scene object visibility, 카메라 응답 diff)
