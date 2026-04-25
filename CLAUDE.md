@@ -309,6 +309,7 @@ sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 
     - **중복 브랜치 dev 서버 오진 방지** — feature 브랜치별 worktree 에서 띄운 dev 서버가 이후 브랜치에서 동일 포트를 점유하면 HMR 이 낡은 번들을 서빙한다. 메인이 새 dev 서버 띄우기 전 `lsof -i :<port>` 선행 확인
 - **SSoT 동기화 자동 가드 (#145, v2.23.0~)** — 위 공통 JSON 스키마 9개 필드는 **5개 에이전트 파일** (`.claude/agents/architect.md` / `developer.md` / `pm.md` / `qa.md` / `reviewer.md`) 의 체크리스트 JSON 블록에도 그대로 등장해야 한다 (sub-agent 가 system prompt 만 보고 반환할 수 있도록). 동기화 보장은 수동 체크박스가 아닌 **`scripts/verify-agent-ssot.sh`** 자동 검사로 강제된다 — 9개 필드 존재 + 선언 순서 준수를 검증하며, drift 시 누락 파일/필드와 순서 이탈 지점을 stderr 에 보고하고 exit 1. CI `detect-and-test` 에 통합되어 PR 머지 전 drift 차단. **이 SSoT 블록을 수정하는 PR 은 반드시 5개 에이전트 파일의 `## 마무리 체크리스트 JSON 반환` 섹션을 함께 갱신하고 `bash scripts/verify-agent-ssot.sh` 로 사전 확인한다.**
 - 누락 감지 시 메인이 직접 보완 박제 (커밋/PR/코멘트). sub-agent를 재호출해 같은 누락을 반복시키지 않는다
+- **메인 오케스트레이터 단계 게이트 (volt [#77](https://github.com/coseo12/volt/issues/77))** — `developer → reviewer → qa → 사용자/머지` 순서 강제. developer sub-agent 의 self-compare 자명 PASS 함정을 reviewer/qa 단계가 차단. 예외: docs only / chore. 상세: [docs/lessons/headless-browser-verification.md](docs/lessons/headless-browser-verification.md)
 - 근거: volt [#24](https://github.com/coseo12/volt/issues/24) — astro-simulator P6-B~E 에서 dev/qa sub-agent 마무리 단계 누락 4회 연속 관찰. volt [#46](https://github.com/coseo12/volt/issues/46) / volt [#52](https://github.com/coseo12/volt/issues/52) — background 프로세스 인계 누락의 로컬 프로세스 버전 (stale dev 서버 포트 점유 오진 + `cargo test` 좀비 4개 누적 관찰). `spawned_bg_pids` / `bg_process_handoff` 2필드로 인계 책임 구조화
 
 ### sub-agent multi-turn 라운드 이탈 — 매트릭스 일관성 검증
