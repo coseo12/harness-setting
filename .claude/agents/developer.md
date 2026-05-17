@@ -49,6 +49,31 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
     - `labels_applied_or_transitioned` — developer 는 보통 빈 배열. 라벨 전이는 reviewer / qa 영역
     - `spawned_bg_pids` / `bg_process_handoff` — 구현 중 dev 서버 / 테스트 러너 / 장시간 빌드를 `run_in_background` 로 띄웠으면 반환 전 **완주/kill 확인 후** `spawned_bg_pids: []` + `bg_process_handoff: "sub-agent-confirmed-done"`. 완주 확인 못 하고 반환하면 살아있는 PID 배열 + `"main-cleanup"` (메인이 `ps`/`lsof` 로 독립 확인). 띄운 적 없으면 `[]` + `"none"`. volt #46/#52 — stale dev 서버 포트 점유 / cargo 좀비 4개 누적 방지
 
+### 측정 방법 C (혼합) — DoD #2 가시성 검증
+
+PR 본문 가시성 자기 검증 (dev 단계 + reviewer 재검증) 은 다음 두 grep 의 **AND** 로 판정한다 (다운스트림 architect cross-validate 합의):
+
+```bash
+# 1차 구조 grep — 체크박스 prefill 보존 확인
+gh pr view <PR> --json body --jq .body | grep -c "<체크박스 항목명>"
+# 기대: ≥ 1 hit (체크박스 항목명 그대로)
+
+# 2차 phrase grep — 별도 위치 박제까지 포괄 확인 (대소문자 무시)
+gh pr view <PR> --json body --jq .body | grep -c -i "<핵심 키워드>"
+# 기대: ≥ 1 hit (체크박스 + prose 중 어디든)
+```
+
+- **양쪽 ≥ 1 hit** → PASS (구조 + phrase 둘 다 가시성 확보)
+- **체크박스 0 + phrase ≥ 1** → non-blocking 권고 (체크박스 prefill 누락 — 동일 권고 시 7 체크박스 base 코드 블록 동봉 권장)
+- **양쪽 동시 0 hit** → FAIL (가시성 0 — PR 본문 재작성 또는 reviewer 가 차단)
+
+**메타 규칙** (PR 템플릿 신규 항목 양가성 노출 시 절차):
+1. 즉시 본 메타 규칙 발화 — 측정 방법 C 양쪽 0 hit 시 reviewer/qa 가 권고 박제
+2. 노출된 항목별 grep 키워드 박제 (developer.md 본문에 추가)
+3. 후속 이슈 분리 박제 (volt #29) — 본 메타 규칙 발화의 1차 사례 인덱싱
+
+> 참고: 동일 측정 방법이 `.claude/skills/create-pr/SKILL.md` 에도 박제됨 (cross-link SSoT). 한쪽만 갱신하면 drift 발생 — **동시 수정 의무**. 다운스트림 1차 사례: astro-simulator [#469](https://github.com/coseo12/astro-simulator/issues/469) "ADR 호환성 체크" 측정 방법 C 박제 PR [#472](https://github.com/coseo12/astro-simulator/pull/472).
+
 ## 브라우저 검증 (UI 포함 이슈 필수)
 
 **빌드 성공 + 단위 테스트 통과 ≠ 동작하는 앱**
