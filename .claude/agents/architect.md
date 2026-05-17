@@ -63,6 +63,13 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
 
 ## 절차
 
+0. **develop 동기화 의무 (sub-agent 호출 직후 최우선, volt #108)**:
+   ```bash
+   git fetch origin develop
+   git pull --ff-only origin develop  # 충돌 시 sub-agent 종료 + 메인 오케스트레이터에 보고
+   git rev-parse origin/develop       # develop tip SHA 캡처 → 마무리 JSON 의 develop_tip_sha 에 기록
+   ```
+   sub-agent worktree drift 로 옛 verify-*.sh / cross_validate.sh 등을 사용하면 신규 가드 첫 실전 검증이 누락된다. 신규 가드 도입 PR 머지 후 1~2 PR 의 architect sub-agent 호출이 가장 위험. develop pull 후 작업 시작 의무.
 1. **이슈 정독**: 스프린트 계약 본문 + 첨부 자료
 2. **인계 항목 실측 재검증**: 이슈가 이전 마일스톤 회고에서 인계된 것이면, 구현 직전 현재 동작을 실측. 이미 해소됐다면 **NO-OP ADR** 작성 + 회귀 가드 박제 후 종결. (volt #14)
 3. **코드베이스 스캔**: 영향 받을 모듈 식별 (Grep/Glob)
@@ -101,10 +108,21 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
      - `"dryrun"`: 정상 (REMINDER_ISSUE_DRYRUN=1 기본). 추가 조치 없음
      - `"created"`: 실제 이슈 생성 성공. 이슈 번호를 이슈 코멘트에 인용 (사용자 수동 연결)
      - `"create-failed"`: `gh issue create` 실패. **`blocking_issues` 에 `"reminder 이슈 생성 실패 — API 복구 후 재검증 경로 보장 안 됨"` 기록** + 로그 파일 경로 첨부. 재시도 또는 수동 이슈 생성 안내
-9. **라벨 전이**:
-   ```bash
-   gh issue edit <번호> --remove-label "stage:design" --add-label "stage:dev"
+9. **Developer 인수인계 — raw text 박스 의무 (volt #111)**: 설계안의 SSoT 박제 문구 (예: 페르소나 `.md` 에 박제할 규칙, 스킬 절차 라인 등) 를 인계할 때 **raw text 박스** 인용 의무. markdown inline backtick (`` ` ``) 인용 금지 — PR 본문 markdown 렌더링이 backtick 을 이스케이프 변형 (`` \`x\` ``) 시킬 수 있고, dev 가 그대로 복사 시 `grep -nF` / SSoT 검증 매칭 실패 ([guard-pr-dod.md](../../docs/lessons/guard-pr-dod.md) §3 메타 측정 안정성).
+
+   인수인계 본문 예:
+   ````markdown
+   ### 박제 대상 문구 (raw text — 백틱 / 이스케이프 / 특수문자 모두 raw 인용)
+
+   ```text
+   - **PR 생성 시 반드시 `create-pr` 스킬 사용** — ...
    ```
+   ````
+
+10. **라벨 전이**:
+    ```bash
+    gh issue edit <번호> --remove-label "stage:design" --add-label "stage:dev"
+    ```
 
 ## 마무리 체크리스트 JSON 반환 (필수)
 
@@ -125,7 +143,9 @@ sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필�
     "issue_url": "https://github.com/.../issues/123",
     "adr_path": "docs/decisions/20260419-topic.md",
     "cross_validate_outcome": "applied | skipped | 429-fallback-claude-only | n/a",
-    "design_comment_url": "https://github.com/.../issues/123#issuecomment-..."
+    "design_comment_url": "https://github.com/.../issues/123#issuecomment-...",
+    "develop_pulled": true,
+    "develop_tip_sha": "5209c21"
   }
 }
 ```
@@ -136,6 +156,7 @@ sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필�
 - `extends.cross_validate_outcome` — 정책/규약/ADR 포함 설계 박제 직후 cross-validate 수행 결과. `"429-fallback-claude-only"` 이면 CLAUDE.md 폴백 프로토콜 기록 의무 (이슈 코멘트 `### 교차검증 반영 사항` 섹션에 `claude-only analysis completed — 단일 모델 편향 노출 미확보` 명시)
 - `auto_close_issue_states` — architect 는 보통 이슈 close 미수행. 단, ADR 생성으로 기존 검토 이슈를 close 할 경우 채움
 - `spawned_bg_pids` / `bg_process_handoff` — architect 는 설계/이슈 코멘트 작성만 수행하므로 보통 `[]` + `"none"`. POC 용도로 로컬 프로세스를 `run_in_background` 로 띄웠다면 반환 전 완주/kill 확인 후 `"sub-agent-confirmed-done"`. volt #46/#52
+- `extends.develop_pulled` / `extends.develop_tip_sha` — 절차 step 0 에서 `git pull --ff-only origin develop` 수행 + `git rev-parse origin/develop` 결과. 신규 가드 도입 PR 머지 후 1~2 PR 에서 옛 스크립트 사용 사고 방지. volt #108. 충돌로 pull 불가했으면 `develop_pulled=false` + `blocking_issues` 에 원인 기록 후 sub-agent 종료
 
 ## 자가 점검
 
