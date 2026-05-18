@@ -2,7 +2,7 @@
 
 > **요지**: CLAUDE.md 실전 교훈의 sub-agent multi-turn 매트릭스 이탈 블록 상세. 본문 요약은 CLAUDE.md `## 실전 교훈` 의 포인터 참조.
 >
-> **근거**: harness [#199](https://github.com/coseo12/harness-setting/issues/199) Phase 3-A 에서 추출.
+> **근거**: harness [#199](https://github.com/coseo12/harness-setting/issues/199) Phase 3-A 에서 추출. harness [#256](https://github.com/coseo12/harness-setting/issues/256) 가지치기 PR 에서 PM DoD 구조 drift (volt [#76](https://github.com/coseo12/volt/issues/76)) 사례 보강.
 
 ---
 
