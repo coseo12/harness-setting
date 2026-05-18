@@ -207,6 +207,19 @@ upstream 의 단위 테스트 / reviewer / cross-validate 3중 방어가 통과�
 ### workflow_dispatch 2단계 함정 (GitHub Actions)
 `workflow_dispatch` 트리거는 default branch 반영 후에만 discover 된다 (feature/develop push 로는 실행 불가). 추가로 PR 자동 생성 workflow 는 저장소 Settings `can_approve_pull_request_reviews` 가 기본 OFF 라 거부된다. 도입 PR DoD 에 "default branch 반영 후 실행 검증" 명시.
 - 상세: [docs/lessons/workflow-dispatch-pitfalls.md](docs/lessons/workflow-dispatch-pitfalls.md)
+- **함정의 양면성 — release 가속 트리거 변형 (volt [#97](https://github.com/coseo12/volt/issues/97))**: 본 함정이 검증 차단 효과로 작용해 사용자에게 "지금 release 할지" 결정을 강제 노출시키는 부산물 관찰. develop 누적 ≥ 50 커밋 시 정공법 (release PR) 비용 < 우회법 (cherry-pick) → 결과적으로 자연 release 리듬 정렬. 단, 모든 검증 차단이 release 가속을 정당화하지 않음 — 누적 < 10 커밋이면 옵션 B (대기) / C (cherry-pick) 가 합리적. 가드 도입 PR DoD 에 A/B/C 결정 분기 표 (비용/시점/gitflow 정합성) 명시 의무 추가 권고. release-cadence-check workflow 신설로 함정 의존 제거 가능.
+
+### gh CLI 마크다운 본문 발송 — execSync shell metachar 함정 (volt #114)
+Node.js 에서 `execSync('gh pr comment N --body "..."')` 로 마크다운 본문 (백틱 / `$` / `!` / `;` 등 특수 문자 포함) 발송 시 **shell metachar 가 명령 치환·변수 확장으로 해석**되어 syntax error 발생. 자동 코멘트 / actionable 보고 발송이 silent fail.
+
+- **증상**: `/bin/sh: 1: Syntax error: end of file unexpected` 또는 `unbound variable` 등 shell 단계 에러. exit non-zero 인데 코멘트 박제 안 됨.
+- **원인**: `execSync(string)` 는 `/bin/sh -c <string>` 으로 실행 → shell 이 본문의 `` ` `` 백틱을 명령 치환으로 해석. `JSON.stringify` 의 백슬래시 이스케이프는 shell parser 에 도달 시 무력화.
+- **해결 — `spawnSync` + stdin** (3축 우회):
+  1. `spawnSync('gh', [...args])` — args 배열로 분리 (shell 미사용)
+  2. `--body-file -` — stdin 으로 본문 전달 (OS arg limit 회피)
+  3. `{ input: body, stdio: ['pipe', 'inherit', 'inherit'] }` — Node.js 가 child stdin 에 자동 pipe
+- **선택 가이드**: 본문이 사용자/template 생성이면 spawnSync + stdin 의무. execSync 는 고정 문자열 + 환경 변수 없는 명령에만 사용
+- 근거: volt [#114](https://github.com/coseo12/volt/issues/114) — astro-simulator PR #497 (D4 회귀 가드 시뮬레이션 negative case) 에서 실측 발견 + fix `a75aa20`
 
 ### 주석 계약 vs 구현 drift — 버그 생성원
 파일 상단 주석 / JSDoc 이 선언한 계약과 구현의 drift 는 **버그 생성원**. default fallback 이 누락을 조용히 흡수해 테스트도 fail 하지 않는다. 주석에 선언된 규칙은 테스트 커버리지 대상이며, enum 분기 fallback 에 경고·assert 추가로 drift 감지.
@@ -285,6 +298,7 @@ sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 
   - `git log --oneline -1` — 커밋이 실제 반영됐는지
   - `gh pr list` / `gh pr view <번호> --json comments` — PR·코멘트 박제 여부
   - `gh issue view <auto-close 대상> --json state` — auto-close 실제 성공 여부
+- **closingIssuesReferences=[] 함정 — gitflow base=develop 변형 (volt [#115](https://github.com/coseo12/volt/issues/115) / [#117](https://github.com/coseo12/volt/issues/117))**: GitHub closing keyword (`Closes #N` / `Fixes #N` / `Resolves #N`) 는 **PR 의 base 가 default branch (보통 main) 일 때만 발화**. gitflow 운영 (base=develop) PR 머지 시 정확 문법이어도 100% 미발화 — 통계 증거 13/13 PR. 메커니즘 분리: **함정 A — 콜론 문법** (`Closes: #N` — base 무관 미인식, volt #93) vs **함정 B — base 함정** (정확 문법이어도 base=develop 시 미발화). 두 함정 독립 — 함정 A 우회해도 함정 B 면 미작동. **메인 오케스트레이터 의무**: base=develop PR 머지 후 **무조건 수동 close** (`gh issue close <N> --reason completed --comment "..."`). auto-close 가정 폐기. release PR (`develop → main`) 의 closing keyword 는 작동 — release PR 본문에 누적된 sub-PR 의 `Closes #N` 명시 박제 권고 (sub-PR base=develop 함정 우회)
 - **auto-close 검증은 PR 규칙 섹션 keyword 문법 가드와 연결** — `Closes: #A, #B` 같은 콜론 문법은 #B 미인식 (PR 규칙 참조). 문법이 틀려도 sub-agent 는 "close 완료" 로 보고하므로 메인이 state 를 직접 확인
 - sub-agent 프롬프트 말미에 **마무리 체크리스트 JSON 반환** 을 요구한다 — 커밋 SHA / PR URL / 코멘트 URL / 라벨 전이 결과 / **auto-close 대상 이슈의 실제 state** 를 field로 명시해 누락을 구조적으로 감지
 - **공통 JSON 스키마 (SSoT)** — 모든 외부 가시성 박제 에이전트(developer / qa / reviewer / architect / pm)가 공통으로 반환하는 **코어 필드**. 에이전트별 특수 필드는 extends 형태로 덧붙인다. **키 순서는 아래 선언 순서대로 고정** (diff 리뷰 가독성 + grep 기반 회귀 검사를 위해):
@@ -320,6 +334,14 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 ### headless 브라우저 검증 ≠ 실 브라우저 동작
 `agent-browser` / Playwright headless (특히 swiftshader adapter) 는 3D/WebGPU 경로에서 부분 freeze 로 false positive 를 낸다. "headless 8/8 PASS" 만 믿지 말 것. 시각 효과 포함 작업은 `status:review` 전 **실 Chrome GUI 수동 검증 최소 1회** 필수. CRITICAL #3 의 확장.
 - 상세: [docs/lessons/headless-browser-verification.md](docs/lessons/headless-browser-verification.md)
+
+### 가드 도입 PR DoD — 4축 검증 의무
+신규 `verify-*.sh` + CI step 등 negative-test 성격 가드 도입 PR 은 positive PASS 만으론 작동 보장 불가. 4축 명시: (1) 격리 동적 테스트 / (2) 3중 시뮬레이션 (positive→negative→recovery) / (3) 5 페르소나 self-consistency N×5 셀 결정적 일치 / (4) 메타 측정 도구 자기 적용 안정성. harness `verify-agent-ssot.sh` (#145) 도입 시 3중 시뮬레이션 누락 회고 포함.
+- 상세: [docs/lessons/guard-pr-dod.md](docs/lessons/guard-pr-dod.md) — volt [#96](https://github.com/coseo12/volt/issues/96) / [#100](https://github.com/coseo12/volt/issues/100) / [#109](https://github.com/coseo12/volt/issues/109) / [#112](https://github.com/coseo12/volt/issues/112)
+
+### 가드 설계 원칙 — measurement-first / 의식적 silent 약화 / fail-fast
+가드 무력화 3축 (설계/구현/운영) 차단: (1) architect broad 권고 → dev D1 실측 false-positive → precision 정정 3중 박제 (measurement-first), (2) 발화 빈도 ≥ 1/주 시 의식적 silent 약화 + ADR §결정 CRITICAL 명시, (3) drift 가드는 fail-fast 만 — fallback 분기 절대 금지 (strict assertion 자기모순 회피).
+- 상세: [docs/lessons/guard-design-principles.md](docs/lessons/guard-design-principles.md) — volt [#101](https://github.com/coseo12/volt/issues/101) / [#106](https://github.com/coseo12/volt/issues/106) / [#107](https://github.com/coseo12/volt/issues/107)
 <!-- harness:managed:real-lessons:end -->
 
 ---
@@ -334,6 +356,7 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 - **수용 전 실측 sanity check (volt [#66](https://github.com/coseo12/volt/issues/66))** — Gemini 가 제안한 **수치 DoD 재정의·물리/환경 제약** 은 ADR/계약 박제 전 1회 실측 (실 환경 실행 또는 단위 테스트 snippet) 으로 자가모순 확인 선행. "엄격한 DoD = 안전" 편향은 Gemini+Claude 공유이므로 교차검증 자체로는 self-contradiction 을 거르지 못한다. cross-validate 스킬 결과 분석 §0 참조.
 - **외부 툴 동작 주장은 실측 필수** — 같은 생태계 내 도구 간 flag 복사 금지. 검증 템플릿: `<tool> --help | grep -A 2 <flag>` (공식 지원 여부 판정)
 - **고유 발견은 스프린트 비목표와 대조** — 범위 밖이면 후속 이슈로 분리 (CRITICAL #6 보호)
+- **plan-mode 우회 자동 가드 (#479)** — `cross_validate.sh` 가 Gemini 호출 전/후 워킹트리 snapshot 을 비교 (porcelain + hash-object 혼합) 하여 plan-mode 우회 (`--approval-mode plan` 무력화로 인한 무단 파일 수정) 를 감지하고 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`). outcome JSON 의 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`) 가 결과 박제. **메인 오케스트레이터 의무**: sub-agent (architect / reviewer / qa) 가 cross-validate 호출했다면 복귀 직후 `scripts/parse-cross-validate-outcome.sh <log>-outcome.json` 으로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 사용자에게 즉시 사고 보고 + `bypass_files` 추가 검증, `rollback_failed == true` 면 수동 개입 (자동 복구 불가). `.gitignore` 변경 감지 시 CRITICAL 격상 (무시 파일 동시 수정 false negative 위험). 5 페르소나 SSoT: 3 §절차 (architect/reviewer/qa) + 2 §금지 (developer/pm) — drift 0
 - 상세 프로토콜 / 매트릭스 / 근거 체인: [docs/guides/cross-validate-protocol.md](docs/guides/cross-validate-protocol.md)
 
 ---

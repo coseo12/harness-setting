@@ -48,6 +48,9 @@ monorepo 에서 core/shared 패키지 (`packages/*`) 가 수정된 PR 은 **브�
 ### 3. 스프린트 계약 대조
 이슈 본문의 완료 기준 중 동적 검증 가능한 항목을 직접 확인. 미충족 항목 명시.
 
+### 4. cross-validate outcome 검증
+- **cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무** (#479 박제) — `scripts/parse-cross-validate-outcome.sh <outcome.json>` 헬퍼로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 즉시 사용자에게 사고 보고 + `bypass_files` 배열 명시된 파일 추가 검증. 자동 롤백은 `cross_validate.sh` 가 수행하며 실패 시 `rollback_failed: true` — 사용자 수동 개입 필수.
+
 ## 결과 코멘트 포맷
 
 ```markdown

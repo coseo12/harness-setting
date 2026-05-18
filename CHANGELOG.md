@@ -7,6 +7,68 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+### Behavior Changes (MINOR — cross-validate plan-mode 우회 자동 가드 박제)
+
+- **`.claude/skills/cross-validate/scripts/cross_validate.sh` plan-mode 우회 자동 가드** (다운스트림 [astro-simulator#479](https://github.com/coseo12/astro-simulator/issues/479) PR [#482](https://github.com/coseo12/astro-simulator/pull/482) 박제) — Gemini 호출 전/후 워킹트리 snapshot 비교 (porcelain + hash-object 혼합) + 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`) + outcome JSON 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`). `--approval-mode plan` 가드가 무력화돼 Gemini 가 워킹트리에서 무단 파일 수정한 사고 (2026-05-16) 자동 차단
+- **`scripts/parse-cross-validate-outcome.sh` 3 신규 필드 파싱 + backward compat** — `CROSS_VALIDATE_PLAN_BYPASS` / `CROSS_VALIDATE_BYPASS_FILES` / `CROSS_VALIDATE_ROLLBACK_FAILED` KEY=value 출력. legacy outcome (필드 부재) 도 false / "" / false fallback
+- **5 페르소나 SSoT 박제** (drift 0):
+  - `.claude/agents/architect.md` §절차 9 — cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무
+  - `.claude/agents/reviewer.md` §절차 7 — 동일 SSoT
+  - `.claude/agents/qa.md` §검증 단계 4 — 동일 SSoT
+  - `.claude/agents/developer.md` §금지 — cross-validate 호출 금지 + outcome 참조 시 정합성 검증
+  - `.claude/agents/pm.md` §금지 — 동일
+- **`CLAUDE.md` `## 교차검증` 섹션 plan-mode 가드 박제** — 메인 오케스트레이터 검증 의무 (sub-agent 복귀 직후 `parse-cross-validate-outcome.sh` 파싱 + `plan_bypass == false` 확인). `.gitignore` 변경 시 CRITICAL 격상
+- **D1 격리 동적 테스트 PASS** — 4 케이스 (clean / tracked-rollback / untracked-delete / set -u 빈 배열 안전성) 모두 PASS. parse-helper 4 mock 케이스 (bypass / clean / legacy / rollback-failed) 도 PASS
+
+### Non-Goals (다운스트림 #479 비-범위 유지)
+
+- `.gitignore` 이용 무시 파일 동시 수정 완전 방어 (`ls-files --others --ignored` snapshot) — 본 PR 부분 방어 (CRITICAL 격상) 만
+- session-start hook / `harness doctor` 통합 (별도 후속)
+- Gemini CLI 자체 수정 / `--approval-mode plan` 보장 강화 (외부 의존)
+- worktree 격리 / 다른 외부 LLM 통합
+
+## [3.7.0] — 2026-05-17
+
+v3.6.0 이후 **MINOR 릴리스** — volt 13개 이슈 반영 (#95 #96 #98 #100 #101 #102 #103 #104 #105 #106 #107 #108 #109 #111 #112). MINOR 분류는 가드 도입 PR DoD 4축 규약 추가 + 가드 설계 3원칙 + record-adr 스킬 Amendment B 형식 / ADR Trigger 패턴 + architect/pm 에이전트 절차 추가로 결정. 동시에 PATCH 성격의 문서 보강 (verify-*.sh 작성 모범, GitHub Actions YAML 함정) 포함.
+
+**포함 범위**:
+
+- volt #95 #98 #102 #103 반영 (PATCH, /volt-review) — PR [#245](https://github.com/coseo12/harness-setting/pull/245)
+- volt #96 #100 #101 #104-#109 #111 #112 반영 (MINOR, /volt-review) — PR [#246](https://github.com/coseo12/harness-setting/pull/246)
+
+### Behavior Changes
+
+- **CLAUDE.md §"실전 교훈" 에 "가드 도입 PR DoD — 4축 검증 의무" 신규 (volt [#96](https://github.com/coseo12/volt/issues/96) / [#100](https://github.com/coseo12/volt/issues/100) / [#109](https://github.com/coseo12/volt/issues/109) / [#112](https://github.com/coseo12/volt/issues/112))** — 신규 `verify-*.sh` + CI step 등 negative-test 성격 가드 도입 PR 은 positive PASS 만으론 작동 보장 불가. 4축 명시: (1) 격리 동적 테스트 / (2) 3중 시뮬레이션 (positive→negative→recovery) / (3) 5 페르소나 self-consistency N×5 셀 결정적 일치 / (4) 메타 측정 도구 자기 적용 안정성. harness `verify-agent-ssot.sh` (#145) 도입 시 3중 시뮬레이션 누락 회귀 가드. 상세: [docs/lessons/guard-pr-dod.md](docs/lessons/guard-pr-dod.md)
+- **CLAUDE.md §"실전 교훈" 에 "가드 설계 원칙 — measurement-first / 의식적 silent 약화 / fail-fast" 신규 (volt [#101](https://github.com/coseo12/volt/issues/101) / [#106](https://github.com/coseo12/volt/issues/106) / [#107](https://github.com/coseo12/volt/issues/107))** — 가드 무력화 3축 (설계/구현/운영) 차단: (1) architect broad 권고 → dev D1 실측 false-positive → precision 정정 3중 박제 (measurement-first), (2) 발화 빈도 ≥ 1/주 시 의식적 silent 약화 + ADR §결정 CRITICAL 명시, (3) drift 가드는 fail-fast 만 — fallback 분기 절대 금지. 상세: [docs/lessons/guard-design-principles.md](docs/lessons/guard-design-principles.md)
+- **`.claude/skills/record-adr/SKILL.md` 에 "Amendment B 형식 표준" 신규 (volt [#104](https://github.com/coseo12/volt/issues/104))** — 같은 이슈가 ADR 결정을 수정할 때 본문 mutation 대신 **현존 보존 + §Amendment N 섹션 신설** 표준 채택. A 형식 (본문 strikethrough + footnote) 미채택. B 형식 vs Superseded vs D' 변형 vs Deprecated 운영 컨벤션 매트릭스 추가
+- **`.claude/skills/record-adr/SKILL.md` 에 "ADR Trigger 패턴" 신규 (volt [#105](https://github.com/coseo12/volt/issues/105))** — ADR §재검토 조건이 측정 가능 임계값일 때 발화 시 **`[ADR Trigger]` 이슈 + 결정 deadline + A/B/C 결정 분기** 표준화. 자동 탐지 workflow 와 연계 (선택). 1인 운영 / 소규모 팀에서 결정 강제 트리거에 적용
+- **`.claude/agents/architect.md` 절차 step 0 신규 — develop 동기화 의무 (volt [#108](https://github.com/coseo12/volt/issues/108))** — sub-agent 호출 직후 `git fetch + git pull --ff-only origin develop` 강제. sub-agent worktree drift 로 옛 `verify-*.sh` / `cross_validate.sh` 사용 사고 차단. 충돌 시 `blocking_issues` 박제 + sub-agent 종료. 마무리 JSON `extends` 에 `develop_pulled` / `develop_tip_sha` 필드 추가
+- **`.claude/agents/architect.md` 절차 step 9 신규 — Developer 인수인계 raw text 박스 의무 (volt [#111](https://github.com/coseo12/volt/issues/111))** — 설계안의 SSoT 박제 문구 (5 페르소나 `.md` 규칙 / 스킬 절차 라인 / verify-*.sh SSoT 키 등) 를 인계할 때 **raw text 박스** 인용 의무. markdown inline backtick 인용 금지 — 이스케이프 변형 → `grep -nF` / SSoT 검증 매칭 실패
+- **`.claude/agents/pm.md` 절차 step 6 신규 — 작업 의뢰서 SSoT raw text 박스 의무 (volt [#111](https://github.com/coseo12/volt/issues/111))** — 스프린트 계약 본문에 dev/architect 가 박제할 SSoT 문구 인용 시 raw text 박스 의무. architect.md 와 동일 규약
+
+### Added (PATCH 성격 — 행위 변화 없는 문서 보강)
+
+- **`docs/lessons/verify-script-authoring.md` 신규 (volt [#95](https://github.com/coseo12/volt/issues/95) / [#98](https://github.com/coseo12/volt/issues/98))** — `verify-*.sh` 작성 모범 — macOS 시스템 bash 3.2 호환 (parallel index array + `sort -u`) + 격리 동적 테스트 (mktemp + env override + 4~5 케이스 매트릭스). harness 선례 `verify-agent-ssot.sh` (#145) / `verify-release-version-bump.sh` 일관성 박제
+- **`docs/lessons/workflow-dispatch-pitfalls.md` 보강 (volt [#102](https://github.com/coseo12/volt/issues/102) / [#103](https://github.com/coseo12/volt/issues/103))** — 함정 3: YAML 1.1 `on:` → `True` boolean coercion + `"on":` quote 우회 (도구별 처리 차이 표 / 동일 파일명 stale ID 변형). 함정 4: YAML block scalar + bash heredoc indent + 10 space prepend 우회
+
+### 내부 변경 요약
+
+- 신규 lessons 3개 — `verify-script-authoring.md` / `guard-pr-dod.md` / `guard-design-principles.md`
+- 보강 lesson 1개 — `workflow-dispatch-pitfalls.md` (4 함정 통합)
+- 변경 에이전트 — `architect.md` / `pm.md`
+- 변경 스킬 — `record-adr/SKILL.md`
+- `docs/lessons/README.md` 표 동기화 (전수 mapping PASS)
+- CLAUDE.md 크기 33481 → 34634 chars (warn 임계 35000 직전 — 후속 가지치기 이슈 [#256](https://github.com/coseo12/harness-setting/issues/256) 분리)
+
+### Notes
+
+- **cross-validate 박제 직후 1회 루틴 완수** — Gemini 2.5 Pro 교차검증 (2026-05-17, PR #246 `code:246`) outcome=applied. 5축 (로직/보안/성능/엣지/설계) 양호 평가. 합의 4건, 이견 0건, 고유 발견 1건 (`verify-ssot-boxing.sh` 자동 가드 — issue [#247](https://github.com/coseo12/harness-setting/issues/247) 로 분리). 로그: `.claude/logs/cross-validate-code-20260517-225730.log`. cross-validate outcome 박제: PR [#246 코멘트](https://github.com/coseo12/harness-setting/pull/246#issuecomment-4470899689)
+- **메인 오케스트레이터 단계 게이트 완수 (v3.6.0 #242 / volt #77)** — developer (volt 반영) → cross-validate (Gemini outcome=applied) → reviewer (정적, 차단 0 / 비차단 3) → qa (동적, 9 항목 PASS, mergeStateStatus=CLEAN, verdict=pass) → 사용자 머지 승인 → squash merge. 본 release 가 단계 게이트 첫 적용 사례
+- **후속 분리 이슈 3건** — [#247](https://github.com/coseo12/harness-setting/issues/247) (verify-ssot-boxing.sh, volt #111 후속) / [#255](https://github.com/coseo12/harness-setting/issues/255) (verify-docs-links.sh 확장, reviewer 권고) / [#256](https://github.com/coseo12/harness-setting/issues/256) (CLAUDE.md 가지치기, warn 임계 대응)
+- volt 13건 이슈는 cross-repo 이라 GitHub auto-close 미동작 (volt 측에서 별도 close)
+
 ## [3.6.0] — 2026-04-25
 
 v3.5.0 이후 **MINOR 릴리스** — volt #77 반영 (메인 오케스트레이터 단계 게이트 + headless self-compare 자명 PASS 함정). MINOR 분류는 메인 오케스트레이터의 sub-agent 단계 진행 정책 (행동 제약) 추가로 결정.
