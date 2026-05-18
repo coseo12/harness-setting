@@ -92,3 +92,4 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
 - 매직 넘버, 하드코딩 값은 상수로 분리
 - fix 커밋 시 원인 분석을 포함한다 — "무엇을 고쳤는가"뿐 아니라 "왜 발생했는가"를 명시
 - Edit 후 한글 깨짐(�) 확인 — 긴 한국어 텍스트 삽입 시 UTF-8 바이트 잘림이 발생할 수 있다
+- **cross-validate 스킬은 architect / reviewer / qa 페르소나에서만 호출** (#479 박제) — developer 에서 직접 호출 금지. 단, 다른 sub-agent 의 cross-validate 결과 (`outcome.plan_bypass`) 를 코멘트 또는 본문에서 참조 시 정합성 검증 의무 — `plan_bypass=true` 발견 시 즉시 메인 오케스트레이터에게 보고.

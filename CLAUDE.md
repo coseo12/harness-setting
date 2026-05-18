@@ -342,6 +342,7 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 - **수용 전 실측 sanity check (volt [#66](https://github.com/coseo12/volt/issues/66))** — Gemini 가 제안한 **수치 DoD 재정의·물리/환경 제약** 은 ADR/계약 박제 전 1회 실측 (실 환경 실행 또는 단위 테스트 snippet) 으로 자가모순 확인 선행. "엄격한 DoD = 안전" 편향은 Gemini+Claude 공유이므로 교차검증 자체로는 self-contradiction 을 거르지 못한다. cross-validate 스킬 결과 분석 §0 참조.
 - **외부 툴 동작 주장은 실측 필수** — 같은 생태계 내 도구 간 flag 복사 금지. 검증 템플릿: `<tool> --help | grep -A 2 <flag>` (공식 지원 여부 판정)
 - **고유 발견은 스프린트 비목표와 대조** — 범위 밖이면 후속 이슈로 분리 (CRITICAL #6 보호)
+- **plan-mode 우회 자동 가드 (#479)** — `cross_validate.sh` 가 Gemini 호출 전/후 워킹트리 snapshot 을 비교 (porcelain + hash-object 혼합) 하여 plan-mode 우회 (`--approval-mode plan` 무력화로 인한 무단 파일 수정) 를 감지하고 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`). outcome JSON 의 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`) 가 결과 박제. **메인 오케스트레이터 의무**: sub-agent (architect / reviewer / qa) 가 cross-validate 호출했다면 복귀 직후 `scripts/parse-cross-validate-outcome.sh <log>-outcome.json` 으로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 사용자에게 즉시 사고 보고 + `bypass_files` 추가 검증, `rollback_failed == true` 면 수동 개입 (자동 복구 불가). `.gitignore` 변경 감지 시 CRITICAL 격상 (무시 파일 동시 수정 false negative 위험). 5 페르소나 SSoT: 3 §절차 (architect/reviewer/qa) + 2 §금지 (developer/pm) — drift 0
 - 상세 프로토콜 / 매트릭스 / 근거 체인: [docs/guides/cross-validate-protocol.md](docs/guides/cross-validate-protocol.md)
 
 ---

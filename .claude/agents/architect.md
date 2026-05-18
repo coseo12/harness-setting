@@ -108,7 +108,8 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
      - `"dryrun"`: 정상 (REMINDER_ISSUE_DRYRUN=1 기본). 추가 조치 없음
      - `"created"`: 실제 이슈 생성 성공. 이슈 번호를 이슈 코멘트에 인용 (사용자 수동 연결)
      - `"create-failed"`: `gh issue create` 실패. **`blocking_issues` 에 `"reminder 이슈 생성 실패 — API 복구 후 재검증 경로 보장 안 됨"` 기록** + 로그 파일 경로 첨부. 재시도 또는 수동 이슈 생성 안내
-9. **Developer 인수인계 — raw text 박스 의무 (volt #111)**: 설계안의 SSoT 박제 문구 (예: 페르소나 `.md` 에 박제할 규칙, 스킬 절차 라인 등) 를 인계할 때 **raw text 박스** 인용 의무. markdown inline backtick (`` ` ``) 인용 금지 — PR 본문 markdown 렌더링이 backtick 을 이스케이프 변형 (`` \`x\` ``) 시킬 수 있고, dev 가 그대로 복사 시 `grep -nF` / SSoT 검증 매칭 실패 ([guard-pr-dod.md](../../docs/lessons/guard-pr-dod.md) §3 메타 측정 안정성).
+9. **cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무** (#479 박제) — `scripts/parse-cross-validate-outcome.sh <outcome.json>` 헬퍼로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 즉시 사용자에게 사고 보고 + `bypass_files` 배열 명시된 파일 추가 검증. 자동 롤백은 `cross_validate.sh` 가 수행하며 실패 시 `rollback_failed: true` — 사용자 수동 개입 필수.
+10. **Developer 인수인계 — raw text 박스 의무 (volt #111)**: 설계안의 SSoT 박제 문구 (예: 페르소나 `.md` 에 박제할 규칙, 스킬 절차 라인 등) 를 인계할 때 **raw text 박스** 인용 의무. markdown inline backtick (`` ` ``) 인용 금지 — PR 본문 markdown 렌더링이 backtick 을 이스케이프 변형 (`` \`x\` ``) 시킬 수 있고, dev 가 그대로 복사 시 `grep -nF` / SSoT 검증 매칭 실패 ([guard-pr-dod.md](../../docs/lessons/guard-pr-dod.md) §3 메타 측정 안정성).
 
    인수인계 본문 예:
    ````markdown
@@ -119,7 +120,7 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
    ```
    ````
 
-10. **라벨 전이**:
+11. **라벨 전이**:
     ```bash
     gh issue edit <번호> --remove-label "stage:design" --add-label "stage:dev"
     ```

@@ -7,6 +7,28 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+### Behavior Changes (MINOR — cross-validate plan-mode 우회 자동 가드 박제)
+
+- **`.claude/skills/cross-validate/scripts/cross_validate.sh` plan-mode 우회 자동 가드** (다운스트림 [astro-simulator#479](https://github.com/coseo12/astro-simulator/issues/479) PR [#482](https://github.com/coseo12/astro-simulator/pull/482) 박제) — Gemini 호출 전/후 워킹트리 snapshot 비교 (porcelain + hash-object 혼합) + 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`) + outcome JSON 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`). `--approval-mode plan` 가드가 무력화돼 Gemini 가 워킹트리에서 무단 파일 수정한 사고 (2026-05-16) 자동 차단
+- **`scripts/parse-cross-validate-outcome.sh` 3 신규 필드 파싱 + backward compat** — `CROSS_VALIDATE_PLAN_BYPASS` / `CROSS_VALIDATE_BYPASS_FILES` / `CROSS_VALIDATE_ROLLBACK_FAILED` KEY=value 출력. legacy outcome (필드 부재) 도 false / "" / false fallback
+- **5 페르소나 SSoT 박제** (drift 0):
+  - `.claude/agents/architect.md` §절차 9 — cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무
+  - `.claude/agents/reviewer.md` §절차 7 — 동일 SSoT
+  - `.claude/agents/qa.md` §검증 단계 4 — 동일 SSoT
+  - `.claude/agents/developer.md` §금지 — cross-validate 호출 금지 + outcome 참조 시 정합성 검증
+  - `.claude/agents/pm.md` §금지 — 동일
+- **`CLAUDE.md` `## 교차검증` 섹션 plan-mode 가드 박제** — 메인 오케스트레이터 검증 의무 (sub-agent 복귀 직후 `parse-cross-validate-outcome.sh` 파싱 + `plan_bypass == false` 확인). `.gitignore` 변경 시 CRITICAL 격상
+- **D1 격리 동적 테스트 PASS** — 4 케이스 (clean / tracked-rollback / untracked-delete / set -u 빈 배열 안전성) 모두 PASS. parse-helper 4 mock 케이스 (bypass / clean / legacy / rollback-failed) 도 PASS
+
+### Non-Goals (다운스트림 #479 비-범위 유지)
+
+- `.gitignore` 이용 무시 파일 동시 수정 완전 방어 (`ls-files --others --ignored` snapshot) — 본 PR 부분 방어 (CRITICAL 격상) 만
+- session-start hook / `harness doctor` 통합 (별도 후속)
+- Gemini CLI 자체 수정 / `--approval-mode plan` 보장 강화 (외부 의존)
+- worktree 격리 / 다른 외부 LLM 통합
+
 ## [3.7.0] — 2026-05-17
 
 v3.6.0 이후 **MINOR 릴리스** — volt 13개 이슈 반영 (#95 #96 #98 #100 #101 #102 #103 #104 #105 #106 #107 #108 #109 #111 #112). MINOR 분류는 가드 도입 PR DoD 4축 규약 추가 + 가드 설계 3원칙 + record-adr 스킬 Amendment B 형식 / ADR Trigger 패턴 + architect/pm 에이전트 절차 추가로 결정. 동시에 PATCH 성격의 문서 보강 (verify-*.sh 작성 모범, GitHub Actions YAML 함정) 포함.
