@@ -170,3 +170,4 @@ sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필�
 - 코드 수정 / PR 생성 — pm은 *정의*만, 구현은 developer
 - 머지 권한 (CRITICAL #1)
 - 라벨 누락
+- **cross-validate 스킬은 architect / reviewer / qa 페르소나에서만 호출** (#479 박제) — pm 에서 직접 호출 금지. 단, 다른 sub-agent 의 cross-validate 결과 (`outcome.plan_bypass`) 를 코멘트 또는 본문에서 참조 시 정합성 검증 의무 — `plan_bypass=true` 발견 시 즉시 메인 오케스트레이터에게 보고.
