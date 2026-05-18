@@ -185,9 +185,10 @@ UI가 포함된 작업에서 4축으로 품질을 평가한다:
 
 > 스크린샷 캡처는 Level 1에 불과하다. "렌더링 됨 = 동작함"이 아니다.
 
-- **monorepo dist stale 변형 (volt [#70](https://github.com/coseo12/volt/issues/70))**: pnpm workspace 등에서 core 패키지 `src/` 수정 후 앱 dev 서버가 **기존 `dist/` 아티팩트를 참조** 해 수정 미반영. QA 재검증이 **결정적으로 동일 실패** 를 재현해 "수정 효과 없음" 으로 오판하기 쉽다. 증상: (1) dev 재시작 없이 새로고침만 한 경우 (2) 결정적 재현 (flaky 아님) (3) vitest/CI 는 pass (src 직접 import). **방어**: monorepo core 수정 시 `pnpm --filter <pkg> build` 선행 + dev 재기동, 또는 `--watch` 병행, 또는 tsconfig `paths` 로 src 직접 매핑. QA 에이전트는 브라우저 검증 선행 조건 체크리스트 적용 (`.claude/agents/qa.md` §2 전 선행 조건).
-- **엄격 원칙 + 동적 적응 부재 함정 (volt [#68](https://github.com/coseo12/volt/issues/68))**: "사실성 / 정확 / 무결" 같은 단일 축 원칙만 강하게 선언되고 **뷰포트·해상도·카메라 거리 등 동적 문맥 적응이 부재** 하면 자동 검증은 PASS 인데 실 디스플레이에서 UX 가 깨진다 (극단 스케일 렌더링 / AR·VR / GIS 등). 원칙 박제 직후 "이 원칙이 실 뷰포트/디바이스 분포에서 어떻게 작동하는가" 시뮬레이션 필수. 상세·체크리스트: [docs/lessons/strict-principle-dynamic-context.md](docs/lessons/strict-principle-dynamic-context.md).
-- **DoD PASS ≠ 제품 동작 (volt [#72](https://github.com/coseo12/volt/issues/72) / [#74](https://github.com/coseo12/volt/issues/74))**: 성능·정합성 수치 DoD (`screenshot diff < 15%` / `bench 회귀 < 5%` / `idle fps ≥ 30`) 전부 PASS 여도 **기본 진입 화면 (URL 파라미터 없음)** 이 사실상 빈 화면인 UX 회귀 가능. 브라우저 3단계 검증이 focus 상태 위주면 default 진입 상태가 검증 공백. **원칙 폐기 ADR 은 downstream UX 계약 전체 재검증 동반 필수** (폐기할 디폴트 UX 계약의 대체 계약 박제). UX DoD 는 성능 DoD 와 별도 축 — 예: `DoD-UX-1: 기본 진입 후 3초 이내 ≥5개 body 가 ≥4px 로 렌더`. 상세·체크리스트: [docs/lessons/ux-dod-vs-product-behavior.md](docs/lessons/ux-dod-vs-product-behavior.md).
+- 변형 3종 (모두 lessons 위임):
+  - **monorepo dist stale** (volt [#70](https://github.com/coseo12/volt/issues/70)) — core 패키지 `src/` 수정이 dev 서버에 미반영 + QA 결정적 동일 실패 재현. 상세: [docs/lessons/monorepo-dist-stale.md](docs/lessons/monorepo-dist-stale.md)
+  - **엄격 원칙 + 동적 적응 부재** (volt [#68](https://github.com/coseo12/volt/issues/68)) — 단일 축 원칙만 선언되고 뷰포트·해상도 동적 적응 부재 시 자동 검증 PASS / 실 UX 깨짐. 상세: [docs/lessons/strict-principle-dynamic-context.md](docs/lessons/strict-principle-dynamic-context.md)
+  - **DoD PASS ≠ 제품 동작** (volt [#72](https://github.com/coseo12/volt/issues/72) / [#74](https://github.com/coseo12/volt/issues/74)) — 수치 DoD 전부 PASS 여도 기본 진입 화면이 빈 화면일 수 있음. UX DoD 는 성능 DoD 와 별도 축. 상세: [docs/lessons/ux-dod-vs-product-behavior.md](docs/lessons/ux-dod-vs-product-behavior.md)
 
 ### CI 통과 ≠ 테스트 실행
 "언어 자동 감지" 범용 CI 템플릿이 `echo` 만 수행하고 실제 `npm test` 를 돌리지 않는 경우 — 초록 체크 머지 뒤에도 테스트 미실행. 실행 시간/Actions 로그/CI 구조 3개 진단 신호로 감지, 고의적 실패 PR 실측으로 게이트 작동 확인.
@@ -272,64 +273,21 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
 - 근거: volt [#13](https://github.com/coseo12/volt/issues/13) — "빌드 성공 ≠ 동작", "HTTP 200 ≠ 올바른 리소스" 원칙의 연장선
 
 ### 매니페스트 최신 ≠ 파일 적용 완료 — 부분 실패 교착 복구
-매니페스트 기반 패키지 관리자(`harness update`, Nix, brew, dpkg/apt, npm package-lock 등)는 파일 적용과 매니페스트 해시 기록이 **원자적 트랜잭션이 아닌** 경우가 많다. 파일 적용 중 일부가 롤백되어도 매니페스트는 최신 해시로 기록되어, 다음 재-apply 가 "동일 상태"로 오판하고 스킵하면 **복구 불가능한 교착 상태**에 빠진다.
+매니페스트 기반 패키지 관리자(`harness update`, Nix, brew, dpkg/apt 등)는 파일 적용과 해시 기록이 **원자적 트랜잭션이 아닐** 수 있어, 부분 롤백 시 `--apply-all-safe` 가 "동일 상태" 로 오판하고 스킵하면 **복구 불가능한 교착** 에 빠진다. 즉시 복구는 이전 머지 커밋에서 `.harness/manifest.json` 복구 후 재-apply. v2.8.0 (post-apply 검증 게이트) + v2.9.0 (`previousSha256` 자가 복구) 로 코드 레벨에서 상당 부분 해소.
 
-- 증상: `harness update --apply-all-safe` 재실행이 롤백된 파일을 "사용자 임의 수정"으로 간주해 건너뜀
-- 즉시 복구: 이전 머지 커밋에서 `.harness/manifest.json` 을 복구 후 재-apply
-  ```bash
-  # 이전 머지 커밋 찾기: git log --oneline --merges -n 5
-  git checkout <이전-머지-커밋-해시> -- .harness/manifest.json
-  npx github:coseo12/harness-setting update --apply-all-safe
-  # 롤백된 파일이 다시 pristine 으로 감지되어 재적용됨
-  ```
-- 예방 루틴: 패키지 업데이트 커밋 시 매니페스트와 파일을 **동일 커밋**에 묶고, 부분 실패 감지 시 전체 revert + 재시도를 부분 보수보다 우선한다
-- 선행 원인 lint-staged silent partial commit (volt [#13](https://github.com/coseo12/volt/issues/13)) 과 연쇄될 때 가장 자주 관찰됨
-- **다운스트림 formatter 재포맷 경계 drift** — lint-staged / pre-commit 의 `prettier --write` 류가 파일 적용 **직후** 실행되면 upstream 파일 스타일(따옴표·빈 줄·공백 정렬 등)을 로컬 컨벤션으로 되돌려, 매니페스트엔 upstream 해시가 기록됐어도 디스크 파일은 재포맷 상태로 drift. `--check` 재실행 시 "안전 업데이트 N개" 노이즈가 반복돼 실질 upstream 변경을 놓칠 위험. **예방**: 다운스트림 `.prettierignore` 에 harness-managed 경로(`.claude/`, `.github/ISSUE_TEMPLATE/`, 관리 `docs/*.md` 등) 추가. **탐지**: 커밋 직후 `git show --stat HEAD` 로 실제 반영된 파일 수가 의도와 일치하는지 확인. 근거: volt [#35](https://github.com/coseo12/volt/issues/35) — astro-simulator 에서 v2.7.0 → v2.11.0 적용 시 35 파일이 prettier 재포맷으로 drift. volt [#13](https://github.com/coseo12/volt/issues/13) (staging 성공 ≠ 커밋 내용) 의 formatter 파이프라인 버전
-- v2.8.0 (harness [#89](https://github.com/coseo12/harness-setting/issues/89)) 부터 **post-apply 검증 게이트** 도입: 파일 적용 직후 upstream 패키지 해시와 디스크 실측 해시를 비교하여 불일치 파일의 매니페스트 해시는 이전 값으로 유지(재-apply 시 pristine 재감지). 부분 실패 시 exit code 1 + stderr 경고. `harness doctor` 는 "매니페스트 해시 정합성" 항목으로 해시 위조를 감지한다.
-- v2.9.0 (harness [#92](https://github.com/coseo12/harness-setting/issues/92) Phase 1) 부터 매니페스트에 **`previousSha256`** 필드 자동 기록: `userSha === previousSha256` 인 파일은 `modified-pristine` 으로 재분류되어 `--apply-all-safe` 가 자가 복구한다. v2.8.0 이 못 잡던 타이밍(커밋 시점 lint-staged 롤백) 도 코드 레벨에서 해소.
-- 근거: volt [#27](https://github.com/coseo12/volt/issues/27). harness 코드 레벨 원자성 개선은 [#89](https://github.com/coseo12/harness-setting/issues/89)(v2.8.0) 과 [#92](https://github.com/coseo12/harness-setting/issues/92)(v2.9.0~) 에서 반영
-- 일반화된 설계 지식: [docs/architecture/state-atomicity-3-layer-defense.md](docs/architecture/state-atomicity-3-layer-defense.md) — 도중/사후/안내 3계층 직교 방어 패턴 (harness 외 파일 시스템 / DB 마이그레이션 / 빌드 캐시 / git 서브모듈에 재사용)
+- 상세 (증상 / 즉시 복구 절차 / formatter 재포맷 drift / 버전 이력): [docs/lessons/manifest-partial-failure-recovery.md](docs/lessons/manifest-partial-failure-recovery.md)
+- 일반화된 설계 지식: [docs/architecture/state-atomicity-3-layer-defense.md](docs/architecture/state-atomicity-3-layer-defense.md) — 도중/사후/안내 3계층 직교 방어 패턴
 
 ### sub-agent 검증 완료 ≠ GitHub 박제 완료
-sub-agent(dev/qa 페르소나 등)는 빌드·테스트·브라우저 검증은 수행하면서도 **커밋/푸시/PR 생성/`gh pr comment` 박제** 같은 외부 가시성 단계에서 이탈하는 패턴이 반복된다(4회 관찰). sub-agent 관점 "작업 완료"와 harness 관점 "외부 가시성 있음"이 어긋나 메인 오케스트레이터가 매번 수동 보완해야 했다.
+sub-agent(dev/qa 페르소나 등) 는 **검증** 까지는 신뢰하되 **박제** (커밋/푸시/PR 생성/`gh pr comment`/auto-close) 는 신뢰하지 말 것. sub-agent 보고는 *의도* 이고 실제 외부 가시성은 별도. 메인이 `git log --oneline -1` / `gh pr view` / `gh issue view --json state` 로 직접 확인.
 
-- sub-agent 위임은 **"검증"까지는 신뢰하되 "박제"는 신뢰하지 말 것** — sub-agent 의 보고는 의도이고 실제 외부 가시성은 별도
-- **메인이 직접 확인할 GitHub 명령 세트** — sub-agent 보고 수신 직후 메인 컨텍스트가 다음을 실행:
-  - `git log --oneline -1` — 커밋이 실제 반영됐는지
-  - `gh pr list` / `gh pr view <번호> --json comments` — PR·코멘트 박제 여부
-  - `gh issue view <auto-close 대상> --json state` — auto-close 실제 성공 여부
-- **closingIssuesReferences=[] 함정 — gitflow base=develop 변형 (volt [#115](https://github.com/coseo12/volt/issues/115) / [#117](https://github.com/coseo12/volt/issues/117))**: GitHub closing keyword (`Closes #N` / `Fixes #N` / `Resolves #N`) 는 **PR 의 base 가 default branch (보통 main) 일 때만 발화**. gitflow 운영 (base=develop) PR 머지 시 정확 문법이어도 100% 미발화 — 통계 증거 13/13 PR. 메커니즘 분리: **함정 A — 콜론 문법** (`Closes: #N` — base 무관 미인식, volt #93) vs **함정 B — base 함정** (정확 문법이어도 base=develop 시 미발화). 두 함정 독립 — 함정 A 우회해도 함정 B 면 미작동. **메인 오케스트레이터 의무**: base=develop PR 머지 후 **무조건 수동 close** (`gh issue close <N> --reason completed --comment "..."`). auto-close 가정 폐기. release PR (`develop → main`) 의 closing keyword 는 작동 — release PR 본문에 누적된 sub-PR 의 `Closes #N` 명시 박제 권고 (sub-PR base=develop 함정 우회)
-- **auto-close 검증은 PR 규칙 섹션 keyword 문법 가드와 연결** — `Closes: #A, #B` 같은 콜론 문법은 #B 미인식 (PR 규칙 참조). 문법이 틀려도 sub-agent 는 "close 완료" 로 보고하므로 메인이 state 를 직접 확인
-- sub-agent 프롬프트 말미에 **마무리 체크리스트 JSON 반환** 을 요구한다 — 커밋 SHA / PR URL / 코멘트 URL / 라벨 전이 결과 / **auto-close 대상 이슈의 실제 state** 를 field로 명시해 누락을 구조적으로 감지
-- **공통 JSON 스키마 (SSoT)** — 모든 외부 가시성 박제 에이전트(developer / qa / reviewer / architect / pm)가 공통으로 반환하는 **코어 필드**. 에이전트별 특수 필드는 extends 형태로 덧붙인다. **키 순서는 아래 선언 순서대로 고정** (diff 리뷰 가독성 + grep 기반 회귀 검사를 위해):
-  ```json
-  {
-    "commit_sha": "abc1234 | null",
-    "pr_url": "https://github.com/.../pull/123 | null",
-    "pr_comment_url": "https://github.com/.../pull/123#issuecomment-... | null",
-    "labels_applied_or_transitioned": ["stage:qa"] ,
-    "auto_close_issue_states": {"#118": "CLOSED", "#114": "CLOSED"},
-    "blocking_issues": ["..."],
-    "non_blocking_suggestions": ["..."],
-    "spawned_bg_pids": [85117],
-    "bg_process_handoff": "main-cleanup | sub-agent-confirmed-done | none"
-  }
-  ```
-  누락 field 는 `null` 또는 빈 배열/객체로 **명시** (생략 금지). 공통 필드 검증 이후 에이전트별 `extends` 영역을 검증한다. 각 에이전트 파일의 `## 마무리 체크리스트 JSON 반환 (필수)` 섹션은 이 코어를 포함하고 특수 필드만 추가한다.
-  - `spawned_bg_pids` / `bg_process_handoff` (volt #46 #52) — sub-agent 가 `run_in_background=true` 로 띄운 로컬 프로세스(dev 서버 / `cargo test` / 장시간 빌드 등) 의 **정리 책임 인계** 를 명시. sub-agent 세션 종료 후에도 시스템 프로세스가 살아있어 포트 점유 / target 락 경쟁 / CPU 좀비 누적을 일으키는 패턴이 반복됨(astro-simulator P8/P9 에서 관찰). 값 규약:
-    - `spawned_bg_pids`: 반환 전까지 sub-agent 가 시작해 **아직 살아있는** PID 배열. 이미 kill/완주한 프로세스는 제외. 띄운 적 없으면 `[]`
-    - `bg_process_handoff`: `"main-cleanup"` (메인 오케스트레이터가 `ps`/`lsof` 로 확인 후 정리 책임) / `"sub-agent-confirmed-done"` (sub-agent 가 반환 전 완주 확인 완료 — PID 배열이 `[]` 여야 정합) / `"none"` (백그라운드 프로세스 시작 안 함)
-    - **메인 오케스트레이터 책임**: `bg_process_handoff="main-cleanup"` 이고 `spawned_bg_pids` 가 비어있지 않으면 sub-agent 반환 직후 `ps auxww | grep -E '<PID 패턴>'` 또는 `lsof -i :<port>` 로 독립 확인 + 필요 시 kill. 다음 sub-agent 호출 전 포트/경로 경쟁 해소
-    - **중복 브랜치 dev 서버 오진 방지** — feature 브랜치별 worktree 에서 띄운 dev 서버가 이후 브랜치에서 동일 포트를 점유하면 HMR 이 낡은 번들을 서빙한다. 메인이 새 dev 서버 띄우기 전 `lsof -i :<port>` 선행 확인
-- **SSoT 동기화 자동 가드 (#145, v2.23.0~)** — 위 공통 JSON 스키마 9개 필드는 **5개 에이전트 파일** (`.claude/agents/architect.md` / `developer.md` / `pm.md` / `qa.md` / `reviewer.md`) 의 체크리스트 JSON 블록에도 그대로 등장해야 한다 (sub-agent 가 system prompt 만 보고 반환할 수 있도록). 동기화 보장은 수동 체크박스가 아닌 **`scripts/verify-agent-ssot.sh`** 자동 검사로 강제된다 — 9개 필드 존재 + 선언 순서 준수를 검증하며, drift 시 누락 파일/필드와 순서 이탈 지점을 stderr 에 보고하고 exit 1. CI `detect-and-test` 에 통합되어 PR 머지 전 drift 차단. **이 SSoT 블록을 수정하는 PR 은 반드시 5개 에이전트 파일의 `## 마무리 체크리스트 JSON 반환` 섹션을 함께 갱신하고 `bash scripts/verify-agent-ssot.sh` 로 사전 확인한다.**
-- 누락 감지 시 메인이 직접 보완 박제 (커밋/PR/코멘트). sub-agent를 재호출해 같은 누락을 반복시키지 않는다
-- **메인 오케스트레이터 단계 게이트 (volt [#77](https://github.com/coseo12/volt/issues/77))** — `developer → reviewer → qa → 사용자/머지` 순서 강제. developer sub-agent 의 self-compare 자명 PASS 함정을 reviewer/qa 단계가 차단. 예외: docs only / chore. 상세: [docs/lessons/headless-browser-verification.md](docs/lessons/headless-browser-verification.md)
-- 근거: volt [#24](https://github.com/coseo12/volt/issues/24) — astro-simulator P6-B~E 에서 dev/qa sub-agent 마무리 단계 누락 4회 연속 관찰. volt [#46](https://github.com/coseo12/volt/issues/46) / volt [#52](https://github.com/coseo12/volt/issues/52) — background 프로세스 인계 누락의 로컬 프로세스 버전 (stale dev 서버 포트 점유 오진 + `cargo test` 좀비 4개 누적 관찰). `spawned_bg_pids` / `bg_process_handoff` 2필드로 인계 책임 구조화
+- **공통 SSoT 9 필드 + 메인 게이트 + bg 인계 + base=develop 함정** 통합 상세: [docs/lessons/sub-agent-ssot-handoff.md](docs/lessons/sub-agent-ssot-handoff.md)
+- **SSoT 동기화 자동 가드** (#145, v2.23.0~): 9 필드는 5 에이전트 `.md` 의 체크리스트 JSON 에 그대로 등장해야 하며 `scripts/verify-agent-ssot.sh` 가 CI `detect-and-test` 에서 drift 차단. SSoT 블록 수정 PR 은 5 에이전트 파일 동시 갱신 + 로컬 verify 사전 확인 필수.
+- **메인 오케스트레이터 단계 게이트** (volt [#77](https://github.com/coseo12/volt/issues/77)): `developer → reviewer → qa → 사용자/머지` 순서 강제. 예외: docs only / chore. 상세: [docs/lessons/headless-browser-verification.md](docs/lessons/headless-browser-verification.md)
 
 ### sub-agent multi-turn 라운드 이탈 — 매트릭스 일관성 검증
-sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운드에서 이탈한다. SendMessage 는 **이전 라운드 매트릭스를 본문에 인라인 재첨부** ("권고 A" 참조 레이블만으론 부족). 메인 오케스트레이터가 핵심 키워드 대조로 이탈 즉시 감지.
-- 상세: [docs/lessons/sub-agent-multiturn-drift.md](docs/lessons/sub-agent-multiturn-drift.md)
-- **PM 이슈 DoD 구조 drift 재현 (volt [#76](https://github.com/coseo12/volt/issues/76))**: astro-simulator P11-B.2 PM 재계약에서 원본 D5 (Osculating 관찰 리포트) 가 라운드 2 에서 D3b (screenshot diff) 의 7 moon 대상으로 **재배치되면서 사라짐**. 라운드 N+1 이 사용자 응답을 받아 **DoD 자체 (ID·산출물·의미) 를 재배치**. 예방: PM 에이전트 프롬프트에 "원본 DoD 재구조화 금지 / 사용자 응답은 각 DoD 의 파라미터 (수치/경계/선택지) 만 조정 / 라운드 N+1 출력에 원본 DoD 변경 전/후 diff 명시" 제약 박제 (`.claude/agents/pm.md`). volt #34 가 **1회성 교훈이 아닌 반복 패턴** 임을 확증.
+sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운드에서 이탈. SendMessage 는 **이전 라운드 매트릭스를 본문에 인라인 재첨부** ("권고 A" 참조 레이블만으론 부족). 메인 오케스트레이터가 핵심 키워드 대조로 이탈 즉시 감지. PM 재계약 시 DoD 자체 재구조화 금지 — 사용자 응답은 파라미터만 조정.
+- 상세 (라운드 이탈 / PM DoD drift 재현 / 예방 규약): [docs/lessons/sub-agent-multiturn-drift.md](docs/lessons/sub-agent-multiturn-drift.md) — volt [#34](https://github.com/coseo12/volt/issues/34) / [#76](https://github.com/coseo12/volt/issues/76)
 
 ### headless 브라우저 검증 ≠ 실 브라우저 동작
 `agent-browser` / Playwright headless (특히 swiftshader adapter) 는 3D/WebGPU 경로에서 부분 freeze 로 false positive 를 낸다. "headless 8/8 PASS" 만 믿지 말 것. 시각 효과 포함 작업은 `status:review` 전 **실 Chrome GUI 수동 검증 최소 1회** 필수. CRITICAL #3 의 확장.
