@@ -74,6 +74,8 @@ gh pr view <PR> --json body --jq .body | grep -c -i "<핵심 키워드>"
 
 > 참고: 동일 측정 방법이 `.claude/skills/create-pr/SKILL.md` 에도 박제됨 (cross-link SSoT). 한쪽만 갱신하면 drift 발생 — **동시 수정 의무**. 다운스트림 1차 사례: astro-simulator [#469](https://github.com/coseo12/astro-simulator/issues/469) "ADR 호환성 체크" 측정 방법 C 박제 PR [#472](https://github.com/coseo12/astro-simulator/pull/472).
 
+> 참고: 동일 메타 규칙이 `.claude/agents/reviewer.md` §절차 6번 + `.claude/agents/qa.md` §검증 단계 backstop 에서 발화 (방어의 깊이). 다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) PR [#475](https://github.com/coseo12/astro-simulator/pull/475) 동기화.
+
 ## 브라우저 검증 (UI 포함 이슈 필수)
 
 **빌드 성공 + 단위 테스트 통과 ≠ 동작하는 앱**
