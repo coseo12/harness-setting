@@ -9,16 +9,21 @@
 
 ## [Unreleased]
 
-### Behavior Changes (MINOR — cross-validate plan-mode 가드 + reviewer ADR 호환성 + create-pr Strict Assertion 박제)
+### Behavior Changes (MINOR — cross-validate plan-mode 가드 + reviewer ADR 호환성 + create-pr Strict Assertion + PR 본문 7 체크박스 메타 가드 박제)
 
 - **`.claude/skills/cross-validate/scripts/cross_validate.sh` plan-mode 우회 자동 가드** (다운스트림 [astro-simulator#479](https://github.com/coseo12/astro-simulator/issues/479) PR [#482](https://github.com/coseo12/astro-simulator/pull/482) 박제) — Gemini 호출 전/후 워킹트리 snapshot 비교 (porcelain + hash-object 혼합) + 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`) + outcome JSON 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`). `--approval-mode plan` 가드가 무력화돼 Gemini 가 워킹트리에서 무단 파일 수정한 사고 (2026-05-16) 자동 차단
 - **`scripts/parse-cross-validate-outcome.sh` 3 신규 필드 파싱 + backward compat** — `CROSS_VALIDATE_PLAN_BYPASS` / `CROSS_VALIDATE_BYPASS_FILES` / `CROSS_VALIDATE_ROLLBACK_FAILED` KEY=value 출력. legacy outcome (필드 부재) 도 false / "" / false fallback
 - **`.claude/agents/reviewer.md` §절차 5 신설 — ADR 호환성 의미론적 검증** (다운스트림 [astro-simulator#463](https://github.com/coseo12/astro-simulator/issues/463) PR [#468](https://github.com/coseo12/astro-simulator/pull/468) 박제) — PR 본문 체크박스만의 self-attestation 함정 차단. 4 sub-step: (1) PR 변경 파일 진단 + 1줄 박제 의무 (2) 수정 미포함 PR 은 `적용 비대상` 명시 (3) 수정 포함 시 grep 1차 (`Amendment`/`폐기`/`Supersedes`/`§재검토 조건`) + LLM 2차 혼합 검증 (4) PR 본문 체크박스 검증. 결과 PR 코멘트 포맷에 `### ADR 호환성` 섹션 추가
 - **`.claude/skills/create-pr/SKILL.md` Strict Assertion 동적 읽기 박제** (다운스트림 [astro-simulator#471](https://github.com/coseo12/astro-simulator/issues/471) PR [#478](https://github.com/coseo12/astro-simulator/pull/478) 박제) — PR 본문 생성 시 `.github/PULL_REQUEST_TEMPLATE.md` `### 체크리스트` 섹션 동적 읽기 의무 + 하드코딩 fallback 금지 (CRITICAL). 1차 (test -f) → 2차 (sed 섹션 추출) → 3차 (grep -c checkbox) → 4차 (PR 본문 박제) 3+1 단 검증. drift 가드 strict assertion 자기모순 차단 (volt [#107](https://github.com/coseo12/volt/issues/107))
+- **PR 본문 7 체크박스 메타 가드 — 4 파일 동시 박제** (다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) PR [#475](https://github.com/coseo12/astro-simulator/pull/475) 박제) — 동일 메타 규칙이 3 곳에서 발화 (방어의 깊이):
+  - `.claude/agents/reviewer.md` §절차 6 신설 — 1차 구조 grep (체크박스) + 2차 phrase grep AND. 양쪽 0 hit 시 `non_blocking_suggestions` 박제. 기존 §절차 6/7/8 → 7/8/9 renumber
+  - `.claude/agents/qa.md` §검증 단계 4 신설 — backstop (reviewer 1차 가드 누락 시 grep ≥ 1 검증, 반환 0 시 reviewer 되돌림 권고). 기존 §4 (cross-validate outcome) → §5 renumber
+  - `.claude/agents/developer.md` §측정 방법 C 박스 끝에 reviewer/qa 박제 cross-link 참고 라인 추가
+  - `.claude/skills/create-pr/SKILL.md` §측정 방법 C 박스 끝에 reviewer/qa 박제 cross-link 참고 라인 추가
 - **5 페르소나 SSoT 박제** (drift 0):
   - `.claude/agents/architect.md` §절차 9 — cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무
-  - `.claude/agents/reviewer.md` §절차 8 — 동일 SSoT (ADR 호환성 §절차 5 신설로 renumber 7→8)
-  - `.claude/agents/qa.md` §검증 단계 4 — 동일 SSoT
+  - `.claude/agents/reviewer.md` §절차 9 — 동일 SSoT (ADR 호환성 §절차 5 + PR 본문 메타 §절차 6 신설로 renumber 7→8→9)
+  - `.claude/agents/qa.md` §검증 단계 5 — 동일 SSoT (PR 본문 §검증 단계 4 신설로 renumber 4→5)
   - `.claude/agents/developer.md` §금지 — cross-validate 호출 금지 + outcome 참조 시 정합성 검증
   - `.claude/agents/pm.md` §금지 — 동일
 - **`CLAUDE.md` `## 교차검증` 섹션 plan-mode 가드 박제** — 메인 오케스트레이터 검증 의무 (sub-agent 복귀 직후 `parse-cross-validate-outcome.sh` 파싱 + `plan_bypass == false` 확인). `.gitignore` 변경 시 CRITICAL 격상

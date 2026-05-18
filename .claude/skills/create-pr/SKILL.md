@@ -129,6 +129,8 @@ gh pr view <PR> --json body --jq .body | grep -c -i "<핵심 키워드>"
 
 > 참고: 동일 측정 방법이 `.claude/agents/developer.md` 에도 박제됨 (cross-link SSoT). 한쪽만 갱신하면 drift 발생 — **동시 수정 의무**. 다운스트림 1차 사례: astro-simulator [#469](https://github.com/coseo12/astro-simulator/issues/469) PR [#472](https://github.com/coseo12/astro-simulator/pull/472).
 
+> 참고: PR 템플릿 신규 항목 양가성 가드 (체크박스 prefill 0 hit + phrase 0 hit 시 발화) 는 `.claude/agents/developer.md` §메타 규칙 (다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) PR [#475](https://github.com/coseo12/astro-simulator/pull/475) 동기화) 에 박제됨. reviewer.md §절차 6번 + qa.md §검증 단계 backstop 양쪽이 방어의 깊이.
+
 ## 라벨 업데이트
 
 ```bash
