@@ -76,6 +76,26 @@ EOF
   --label "status:review"
 ```
 
+## 측정 방법 C (혼합) — PR 본문 가시성 자기 검증
+
+PR 본문 작성 후 거버넌스 체크 항목 (예: "ADR 호환성 체크") 의 가시성을 다음 두 grep 의 **AND** 로 판정한다 (다운스트림 architect cross-validate 합의):
+
+```bash
+# 1차 구조 grep — 체크박스 prefill 보존 확인
+gh pr view <PR> --json body --jq .body | grep -c "<체크박스 항목명>"
+# 기대: ≥ 1 hit (체크박스 항목명 그대로)
+
+# 2차 phrase grep — 별도 위치 박제까지 포괄 확인 (대소문자 무시)
+gh pr view <PR> --json body --jq .body | grep -c -i "<핵심 키워드>"
+# 기대: ≥ 1 hit (체크박스 + prose 중 어디든)
+```
+
+- **양쪽 ≥ 1 hit** → PASS (구조 + phrase 둘 다 가시성 확보)
+- **체크박스 0 + phrase ≥ 1** → non-blocking 권고 (체크박스 prefill 누락. 동일 권고 시 위 7 체크박스 base 코드 블록 동봉 권장)
+- **양쪽 동시 0 hit** → FAIL (가시성 0 — PR 본문 재작성 또는 reviewer 가 차단)
+
+> 참고: 동일 측정 방법이 `.claude/agents/developer.md` 에도 박제됨 (cross-link SSoT). 한쪽만 갱신하면 drift 발생 — **동시 수정 의무**. 다운스트림 1차 사례: astro-simulator [#469](https://github.com/coseo12/astro-simulator/issues/469) PR [#472](https://github.com/coseo12/astro-simulator/pull/472).
+
 ## 라벨 업데이트
 
 ```bash
