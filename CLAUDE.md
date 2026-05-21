@@ -48,23 +48,8 @@ AI 에이전트 기반 개발 워크플로우 템플릿. 1인 개발자-AI 페�
 - **merge commit 직후 `git push origin main:develop` (fast-forward) 필수**
 - **feature/fix PR 의 `base=main` 금지** — release/hotfix PR 만 main 대상
 
-## 커밋 컨벤션
-```
-<type>(<scope>): <description>
-```
-- type: feat, fix, refactor, test, docs, chore
-- scope: 변경 대상 모듈/컴포넌트
-
-## PR 규칙
-- PR 제목에 이슈 번호 포함: `[#이슈번호] 설명`
-- PR 본문에 변경 사항, 테스트 계획, 영향 범위 명시
-- **여러 이슈 auto-close 시 각 이슈마다 keyword 반복 또는 줄 분리** — GitHub 은 각 이슈 바로 앞 단어에 closing keyword (`close[s|d]` / `fix[es|ed]` / `resolve[s|d]`) 가 있어야 인식한다. 잘못된 문법은 **조용히 누락**되어 이슈가 OPEN 으로 잔존.
-  - **단일 원리**: GitHub 은 **각 이슈 번호 직전에 closing keyword 가 토큰으로 인접해야** 인식한다. 콜론/콤마/공백 등으로 keyword 와 번호 사이를 끊거나 두 번째 번호 앞에 keyword 가 없으면 모두 **동일한 결함** (두 번째 이슈 앞 keyword 부재) 으로 수렴해 #B 미인식.
-  - ✅ `Closes #A, closes #B` — 각 이슈에 keyword 반복
-  - ✅ 줄 분리 — `Closes #A\nCloses #B`
-  - ❌ `Closes: #A, #B` / `Closes #A, #B` / `Closes #A #B` — 모두 #B 앞 keyword 부재 (콜론·콤마·공백은 동일 결함의 표면 변형)
-- **머지 직후 auto-close 검증 루틴** — release/feature PR 머지 후 close 대상 이슈 전부에 `gh issue view <n> --json state` 로 실제 close 여부를 확인. default branch (main) 머지가 아닌 경우 (feature PR → develop) 는 릴리스 시점까지 OPEN 유지가 정상
-- 근거: volt [#41](https://github.com/coseo12/volt/issues/41) — harness PR [#108](https://github.com/coseo12/harness-setting/pull/108) (v2.14.0) 커밋 메시지 `Closes: #105, #110` 에서 #105 만 auto-close 되고 #110 은 수동 close 필요했던 실측 사례
+## 커밋 컨벤션 + PR 규칙
+형식 `<type>(<scope>): <description>` (type: feat/fix/refactor/test/docs/chore). PR 제목 `[#이슈번호] 설명`. **multi-issue auto-close keyword 함정** (각 이슈 앞 `Closes` 반복 또는 줄 분리 필수, 콜론·콤마 단일 형태는 #B 미인식) + 머지 직후 `gh issue view` 검증 루틴. 상세: [docs/guides/branch-strategy-workflow.md](docs/guides/branch-strategy-workflow.md). 근거: volt [#41](https://github.com/coseo12/volt/issues/41).
 
 ---
 
@@ -97,15 +82,7 @@ AI는 자기 작업을 과도하게 긍정 평가하는 경향이 있으므로, 
 - 회고에서 도출된 프로세스 교훈은 다음 마일스톤 가드(PR 템플릿/검사 스크립트)로 **제도화**한다
 
 ## 디자인 품질 루브릭 (UI 프로젝트)
-
-UI가 포함된 작업에서 4축으로 품질을 평가한다:
-
-| 기준 | 가중치 | 설명 |
-|------|-------|------|
-| Design Quality | 30% | 색상, 타이포그래피, 레이아웃이 일관된 전체로 느껴지는가 |
-| Originality | 30% | 템플릿/라이브러리 기본값/AI 생성 패턴(보라색 그라데이션 등)을 탈피했는가 |
-| Craft | 20% | 타이포그래피 계층, 간격 일관성, 색상 조화, 대비 비율 |
-| Functionality | 20% | 미학과 무관한 사용성 (내비게이션, 폼, 인터랙션) |
+UI 작업 4축 평가 (Design Quality 30% / Originality 30% / Craft 20% / Functionality 20%). 점수 < 70% 축은 개선 의무. 상세: [docs/guides/design-quality-rubric.md](docs/guides/design-quality-rubric.md).
 
 ---
 
@@ -150,16 +127,7 @@ upstream 의 단위 테스트 / reviewer / cross-validate 3중 방어가 통과�
 - **함정의 양면성 — release 가속 트리거 변형 (volt [#97](https://github.com/coseo12/volt/issues/97))**: 본 함정이 검증 차단 효과로 작용해 사용자에게 "지금 release 할지" 결정을 강제 노출시키는 부산물 관찰. develop 누적 ≥ 50 커밋 시 정공법 (release PR) 비용 < 우회법 (cherry-pick) → 결과적으로 자연 release 리듬 정렬. 단, 모든 검증 차단이 release 가속을 정당화하지 않음 — 누적 < 10 커밋이면 옵션 B (대기) / C (cherry-pick) 가 합리적. 가드 도입 PR DoD 에 A/B/C 결정 분기 표 (비용/시점/gitflow 정합성) 명시 의무 추가 권고. release-cadence-check workflow 신설로 함정 의존 제거 가능.
 
 ### gh CLI 마크다운 본문 발송 — execSync shell metachar 함정 (volt #114)
-Node.js 에서 `execSync('gh pr comment N --body "..."')` 로 마크다운 본문 (백틱 / `$` / `!` / `;` 등 특수 문자 포함) 발송 시 **shell metachar 가 명령 치환·변수 확장으로 해석**되어 syntax error 발생. 자동 코멘트 / actionable 보고 발송이 silent fail.
-
-- **증상**: `/bin/sh: 1: Syntax error: end of file unexpected` 또는 `unbound variable` 등 shell 단계 에러. exit non-zero 인데 코멘트 박제 안 됨.
-- **원인**: `execSync(string)` 는 `/bin/sh -c <string>` 으로 실행 → shell 이 본문의 `` ` `` 백틱을 명령 치환으로 해석. `JSON.stringify` 의 백슬래시 이스케이프는 shell parser 에 도달 시 무력화.
-- **해결 — `spawnSync` + stdin** (3축 우회):
-  1. `spawnSync('gh', [...args])` — args 배열로 분리 (shell 미사용)
-  2. `--body-file -` — stdin 으로 본문 전달 (OS arg limit 회피)
-  3. `{ input: body, stdio: ['pipe', 'inherit', 'inherit'] }` — Node.js 가 child stdin 에 자동 pipe
-- **선택 가이드**: 본문이 사용자/template 생성이면 spawnSync + stdin 의무. execSync 는 고정 문자열 + 환경 변수 없는 명령에만 사용
-- 근거: volt [#114](https://github.com/coseo12/volt/issues/114) — astro-simulator PR #497 (D4 회귀 가드 시뮬레이션 negative case) 에서 실측 발견 + fix `a75aa20`
+Node.js `execSync('gh pr comment N --body "..."')` 로 백틱/`$`/`!`/`;` 포함 본문 발송 시 shell 이 명령 치환·변수 확장으로 해석 → silent syntax error. **`spawnSync('gh', [...args])` + `--body-file -` + `{ input: body, stdio: ['pipe', 'inherit', 'inherit'] }` 3축 우회** 의무. 상세: [docs/lessons/gh-cli-execsync-pitfall.md](docs/lessons/gh-cli-execsync-pitfall.md).
 
 ### 주석 계약 vs 구현 drift — 버그 생성원
 파일 상단 주석 / JSDoc 이 선언한 계약과 구현의 drift 는 **버그 생성원**. default fallback 이 누락을 조용히 흡수해 테스트도 fail 하지 않는다. 주석에 선언된 규칙은 테스트 커버리지 대상이며, enum 분기 fallback 에 경고·assert 추가로 drift 감지.
@@ -182,14 +150,7 @@ AI가 생성하는 코드에서 반복되는 실패 패턴:
 반드시 사전 경고한다.
 
 ### 인계 항목 실측 재검증 — NO-OP ADR 패턴
-이전 마일스톤 회고가 인계한 "수정 필요 항목"이 환경/코드 변화로 **착수 시점엔 이미 해소**되어 있는 경우가 있다. AI는 인계 항목을 "해야 할 일"로 과신하는 편향이 있으므로 구현 직전 실측으로 전제를 재검증한다.
-
-- 작업 착수 전 현재 동작을 실측 (브라우저/bench/테스트)
-- 이미 만족하면 구현 대신 **NO-OP ADR** 작성: `docs/decisions/<YYYYMMDD>-<topic>-no-op.md`
-- NO-OP 결정도 후보 비교 / 실측 결과 / 재검토 조건을 남긴다 — 다음에 재발굴 시 빠르게 기각 근거
-- 대신 **회귀 가드**를 박제: 현재 동작이 퇴행하지 않도록 verify 스크립트 또는 테스트 추가
-- 근거: volt [#14](https://github.com/coseo12/volt/issues/14) — CRITICAL #2 "모호한 지시 사전 확인"과 상호보완 (명확한 지시를 받았어도 실측으로 범위 축소)
-- **조사 국면 확장 — Explore 미결정 시 debug 스크립트 실측 선행 (volt [#67](https://github.com/coseo12/volt/issues/67))**: 아키텍처 근간 drift 조사에서 정적 분석 (Explore 에이전트, 코드 리뷰) 이 `(C) 미결정` 을 반환하면, 20~30줄 일회성 debug 스크립트 (`scripts/_debug-<topic>-tmp.mjs` — 실행 직후 `rm`) 로 runtime 실측 선행. 정적 분석은 주석·타입 시그니처·표현 일관성까지만 본다 — runtime 조건 분기 omission 버그는 grep 으로 잡히지 않으며 실측이 유일한 확정 경로. "정적 분석 확신 없음 → 수 시간 추가 정적 조사" 대신 "30초 실측" 이 평균 비용 최소. volt #49 (주석 계약 vs 구현 drift) / #60 (다운스트림 실측) 계보의 조사 국면 버전.
+인계 "수정 필요 항목" 이 환경 변화로 착수 시점 이미 해소된 경우 — 실측 → NO-OP ADR (`docs/decisions/<YYYYMMDD>-<topic>-no-op.md`) + 회귀 가드. Explore 미결정 시 debug 스크립트 (`scripts/_debug-<topic>-tmp.mjs`, 즉시 `rm`) 로 runtime 실측 선행. 상세: [docs/lessons/no-op-adr-pattern.md](docs/lessons/no-op-adr-pattern.md). 근거: volt [#14](https://github.com/coseo12/volt/issues/14) / [#67](https://github.com/coseo12/volt/issues/67).
 
 ### 신규 함수 ≠ 신규 구현
 새 함수/헬퍼/유틸리티를 쓰기 전 "이미 있을 수 있다"를 기본 가설로 둔다. AI는 "없다"고 가정하고 바로 구현으로 들어가는 편향이 있어, 이전 마일스톤에서 구축된 공용 함수를 재발견하지 못한 채 중복 코드와 테스트를 생성한 사례가 반복된다.
