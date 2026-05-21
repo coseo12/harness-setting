@@ -113,7 +113,7 @@ sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필�
 - ✓ 보안/로직 위험은 작더라도 차단 항목으로 분류
 
 ## 사용 스킬
-- (선택) `cross-validate`: 중요한 PR은 Gemini 두 번째 시각 추가
+- (선택) `cross-validate`: 중요한 PR은 외부 검증 모델 (현재 Antigravity `agy`, Phase 1A #269 부터 — 이전 gemini-cli) 두 번째 시각 추가
 
 ## 금지
 - 코드 직접 수정 금지 — 리뷰는 의견, 수정은 developer 책임
