@@ -306,15 +306,15 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 
 ## 교차검증 (cross-validate)
 
-정답이 없는 의사결정에서 Gemini 의 두 번째 시각을 활용한다. 결과는 Claude 가 재분석하여 합의/이견/고유 발견으로 분류 — 맹목 수용 금지.
+정답이 없는 의사결정에서 외부 검증 모델 (현재 Antigravity `agy`, Phase 1A #269 부터 — 이전 gemini-cli) 의 두 번째 시각을 활용한다. 결과는 Claude 가 재분석하여 합의/이견/고유 발견으로 분류 — 맹목 수용 금지.
 
 - **박제 직후 1회 루틴** — CRITICAL DIRECTIVE 개정 / ADR 신규·중대 개정 / MINOR 이상 `Behavior Changes` / 프로젝트 원칙 선언 직후 노출 효율이 가장 높다
 - **API 429 폴백 프로토콜** — capacity 체크 + 지연 재시도 → 최종 실패 시 Claude 단독 분석 + `claude-only analysis completed — 단일 모델 편향 노출 미확보` 박제. 박제 위치 우선순위: CHANGELOG Notes > ADR 각주 > 커밋 메시지 > PR 코멘트 (중복 금지). 스크립트 레벨 강제: `.claude/skills/cross-validate/scripts/cross_validate.sh` (exit 77 + outcome JSON)
 - **Claude 자체 편향 4종 셀프 체크** — 호출 전 낙관적 일정 / 결합 관계 간과 / 폐기 프레이밍 / 순수주의 원칙을 자기 산출물과 대조 (감지 시 명시 질문으로 프롬프트에 삽입)
-- **수용 전 실측 sanity check (volt [#66](https://github.com/coseo12/volt/issues/66))** — Gemini 가 제안한 **수치 DoD 재정의·물리/환경 제약** 은 ADR/계약 박제 전 1회 실측 (실 환경 실행 또는 단위 테스트 snippet) 으로 자가모순 확인 선행. "엄격한 DoD = 안전" 편향은 Gemini+Claude 공유이므로 교차검증 자체로는 self-contradiction 을 거르지 못한다. cross-validate 스킬 결과 분석 §0 참조.
+- **수용 전 실측 sanity check (volt [#66](https://github.com/coseo12/volt/issues/66))** — 외부 모델이 제안한 **수치 DoD 재정의·물리/환경 제약** 은 ADR/계약 박제 전 1회 실측 (실 환경 실행 또는 단위 테스트 snippet) 으로 자가모순 확인 선행. "엄격한 DoD = 안전" 편향은 외부 모델+Claude 공유이므로 교차검증 자체로는 self-contradiction 을 거르지 못한다. cross-validate 스킬 결과 분석 §0 참조.
 - **외부 툴 동작 주장은 실측 필수** — 같은 생태계 내 도구 간 flag 복사 금지. 검증 템플릿: `<tool> --help | grep -A 2 <flag>` (공식 지원 여부 판정)
 - **고유 발견은 스프린트 비목표와 대조** — 범위 밖이면 후속 이슈로 분리 (CRITICAL #6 보호)
-- **plan-mode 우회 자동 가드 (#479)** — `cross_validate.sh` 가 Gemini 호출 전/후 워킹트리 snapshot 을 비교 (porcelain + hash-object 혼합) 하여 plan-mode 우회 (`--approval-mode plan` 무력화로 인한 무단 파일 수정) 를 감지하고 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`). outcome JSON 의 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`) 가 결과 박제. **메인 오케스트레이터 의무**: sub-agent (architect / reviewer / qa) 가 cross-validate 호출했다면 복귀 직후 `scripts/parse-cross-validate-outcome.sh <log>-outcome.json` 으로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 사용자에게 즉시 사고 보고 + `bypass_files` 추가 검증, `rollback_failed == true` 면 수동 개입 (자동 복구 불가). `.gitignore` 변경 감지 시 CRITICAL 격상 (무시 파일 동시 수정 false negative 위험). 5 페르소나 SSoT: 3 §절차 (architect/reviewer/qa) + 2 §금지 (developer/pm) — drift 0
+- **plan-mode 우회 자동 가드 (#479)** — `cross_validate.sh` 가 외부 모델 호출 전/후 워킹트리 snapshot 을 비교 (porcelain + hash-object 혼합) 하여 plan-mode 우회 (Phase 1A #269 부터 agy 는 `--approval-mode plan` 등가 옵션 부재 → L1 prompt strict prefix + L3 snapshot 이중 가드. 이전 gemini-cli 시점은 `--approval-mode plan` 무력화 감지) 를 감지하고 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`). outcome JSON 의 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`) 가 결과 박제. **메인 오케스트레이터 의무**: sub-agent (architect / reviewer / qa) 가 cross-validate 호출했다면 복귀 직후 `scripts/parse-cross-validate-outcome.sh <log>-outcome.json` 으로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 사용자에게 즉시 사고 보고 + `bypass_files` 추가 검증, `rollback_failed == true` 면 수동 개입 (자동 복구 불가). `.gitignore` 변경 감지 시 CRITICAL 격상 (무시 파일 동시 수정 false negative 위험). 5 페르소나 SSoT: 3 §절차 (architect/reviewer/qa) + 2 §금지 (developer/pm) — drift 0
 - 상세 프로토콜 / 매트릭스 / 근거 체인: [docs/guides/cross-validate-protocol.md](docs/guides/cross-validate-protocol.md)
 
 ---
