@@ -25,3 +25,6 @@ node_modules/
 # 테스트 산출물 (Playwright, Vitest 등)
 test-results/
 playwright-report/
+
+# Antigravity CLI 로컬 워크스페이스 (사용자별 OAuth/프로젝트 데이터 심볼릭 링크)
+.antigravitycli/
