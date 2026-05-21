@@ -342,24 +342,27 @@ check_external_capacity() {
   local probe_stdout probe_stderr probe_rc
   local probe_stderr_file
   probe_stderr_file=$(mktemp)
+  # agy 권고 제안 1 수용 (PR #275 dogfooding): SIGINT/SIGTERM 또는 set -e 조기 이탈 시 임시 파일 누수 차단
+  # RETURN trap 은 함수 종료 시점에 호출되며 호출자로 전파 안 됨 (bash 기본 INHERITRC 비활성)
+  trap "rm -f '${probe_stderr_file}'" RETURN
   # capacity probe — 빠른 응답 (30s) timeout, 정상 응답은 1~3s 안에 옴
   probe_stdout=$(agy --print-timeout 30s -p "hello" 2>"${probe_stderr_file}") && probe_rc=0 || probe_rc=$?
   probe_stderr=$(cat "${probe_stderr_file}")
-  rm -f "${probe_stderr_file}"
 
   # 정상 응답: 비어있지 않은 stdout + stderr Error 없음 (exit code 무관 — agy 는 항상 0)
-  if [ -n "${probe_stdout}" ] && ! echo "${probe_stderr}" | grep -qE "^Error: "; then
+  # agy 권고 제안 2 수용: echo "${var}" 는 `-e/-n` 시작 문자열에서 옵션 파싱 오동작 가능 → printf '%s\n' 사용
+  if [ -n "${probe_stdout}" ] && ! printf '%s\n' "${probe_stderr}" | grep -qE "^Error: "; then
     return "${CAPACITY_OK}"
   fi
 
   # capacity 실패 패턴 매칭 — PoC T2 발견 + 추정 패턴 (rate limit/quota/not logged)
-  if echo "${probe_stderr}" | grep -qE "^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)"; then
-    log "capacity 체크 결과: agy capacity 부족 또는 인증 문제 (code=${CAPACITY_EXHAUSTED}) — $(echo "${probe_stderr}" | head -1)"
+  if printf '%s\n' "${probe_stderr}" | grep -qE "^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)"; then
+    log "capacity 체크 결과: agy capacity 부족 또는 인증 문제 (code=${CAPACITY_EXHAUSTED}) — $(printf '%s\n' "${probe_stderr}" | head -1)"
     return "${CAPACITY_EXHAUSTED}"
   fi
 
   # 그 외: 알 수 없는 probe 실패
-  log "capacity 체크 결과: 비-capacity probe 실패 (code=${CAPACITY_OTHER_ERROR}) — stdout=$(echo "${probe_stdout}" | head -1) stderr=$(echo "${probe_stderr}" | head -1)"
+  log "capacity 체크 결과: 비-capacity probe 실패 (code=${CAPACITY_OTHER_ERROR}) — stdout=$(printf '%s\n' "${probe_stdout}" | head -1) stderr=$(printf '%s\n' "${probe_stderr}" | head -1)"
   return "${CAPACITY_OTHER_ERROR}"
 }
 
@@ -440,9 +443,16 @@ run_external_validator() {
   # L1: prompt 에 strict prefix 자동 prepend (호출 측 PROMPT 변경 없이 일괄 적용)
   local guarded_prompt="${EXTERNAL_VALIDATOR_STRICT_PREFIX}${prompt}"
 
+  # agy 권고 제안 1 수용 (PR #275 dogfooding): mktemp 임시 파일 누수 차단 (SIGINT/SIGTERM 또는 set -e 조기 이탈)
+  # 루프 안에서 새 mktemp 가 생성되므로 trap 의 변수 참조는 RETURN 시점의 최종 값을 사용 (마지막 루프 반복의 파일만 cleanup)
+  # 이를 보강하기 위해 루프 안에서 명시적 rm 도 유지 (이중 안전망)
+  local stdout_file=""
+  local stderr_file=""
+  trap "rm -f \"\${stdout_file:-}\" \"\${stderr_file:-}\"" RETURN
+
   while [ "${attempt}" -le "${MAX_EXTERNAL_VALIDATOR_RETRIES}" ]; do
     log "외부 검증 모델 (agy) 실행 중 (시도: ${attempt}/${MAX_EXTERNAL_VALIDATOR_RETRIES}, timeout: ${EXTERNAL_VALIDATOR_PRINT_TIMEOUT})..."
-    local stdout_file stderr_file stdout_content stderr_content
+    local stdout_content stderr_content
     stdout_file=$(mktemp)
     stderr_file=$(mktemp)
     # agy 호출 — stdout/stderr 분리, --print-timeout 으로 wait 한계 설정
@@ -453,8 +463,9 @@ run_external_validator() {
     rm -f "${stdout_file}" "${stderr_file}"
 
     # 정상 응답 판정: 비어있지 않은 stdout + stderr Error 패턴 없음
-    if [ -n "${stdout_content}" ] && ! echo "${stderr_content}" | grep -qE "^Error: "; then
-      echo "${stdout_content}" | tee -a "${LOG_FILE}"
+    # agy 권고 제안 2 수용: echo "${var}" 는 `-e/-n` 시작 문자열에서 옵션 파싱 오동작 가능 → printf '%s\n' 사용
+    if [ -n "${stdout_content}" ] && ! printf '%s\n' "${stderr_content}" | grep -qE "^Error: "; then
+      printf '%s\n' "${stdout_content}" | tee -a "${LOG_FILE}"
       # stderr 가 비어있지 않으면 (정상 경로의 부수 메시지) 로그에만 남김
       if [ -n "${stderr_content}" ]; then
         printf '%s\n' "${stderr_content}" >> "${LOG_FILE}"
@@ -463,8 +474,8 @@ run_external_validator() {
     fi
 
     # capacity 실패 패턴 매칭 — PoC T2 (`Error: timed out`) + 추정 패턴
-    if echo "${stderr_content}" | grep -qE "^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)"; then
-      log "경고: agy capacity/인증 실패 (시도 ${attempt}/${MAX_EXTERNAL_VALIDATOR_RETRIES}) — $(echo "${stderr_content}" | head -1)"
+    if printf '%s\n' "${stderr_content}" | grep -qE "^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)"; then
+      log "경고: agy capacity/인증 실패 (시도 ${attempt}/${MAX_EXTERNAL_VALIDATOR_RETRIES}) — $(printf '%s\n' "${stderr_content}" | head -1)"
       if [ "${attempt}" -lt "${MAX_EXTERNAL_VALIDATOR_RETRIES}" ]; then
         # 폴백 프로토콜 단계 1: 지연 후 (선택적으로) capacity 체크 + 재시도
         # sleep 공식: MIN(SLEEP_CAP, 2^attempt * BASE) — Phase A 의 지수 공식에
@@ -503,7 +514,8 @@ run_external_validator() {
       fi
       attempt=$((attempt + 1))
     else
-      log "경고: agy 실패 (비-capacity 오류) — stdout=$(echo "${stdout_content}" | head -1) stderr=$(echo "${stderr_content}" | head -1)"
+      # agy 권고 제안 2 수용: printf '%s\n' 사용
+      log "경고: agy 실패 (비-capacity 오류) — stdout=$(printf '%s\n' "${stdout_content}" | head -1) stderr=$(printf '%s\n' "${stderr_content}" | head -1)"
       printf 'stdout:\n%s\nstderr:\n%s\n' "${stdout_content}" "${stderr_content}" >> "${LOG_FILE}"
       fatal=1
       break
