@@ -9,6 +9,41 @@
 
 ## [Unreleased]
 
+## [4.2.0] — 2026-05-21
+
+v4.1.1 이후 **MINOR 릴리스** — PR 템플릿에 `ADR 호환성 체크` prefill 신설 (reviewer.md §절차 5 정합) + CLAUDE.md 4차 가지치기 (35,907 → 32,134 chars).
+
+**포함 범위**:
+- PR [#290](https://github.com/coseo12/harness-setting/pull/290) — MINOR: PR 템플릿 ADR 호환성 prefill + CLAUDE.md 가지치기 통합
+
+### Behavior Changes (MINOR — PR 본문 prefill 변경)
+
+- **`.github/PULL_REQUEST_TEMPLATE.md` 에 `### ADR 호환성 체크` 섹션 신설** (이슈 [#287](https://github.com/coseo12/harness-setting/pull/287) reviewer 권고 1 / PR [#290](https://github.com/coseo12/harness-setting/pull/290)) — reviewer.md §절차 5 (ADR 호환성 의미론적 검증) 정합. `docs/decisions/` 변경 시 PR 작성자가 grep 1차 (`Amendment` / `폐기` / `Supersedes` / `§재검토 조건`) + LLM 2차 검증 결과를 PR 본문에 박제 의무. 적용 비대상 (docs/decisions 미변경) 분기로 자명 PASS 케이스 명시
+- **`docs/guides/design-quality-rubric.md` 신설 시 §적용 절차 신규 추가** (PR #290 reviewer 권고 1 박제) — CLAUDE.md 원본에는 4축 평가 표만 있었으나 신규 guide 에 적용 절차 4 단계 (자체 평가 / 70% 미만 개선 의무 / PR 본문 박제 권고 / ADR 권고 트리거 = 컴포넌트 라이브러리 / 디자인 시스템 선택 시) 추가. CLAUDE.md `### 아키텍처 결정 기록 (ADR)` 트리거 정합
+
+### Added (PATCH 성격 — CLAUDE.md 4차 가지치기 + lessons 신설)
+
+- **CLAUDE.md 본문 35,907 → 32,134 chars** (-3,773 추가, 누적 v4.0.0 49,860 대비 -17,726 = **36% 감축**). 30k 목표 (이슈 #266 본문) 까지 약 2.1k 추가 가지치기 권고
+- **`docs/guides/branch-strategy-workflow.md`** 에 §커밋 컨벤션 + §PR 규칙 통합 (CLAUDE.md 추출) — multi-issue close keyword 함정 + 머지 직후 auto-close 검증 루틴 포함
+- **`docs/guides/design-quality-rubric.md` 신설** — CLAUDE.md §디자인 품질 루브릭 위임 + §적용 절차 4단계 추가
+- **`docs/lessons/gh-cli-execsync-pitfall.md` 신설** — CLAUDE.md §gh CLI execSync shell metachar 함정 위임 (volt #114)
+- **`docs/lessons/no-op-adr-pattern.md` 신설** — CLAUDE.md §인계 항목 실측 재검증 NO-OP ADR + Explore 미결정 시 debug 스크립트 runtime 실측 위임 (volt #14 / #67)
+- **CLAUDE.md 4 블록 → 1~2줄 포인터** — 각인층 핵심 보존
+- **`docs/lessons/README.md`** 신규 2 파일 등록 (gh-cli-execsync-pitfall + no-op-adr-pattern)
+
+### Notes
+
+- **다운스트림 액션**: `harness update --apply-all-safe` 후 PR 템플릿 자동 갱신. 새 PR 작성 시 `### ADR 호환성 체크` 항목이 prefill 됨 → docs/decisions/ 변경 포함 PR 은 검증 결과 박제 의무 인지 권고
+- **이슈 #266 (CLAUDE.md 가지치기) 진행 중** — 본 release 로 누적 36% 감축. 30k 목표 (마진 5k 포함 25~30k 범위) 까지 약 2.1k 추가 가지치기 후속 권고:
+  - §스프린트 계약 1~5 + 7~9 + §마일스톤 회고 일부 압축
+  - §빌드 성공 ≠ 동작하는 앱 잔존 본문 일부 위임
+  - §교차검증 본문 (이미 docs/guides 위임됨) 추가 압축
+- **PR #287 reviewer 권고 1 완료** — PR 템플릿 ADR 호환성 prefill 박제 (절차 6 메타 가드 충족)
+- **PR #290 reviewer 권고**:
+  - 권고 1 (design-quality-rubric §적용 절차 신규 추가 vs '정보 손실 0') — 본 CHANGELOG 박제로 사후 추적성 확보
+  - 권고 2 (ADR 권고 트리거 조건) — 즉시 수용 (commit aa10db81)
+  - 권고 3 (branch-strategy-workflow vs pr-conventions.md 단독 분리) — 후속 별도 PR 권고
+
 ## [4.1.1] — 2026-05-21
 
 v4.1.0 이후 **PATCH 릴리스** — CLAUDE.md 3차 가지치기 + Phase 4 reviewer 권고 후속 시제 통일. **행동 변화 0**.
