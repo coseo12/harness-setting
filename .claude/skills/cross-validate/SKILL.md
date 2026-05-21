@@ -252,5 +252,5 @@ harness #89 (post-apply 게이트) 교차검증에서 Gemini (당시 백엔드) 
 
 ### backward-compat alias (Phase 4 #272 에서 제거 예정)
 - `GEMINI_MODEL` — agy 는 모델 옵션 없음. 설정 시 WARN 만 출력하고 무시
-- `GEMINI_RETRY_SLEEP_SECONDS` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS` alias (silent)
-- `GEMINI_RETRY_SLEEP_CAP` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP` alias (silent)
+- `GEMINI_RETRY_SLEEP_SECONDS` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS` alias (#276 부터 사용 시 stderr WARN 출력)
+- `GEMINI_RETRY_SLEEP_CAP` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP` alias (#276 부터 사용 시 stderr WARN 출력)

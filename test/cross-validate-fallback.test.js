@@ -440,7 +440,7 @@ test('cross-validate (alias #276): GEMINI_RETRY_SLEEP_CAP alias 사용 시 WARN 
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
       REMINDER_ISSUE_DRYRUN: '1',
-      GEMINI_RETRY_SLEEP_CAP: '100',  // alias (값은 정상 path 라 미사용이지만 WARN 만 트리거)
+      GEMINI_RETRY_SLEEP_CAP: '100',  // alias — 정상 응답 경로라 sleep 호출 자체가 없어 값 결과적 미사용, WARN 만 트리거
     });
     assert.strictEqual(result.status, 0, `정상 응답 기대. 실제: ${result.status}`);
     assert.ok(
