@@ -2,11 +2,11 @@
 // CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 준수 여부를
 // mock agy (Antigravity CLI) 바이너리로 시뮬레이션해 검증한다.
 //
-// Phase 1A (#269) 변경: gemini-cli → agy 어댑터 교체.
+// Phase 1A (#269 / v4.0.0) 변경: gemini-cli → agy 어댑터 교체.
 //   - mock 바이너리 이름: gemini → agy
 //   - mock 동작: agy 는 timeout/capacity 실패 시에도 exit 0 + stderr `^Error: ` 패턴 (PoC T2)
 //   - env 변수: GEMINI_RETRY_SLEEP_SECONDS → EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS
-// Phase 4 (#272) 변경: GEMINI_* alias 분기 자체 제거 (fail-fast). alias 검증 테스트 3건 제거
+// Phase 4 (#272 / v4.1.0): GEMINI_* alias 분기 자체 제거 (fail-fast). alias 검증 테스트 3건 제거 + fail-fast 회귀 가드 1건 신설
 //
 // 검증 항목 (기존 + Phase 1A):
 // - capacity 실패 (stderr `Error: timed out`) 시뮬레이션 → capacity 체크 실행 + 재시도 + 최종 claude-only fallback
