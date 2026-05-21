@@ -6,7 +6,7 @@
 //   - mock 바이너리 이름: gemini → agy
 //   - mock 동작: agy 는 timeout/capacity 실패 시에도 exit 0 + stderr `^Error: ` 패턴 (PoC T2)
 //   - env 변수: GEMINI_RETRY_SLEEP_SECONDS → EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS
-//   - backward-compat: GEMINI_RETRY_SLEEP_SECONDS alias 인식 검증 케이스 별도 유지
+// Phase 4 (#272) 변경: GEMINI_* alias 분기 자체 제거 (fail-fast). alias 검증 테스트 3건 제거
 //
 // 검증 항목 (기존 + Phase 1A):
 // - capacity 실패 (stderr `Error: timed out`) 시뮬레이션 → capacity 체크 실행 + 재시도 + 최종 claude-only fallback
@@ -405,65 +405,28 @@ test('cross-validate: EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP 적용 시 cap 로그 �
   }
 });
 
-// Phase 1A (#269) — backward-compat alias 검증
-// GEMINI_MODEL / GEMINI_RETRY_SLEEP_SECONDS / GEMINI_RETRY_SLEEP_CAP 는 1 릴리스 동안 alias 인식
+// Phase 4 (#272) — alias 검증 테스트 3건 제거 (GEMINI_RETRY_SLEEP_SECONDS/CAP + GEMINI_MODEL WARN)
+// 분기 자체가 cross_validate.sh 에서 제거됨 (fail-fast 원칙). 다운스트림 마이그레이션 완료 가정.
 
-test('cross-validate (alias #276): GEMINI_RETRY_SLEEP_SECONDS alias 인식 + WARN 출력', () => {
+// Phase 4 (#272) fail-fast 회귀 가드 — PR #283 reviewer 권고 1 수용
+// GEMINI_RETRY_SLEEP_SECONDS 설정해도 무시됨 (alias 분기 재추가 차단)
+// 검증 방식: alias 가 인식되면 sleep 9999s → 테스트 timeout 60s 초과 fail
+//           무시되면 EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS=0 적용 → 빠르게 완료
+test('cross-validate (#272 fail-fast): GEMINI_RETRY_SLEEP_SECONDS 환경변수 무시 검증 (alias 분기 제거 회귀 가드)', () => {
   const { tmpDir } = setupMockAgy('capacity');
   try {
     const result = runScript(['structure'], {
       PATH: `${tmpDir}:${process.env.PATH}`,
       REMINDER_ISSUE_DRYRUN: '1',
-      // EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS 제거 (alias 가 채용되도록)
-      EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS: undefined,
-      GEMINI_RETRY_SLEEP_SECONDS: '0',  // alias
+      EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS: '0',  // 정상 동작 변수
+      GEMINI_RETRY_SLEEP_SECONDS: '9999',  // alias 가 인식되면 sleep 9999s → timeout fail
     });
-    // alias 로도 sleep 회피 + exit 77 정상 (재시도 로직 자체는 동작)
-    assert.strictEqual(result.status, 77, `alias 로도 exit 77 기대. 실제: ${result.status}`);
+    // capacity 실패 fallback 정상 동작 (alias 무시 → EXTERNAL_VALIDATOR_*=0 적용)
+    assert.strictEqual(result.status, 77, `Phase 4: alias 무시 + default 적용 시 exit 77 기대. 실제: ${result.status}`);
+    // GEMINI_RETRY_SLEEP_SECONDS deprecated WARN 출력 없어야 함 (분기 제거 확인)
     assert.ok(
-      result.stderr.includes('claude-only analysis completed'),
-      `alias 로도 fallback 프리픽스 기대`
-    );
-    // #276: alias 사용 시 WARN 출력 (Phase 4 제거 사전 안내)
-    assert.ok(
-      result.stderr.includes('GEMINI_RETRY_SLEEP_SECONDS') && result.stderr.includes('deprecated'),
-      `#276 — GEMINI_RETRY_SLEEP_SECONDS deprecated WARN 기대. 실제 stderr: ${result.stderr}`
-    );
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
-});
-
-test('cross-validate (alias #276): GEMINI_RETRY_SLEEP_CAP alias 사용 시 WARN 출력', () => {
-  const { tmpDir } = setupMockAgy('ok');
-  try {
-    const result = runScript(['structure'], {
-      PATH: `${tmpDir}:${process.env.PATH}`,
-      REMINDER_ISSUE_DRYRUN: '1',
-      GEMINI_RETRY_SLEEP_CAP: '100',  // alias — 정상 응답 경로라 sleep 호출 자체가 없어 값 결과적 미사용, WARN 만 트리거
-    });
-    assert.strictEqual(result.status, 0, `정상 응답 기대. 실제: ${result.status}`);
-    assert.ok(
-      result.stderr.includes('GEMINI_RETRY_SLEEP_CAP') && result.stderr.includes('deprecated'),
-      `#276 — GEMINI_RETRY_SLEEP_CAP deprecated WARN 기대. 실제 stderr: ${result.stderr}`
-    );
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
-});
-
-test('cross-validate (alias): GEMINI_MODEL 설정 시 WARN 출력 (deprecated 안내)', () => {
-  const { tmpDir } = setupMockAgy('ok');
-  try {
-    const result = runScript(['structure'], {
-      PATH: `${tmpDir}:${process.env.PATH}`,
-      REMINDER_ISSUE_DRYRUN: '1',
-      GEMINI_MODEL: 'gemini-2.5-pro',  // deprecated 환경변수
-    });
-    assert.strictEqual(result.status, 0, `WARN 만 출력하고 정상 진행 기대. 실제: ${result.status}`);
-    assert.ok(
-      result.stderr.includes('GEMINI_MODEL') && result.stderr.includes('deprecated'),
-      `GEMINI_MODEL deprecated WARN 기대. 실제 stderr: ${result.stderr}`
+      !result.stderr.includes('GEMINI_RETRY_SLEEP_SECONDS'),
+      `Phase 4: GEMINI_RETRY_SLEEP_SECONDS WARN 분기가 제거되어 출력 없어야 함. 실제 stderr: ${result.stderr}`
     );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
