@@ -9,6 +9,43 @@
 
 ## [Unreleased]
 
+## [4.1.0] — 2026-05-21
+
+v4.0.0 이후 **MINOR 릴리스** — Antigravity 마이그레이션 Phase 4 (gemini-cli alias 분기 완전 제거, fail-fast) + CLAUDE.md 2차 가지치기 (49,860 → 40,984 chars, -8,876).
+
+**포함 범위**:
+- Phase 4 (#272) — PR [#283](https://github.com/coseo12/harness-setting/pull/283) (MINOR)
+- CLAUDE.md 2차 가지치기 (#266) — PR [#284](https://github.com/coseo12/harness-setting/pull/284) (PATCH)
+
+### Behavior Changes (MINOR — gemini-cli alias 분기 제거)
+
+- **`cross_validate.sh` 의 `GEMINI_MODEL` + `GEMINI_RETRY_SLEEP_SECONDS/CAP` alias 분기 완전 제거** (이슈 [#272](https://github.com/coseo12/harness-setting/issues/272) Phase 4 / PR [#283](https://github.com/coseo12/harness-setting/pull/283)). CLAUDE.md `### 가드 설계 원칙` §의식적 silent 약화 + fail-fast 원칙 적용. v4.0.0 (PR #280 alias WARN) 머지로 1 릴리스 deprecation 사전 안내 완료.
+  - 9 라인 alias/WARN 분기 → 0 라인
+  - 다운스트림이 `GEMINI_*` 환경변수 사용 중이면 silent 무시 (default 값 적용) — 사전 마이그레이션 필수
+  - alias 검증 테스트 3건 제거 + fail-fast 회귀 가드 신설 (`GEMINI_RETRY_SLEEP_SECONDS=9999` 설정해도 timeout 0 보장)
+  - SKILL.md §backward-compat alias 표 → 제거 안내
+- **다운스트림 마이그레이션 가이드**:
+  ```bash
+  grep -rn "GEMINI_MODEL\|GEMINI_RETRY_SLEEP" . 2>/dev/null | grep -v node_modules
+  # hit 있으면 EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS/CAP 로 즉시 마이그레이션
+  ```
+
+### Added (PATCH 성격 — CLAUDE.md 2차 가지치기, 행동 변화 없음)
+
+- **`docs/lessons/sprint-contract-roi.md` 신설** (이슈 [#266](https://github.com/coseo12/harness-setting/issues/266) / PR [#284](https://github.com/coseo12/harness-setting/pull/284)) — CLAUDE.md §스프린트 계약 6항 (ROI 5문 + 보강 3문) + 6-a (순수 함수 추출) + 10항 (수치 DoD 4단계) + 10-a (메인 오케스트레이터 SSoT JSON 부호 규약) 위임
+- **`docs/lessons/session-intent-drift.md` 신설** — CLAUDE.md §세션 의도 이탈 감지 (메인 오케스트레이터) 전체 위임
+- **CLAUDE.md 본문 2 블록 → 1~2 줄 포인터 전환** — 49,860 → 40,984 chars (-8,876, 약 18% 감축). 45k CI fail 임계 회피
+- **`docs/lessons/README.md`** 신규 2 파일 등록 (verify-lessons-readme 동기화)
+
+### Notes
+
+- **다운스트림 액션 필수**: agy 설치 + OAuth 로그인 (이미 v4.0.0 안내). `GEMINI_*` 환경변수 사용 시 본 v4.1.0 부터 silent 무시 — `EXTERNAL_VALIDATOR_*` 로 즉시 마이그레이션
+- **이슈 #266 (가지치기)** 진행 중 — 본 PR 로 18% 감축. 30k 목표 달성을 위해 후속 PR 필요 (별도 세션):
+  - §실전 교훈 일부 항목
+  - §브랜치 전략 워크플로 3단계
+  - §교차검증 본문 (일부 위임됨)
+- Phase 4 PR #283 reviewer 권고 1 즉시 수용 (fail-fast 회귀 가드 1건 추가). 권고 2~4 (시제 통일) 는 별도 후속 doc-sync PR 권고
+
 ## [4.0.0] — 2026-05-21
 
 v3.7.0 이후 **MAJOR 릴리스** — **Antigravity 마이그레이션** (`gemini-cli` → `agy` 어댑터 교체, 2026-06-18 Gemini CLI 종료 대응) + 누적 cross-validate 가드 (plan-mode 우회 자동 가드, reviewer ADR 호환성 검증, create-pr Strict Assertion, PR 본문 7 체크박스 메타 가드).
