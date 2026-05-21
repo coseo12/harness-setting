@@ -194,6 +194,8 @@ Subcommands: changelog, help, install, plugin/plugins, update
 - 작업: gemini-cli npm uninstall, `~/.gemini/` 정리 안내 (사용자 결정), CI fallback 분기 제거
 - 릴리스: **MINOR** (의식적 silent fallback 제거 — guard-design-principles §fail-fast)
 
+**갱신 (2026-05-21)**: Phase 4 **완료** — PR [#283](https://github.com/coseo12/harness-setting/pull/283) (cross_validate.sh GEMINI_* alias 분기 완전 제거 + fail-fast 회귀 가드 신설) + v4.1.0 release ([#286](https://github.com/coseo12/harness-setting/pull/286)) 박제. 원안의 권장 시점 (2026-06-25) 대신 사용자 자동 모드 명시 지시로 2026-05-21 진행. 위험 완화 — v4.0.0 (PR #280) 의 alias WARN 1 릴리스 사전 안내 충분성 reviewer #283 approve.
+
 ## 6. 완료 기준 (Sprint Contract)
 
 전체 마이그레이션 종료 시점에 다음을 모두 충족:

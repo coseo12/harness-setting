@@ -62,7 +62,7 @@ grep/sed 파이프라인의 `\"` escape 처리 한계는 **실측 확인됨** �
 
 ### 2.6 probe 옵트아웃 + sleep cap (v2.21.0~, Phase B)
 
-`SKIP_CAPACITY_PROBE=1` 로 capacity probe 생략 (probe 자체 quota 소모 회피). `EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP` (기본 300s, Phase 1A 부터 변수명 도구 중립화 — 이전 `GEMINI_RETRY_SLEEP_CAP` alias 인식, Phase 4 #272 에서 제거) 으로 지수 backoff 상한 보장 (`MIN(cap, 2^attempt × BASE)`). `MAX_EXTERNAL_VALIDATOR_RETRIES` 증설 시 sleep 폭증 방지.
+`SKIP_CAPACITY_PROBE=1` 로 capacity probe 생략 (probe 자체 quota 소모 회피). `EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP` (기본 300s, Phase 1A 부터 변수명 도구 중립화 — 이전 `GEMINI_RETRY_SLEEP_CAP` alias 는 Phase 4 #272 / v4.1.0 부터 **제거됨**) 으로 지수 backoff 상한 보장 (`MIN(cap, 2^attempt × BASE)`). `MAX_EXTERNAL_VALIDATOR_RETRIES` 증설 시 sleep 폭증 방지.
 
 ### 2.7 fatal 경로 stdout 헤더 공유 주의
 

@@ -68,7 +68,7 @@ function setupLogDir() {
 function runScript(args, env) {
   return spawnSync('bash', [SCRIPT_PATH, ...args], {
     cwd: PROJECT_DIR,
-    // Phase 1A: 신규 변수 이름. alias (GEMINI_RETRY_SLEEP_SECONDS) backward-compat 는 fallback.test.js 에서 별도 검증
+    // Phase 1A: 신규 변수 이름. GEMINI_RETRY_SLEEP_SECONDS alias 는 Phase 4 (#272 / v4.1.0) 부터 제거됨 — fallback.test.js 의 fail-fast 회귀 가드가 무시 검증
     env: { ...process.env, EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS: '0', ...env },
     encoding: 'utf8',
     timeout: 60_000,
