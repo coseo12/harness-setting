@@ -22,9 +22,9 @@ const SCRIPT_PATH = path.join(
   '.claude/skills/cross-validate/scripts/cross_validate.sh'
 );
 
-// mock gh + gemini 바이너리 생성.
+// mock gh + agy 바이너리 생성 (Phase 1A — gemini → agy 어댑터 교체).
 // gh pr diff <N> 는 지정된 라인 수만큼 fake diff 출력,
-// gh pr view ... 는 고정 PR 메타, gemini 는 정상 응답을 낸다.
+// gh pr view ... 는 고정 PR 메타, agy 는 정상 응답을 낸다.
 // 각 라인을 40자 이상으로 채워 총 용량이 64KB 파이프 버퍼를 초과하도록 구성.
 function setupMocks(diffLines) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cv-diff-'));
@@ -51,14 +51,14 @@ exit 0
 `;
   fs.writeFileSync(ghPath, ghScript, { mode: 0o755 });
 
-  const geminiPath = path.join(tmpDir, 'gemini');
+  const agyPath = path.join(tmpDir, 'agy');
   fs.writeFileSync(
-    geminiPath,
-    `#!/bin/bash\necho "mock gemini review"\nexit 0\n`,
+    agyPath,
+    `#!/bin/bash\necho "mock agy review"\nexit 0\n`,
     { mode: 0o755 }
   );
 
-  return { tmpDir, ghPath, geminiPath };
+  return { tmpDir, ghPath, agyPath };
 }
 
 function setupLogDir() {
@@ -68,7 +68,8 @@ function setupLogDir() {
 function runScript(args, env) {
   return spawnSync('bash', [SCRIPT_PATH, ...args], {
     cwd: PROJECT_DIR,
-    env: { ...process.env, GEMINI_RETRY_SLEEP_SECONDS: '0', ...env },
+    // Phase 1A: 신규 변수 이름. alias (GEMINI_RETRY_SLEEP_SECONDS) backward-compat 는 fallback.test.js 에서 별도 검증
+    env: { ...process.env, EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS: '0', ...env },
     encoding: 'utf8',
     timeout: 60_000,
   });

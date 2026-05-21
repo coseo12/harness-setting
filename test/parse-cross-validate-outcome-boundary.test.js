@@ -29,13 +29,14 @@ const CROSS_VALIDATE_SCRIPT = path.join(
 );
 const PARSE_HELPER = path.join(PROJECT_DIR, 'scripts/parse-cross-validate-outcome.sh');
 
-// mock gemini (ok 모드) 생성 — write 경로까지 정상 도달시키려면 최소 1회 성공 응답 필요
-function setupMockGemini() {
+// mock agy (ok 모드) 생성 — write 경로까지 정상 도달시키려면 최소 1회 성공 응답 필요
+// Phase 1A (#269): gemini-cli → agy 어댑터 교체 반영
+function setupMockAgy() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cv-boundary-'));
-  const mockPath = path.join(tmpDir, 'gemini');
+  const mockPath = path.join(tmpDir, 'agy');
   fs.writeFileSync(
     mockPath,
-    `#!/bin/bash\necho "mock gemini boundary-test response"\nexit 0\n`,
+    `#!/bin/bash\necho "mock agy boundary-test response"\nexit 0\n`,
     { mode: 0o755 }
   );
   return { tmpDir, mockPath };
@@ -49,7 +50,8 @@ function runCrossValidate(anchor, logDir, mockDir) {
       PATH: `${mockDir}:${process.env.PATH}`,
       LOG_DIR: logDir,
       CROSS_VALIDATE_ANCHOR: anchor,
-      GEMINI_RETRY_SLEEP_SECONDS: '0',
+      // Phase 1A: 신규 변수 이름
+      EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS: '0',
     },
     encoding: 'utf8',
     timeout: 30_000,
@@ -92,7 +94,7 @@ function runParseHelper(outcomePath) {
 // 검증한다 (완전한 언이스케이프가 아니라 escape 보존을 검증).
 function runBoundaryCase(label, anchorValue, expectedEscapedSubstring) {
   const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cv-boundary-logs-'));
-  const { tmpDir: mockDir } = setupMockGemini();
+  const { tmpDir: mockDir } = setupMockAgy();
   try {
     const result = runCrossValidate(anchorValue, logDir, mockDir);
     assert.strictEqual(
@@ -164,7 +166,7 @@ test('boundary regression guard: carriage return 포함 anchor round-trip', () =
 test('boundary regression guard: 혼합 경계 문자 (write/parse contract 종합)', () => {
   // 모든 escape 대상이 섞인 anchor 로 파이프라인 전체 계약 종합 검증
   const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cv-boundary-logs-'));
-  const { tmpDir: mockDir } = setupMockGemini();
+  const { tmpDir: mockDir } = setupMockAgy();
   try {
     const anchor = 'A\\B"C\tD\nE\rF';
     const result = runCrossValidate(anchor, logDir, mockDir);
