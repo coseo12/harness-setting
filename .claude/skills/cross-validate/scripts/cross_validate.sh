@@ -298,10 +298,18 @@ fi
 
 MAX_EXTERNAL_VALIDATOR_RETRIES=2
 # 재시도 간 sleep 단위 (초). 테스트에서는 0 으로 설정해 실행 시간 단축.
-# backward-compat: GEMINI_RETRY_SLEEP_SECONDS alias 인식 (1 릴리스 동안 silent, Phase 4 에서 제거)
+# backward-compat: GEMINI_RETRY_SLEEP_SECONDS alias 인식 (1 릴리스 동안 — Phase 4 #272 에서 제거)
+# #276: silent → WARN 으로 전환. 사용자 가시성 강화 (Phase 4 제거 사전 안내)
+if [ -n "${GEMINI_RETRY_SLEEP_SECONDS:-}" ]; then
+  echo "WARN: GEMINI_RETRY_SLEEP_SECONDS 환경변수는 Phase 1A 부터 deprecated 입니다. EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS 를 사용하세요. Phase 4 (#272) 에서 제거 예정." >&2
+fi
 EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS="${EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS:-${GEMINI_RETRY_SLEEP_SECONDS:-5}}"
 # sleep 상한 (초). 지수 backoff 가 MAX_RETRIES 증설 시 폭증하는 것을 방지.
 # reviewer non-blocking (#137, v2.21.0~ #131 Phase B): MIN(cap, 2^attempt * BASE)
+# #276: silent → WARN 으로 전환 (위와 동일 사유)
+if [ -n "${GEMINI_RETRY_SLEEP_CAP:-}" ]; then
+  echo "WARN: GEMINI_RETRY_SLEEP_CAP 환경변수는 Phase 1A 부터 deprecated 입니다. EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP 를 사용하세요. Phase 4 (#272) 에서 제거 예정." >&2
+fi
 EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP="${EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP:-${GEMINI_RETRY_SLEEP_CAP:-300}}"
 # capacity probe 옵트아웃. 기본 0 (수행). 권고 4 (#131 Phase B): probe (`agy -p "hello"`)
 # 자체가 free tier quota 를 소모하므로 capacity 부족이 이미 감지된 상황에선 생략이 유리할 수 있다.
