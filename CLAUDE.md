@@ -39,51 +39,14 @@ AI 에이전트 기반 개발 워크플로우 템플릿. 1인 개발자-AI 페�
 | `fix/<이슈번호>-<설명>` | 개발 중 발견된 버그 수정 | `develop` 에서 분기 | `main` 대상 PR 생성 금지 |
 | `hotfix/<이슈번호>-<설명>` | **prod 긴급 패치** | `main` 에서 분기. 머지 후 즉시 `main → develop` merge-back | 드물게 사용. develop merge-back 누락 금지 |
 
-### 워크플로 3단계
+### 워크플로 3단계 + drift 감지
 
-**1. 일상 개발**
-```
-feature/123-xxx   (develop 에서 분기)
-   ↓ PR (base=develop)
-develop
-```
+3단계 (일상 개발 / 릴리스 / 핫픽스) 흐름 + release PR `--merge` 의무 + fast-forward push + `harness doctor` 의 gitflow 정합성 정상/경고 분류는 [docs/guides/branch-strategy-workflow.md](docs/guides/branch-strategy-workflow.md) 참조.
 
-**2. 릴리스 (MAJOR/MINOR/PATCH 공통)**
-```
-develop   (충분히 쌓이면)
-   ↓ 단일 release PR (base=main, head=develop)
-   ↓ merge commit 방식으로 머지 — gh pr merge <PR> --merge
-main   (merge commit 이 develop tip 을 부모로 포함)
-   ↓ git push origin main:develop   (fast-forward, force 아님)
-develop  (main tip 과 완전 동기화)
-   ↓ git tag vX.Y.Z + gh release create
-```
-- release PR 본문에 CHANGELOG 범위, Behavior Changes, 태그 계획 명시
-- **release PR 은 반드시 `--merge` (merge commit) 방식으로 머지** — `--squash` 금지. squash 로 머지하면 main 에 새 커밋이 생겨 develop 과 diverge 하며 매 릴리스마다 merge-back PR 이 강제된다. merge commit 은 main tip 이 develop tip 을 직계 조상으로 포함하게 하여 **merge-back 이 불필요**해진다. 결정 근거: [ADR 20260419-release-merge-strategy](docs/decisions/20260419-release-merge-strategy.md)
-- **merge commit 직후 `git push origin main:develop` (fast-forward) 필수** — main 의 merge commit 자체가 develop 에 없으므로 doctor 가 일시적으로 warn (main 이 1 커밋 앞섬). fast-forward push 로 즉시 해소. force-push 가 아니며 (main 이 develop 의 후손), CRITICAL #5 해당 없음
-- **dual PR 재발 방지**: feature/fix PR 은 `base=main` 을 사용하지 않는다 (PR 템플릿 가드)
-
-**3. 핫픽스 (prod 이슈)**
-```
-hotfix/99-critical   (main 에서 분기)
-   ↓ PR (base=main, squash 또는 merge commit 가능)
-main   ← 머지 + 태그 vX.Y.Z+1
-   ↓ 즉시 merge-back PR (base=develop, head=main)
-develop   ← 동기화 유지 (누락 시 drift)
-```
-- hotfix 는 release 경로를 우회하므로 main 이 develop 보다 앞서게 되어 **merge-back 필수**. 이 경우만 merge-back PR 로 develop 을 동기화
-- merge commit 으로 release 를 해온 정상 운영에서는 hotfix 빈도가 적으므로 merge-back 오버헤드도 최소
-
-### drift 감지
-- `harness doctor` 의 "gitflow 브랜치 정합성" 항목이 `origin/main` vs `origin/develop` 커밋 격차를 점검한다 (v2.15.0 에서 `--is-ancestor` / hotfix 문맥 / unrelated histories 분류 추가)
-- **정상 (pass)**:
-  - 동일 커밋 — 릴리스 직후 또는 초기 상태
-  - `develop > main` — 다음 릴리스 대기 (정상)
-  - `main > develop` 이지만 `git merge-base --is-ancestor develop main` 가 참 — **fast-forward 동기화 대기 중** (release PR merge commit 직후 정상 상태. `git push origin main:develop` 로 해소)
-- **경고 (warn)**:
-  - `hotfix/*` 브랜치 존재 + `main > develop` — hotfix 진행 중 (머지 후 merge-back PR 필요)
-  - develop 이 main 의 조상이 아닌 채 `main > develop` — hotfix merge-back 누락 또는 release PR 을 실수로 `--squash` 로 머지한 가능성. `git show main --format=%P | wc -w` 로 merge commit 여부 확인 (2 이면 merge commit, 1 이면 squash)
-  - `git rev-list` 실패 (unrelated histories 등) — `git merge-base origin/main origin/develop` 로 공통 조상 확인
+핵심 의무 (각인층):
+- **release PR 은 반드시 `--merge` (merge commit) 방식** — `--squash` 금지. 결정 근거: [ADR 20260419-release-merge-strategy](docs/decisions/20260419-release-merge-strategy.md)
+- **merge commit 직후 `git push origin main:develop` (fast-forward) 필수**
+- **feature/fix PR 의 `base=main` 금지** — release/hotfix PR 만 main 대상
 
 ## 커밋 컨벤션
 ```
@@ -313,28 +276,16 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 단일 세션에서 **본래 사용자 의도** → 부수 작업 이탈 패턴 감지 + 사용자 명시적 선택 요청 트리거. 이탈 시그널 4개 (PR 3+ 생성 / 릴리스 태그 ≥ 이슈 / 시간 2배 / 관심사 4+ 트랙) 중 2개 이상 충족 시 발화. 사전 분리 권고 + 세션 사후 3축 평가 + 예외 조건 (escape hatch 방지 — 사후 재분류 금지). 상세: [docs/lessons/session-intent-drift.md](docs/lessons/session-intent-drift.md). 근거: volt [#63](https://github.com/coseo12/volt/issues/63) / [#24](https://github.com/coseo12/volt/issues/24) / [#34](https://github.com/coseo12/volt/issues/34)
 
 ### 릴리스
-- **Semantic Versioning 분류 기준** (판정 애매 시 낮은 쪽 선택):
-  - **MAJOR** — 하위 호환을 깨는 변경. CLI 인자 제거/시그니처 변경, 기존 스킬·에이전트 계약 파괴, `.harness` 스키마 breaking, 설정 키 제거
-  - **MINOR** — 코드 **또는 에이전트 행동**이 포함된 신규 기능·행동 변화 추가
-    - 신규 CLI 서브커맨드, 신규 에이전트/스킬, 신규 hook/automation, 신규 옵션(기본값이 기존 동작 유지)
-    - **에이전트 지시어·스킬 절차·체크리스트·행동 제약의 추가·수정** (`.claude/agents/*.md`, `.claude/skills/*/SKILL.md` 의 **행동을 바꾸는** 변경)
-  - **PATCH** — **행동 변화가 없는** 문서·문구 변경. CLAUDE.md 교훈/배경 설명 추가, README·docs 문서화 보강, 주석·문구·오타 개선, 버그 수정
-- **행동 변화 vs 문서 변경 판정 질문**: 이 변경으로 에이전트가 같은 입력에 다르게 동작하는가? 예(= 행동 변화 = MINOR), 아니오(= 문서 = PATCH).
-  - 예시 MINOR: developer 에이전트 워크플로 단계 추가, 스킬 DO NOT TRIGGER 조건 변경, 금지 규칙 추가
-  - 예시 PATCH: 실전 교훈 섹션에 사례 추가, README 문구 개선, 오타 수정, 버그 수정
-- **CHANGELOG 작성 규칙**:
-  - MINOR/MAJOR 릴리스는 **`### Behavior Changes`** 섹션을 필수 포함하여 다운스트림이 `harness update` 후 관찰할 행동 변화를 bullet 으로 나열한다
-  - PATCH 릴리스도 frozen 파일(`.claude/`)이 변경됐다면 `### Behavior Changes: None — 문서/문구만` 을 명시해 자동 업데이트 신뢰 모델을 보호한다
-- 볼트 반영은 변경 성격에 따라 분류 — 에이전트·스킬 행동 변경이면 MINOR, 단순 교훈·문서 보강이면 PATCH
-- 의미 있는 마일스톤마다 `git tag` + `gh release create`로 릴리스
-- **`package.json::version` bump 필수** — chore(release) PR 에서 `CHANGELOG.md` 엔트리 추가와 **동일 커밋** 에 `package.json::version` 을 새 버전으로 bump. 누락 시 다운스트림이 `harness update` 에서 구 버전으로 인식. `scripts/verify-release-version-bump.sh` 가 CI `detect-and-test` 에서 CHANGELOG 최신 엔트리 ↔ `package.json::version` 일치를 검증하여 drift 시 exit 1 (v2.28.1 복구와 함께 도입). 로컬에서 chore release 커밋 전에 `bash scripts/verify-release-version-bump.sh` 실행 권장
-- **Phase 분리 릴리스 리듬** — 완료 기준이 많은 이슈는 한 스프린트에 몰아 처리하지 말고, 각 Phase 가 **독립 릴리스 가능한 관찰 단위**가 되도록 나눈다. 적용 조건(3가지 전부 필요):
-  - **backward-compat** — 앞 Phase 만 배포돼도 시스템이 정상 동작
-  - 각 Phase 가 **완결 Behavior Change 집합** — 중간 Phase 가 부분 구현 상태가 아님
-  - 사용자가 **점진 릴리스 리듬에 동의** — 주간 단위로 여러 릴리스 허용
-- 적용 불가: Phase 간 필수 의존(앞 Phase 단독 배포 시 불안정), 파이프라인 변경이 전체를 통째로 요구. 판정 애매 시 단일 릴리스로 통합
-- 분할 시 CHANGELOG 는 Phase 별 별도 entry + 상호 링크 박제 (사용자에게 "왜 쪼개졌는지"가 drift 되지 않도록). 원 이슈는 마지막 Phase 완료 시 한 번에 close
-- 근거: volt [#30](https://github.com/coseo12/volt/issues/30) — harness [#92](https://github.com/coseo12/harness-setting/issues/92) (`previousSha256` 자가 복구) 를 Phase 1 (로직, v2.9.0) / Phase 2 (가시성 + 회귀 가드, v2.10.0) 로 분할. 리뷰 분산 + 중간 관찰 + 롤백 독립성 확보
+- **SemVer 분류 (각인층)** — 판정 애매 시 낮은 쪽:
+  - **MAJOR** — 하위 호환 파괴 (CLI 인자/시그니처/스킬·에이전트 계약/`.harness` 스키마/설정 키)
+  - **MINOR** — 코드·에이전트 행동 신규/변경 (에이전트 지시어·스킬 절차·체크리스트·행동 제약의 추가/수정 = MINOR)
+  - **PATCH** — 행동 변화 없는 문서·문구 (실전 교훈/README/오타/버그 수정)
+- **행동 변화 vs 문서 판정 질문**: "같은 입력에 다르게 동작하는가?" → 예 MINOR / 아니오 PATCH
+- **CHANGELOG 의무**:
+  - MINOR/MAJOR — `### Behavior Changes` 섹션 필수 (다운스트림 `harness update` 후 관찰 항목)
+  - PATCH 도 `.claude/` 변경 시 `### Behavior Changes: None — 문서/문구만` 명시 (자동 업데이트 신뢰 모델 보호)
+- **`package.json::version` bump 필수** — chore(release) PR 에서 CHANGELOG 엔트리와 **동일 커밋**. `scripts/verify-release-version-bump.sh` CI 검증
+- **Phase 분리 / CHANGELOG 작성 / 근거** 상세: [docs/guides/release-process.md](docs/guides/release-process.md)
 
 ### 문서 동기화
 - 에이전트/스킬/설정을 삭제하거나 변경할 때, docs/ 하위 관련 문서를 확인하고 업데이트한다

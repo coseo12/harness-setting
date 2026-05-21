@@ -1,7 +1,7 @@
 # ADR: cross-validate 외부 검증 백엔드 `gemini-cli` → Antigravity (`agy`) 교체
 
 - 날짜: 2026-05-21
-- 상태: **Proposed** (사용자 검토 대기)
+- 상태: **Accepted** (v4.0.0 release 2026-05-21 — PR [#282](https://github.com/coseo12/harness-setting/pull/282) merge commit) + Phase 4 완결 v4.1.0 (PR [#286](https://github.com/coseo12/harness-setting/pull/286))
 - 관련 이슈/PR: #267 (트래킹) / #268 (Phase 0) / #269 (Phase 1A) / #270 (Phase 2) / #271 (Phase 3) / #272 (Phase 4)
 - 관련 기획서: [../plans/antigravity-migration.md](../plans/antigravity-migration.md)
 - 선행 ADR/박제:
