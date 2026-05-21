@@ -408,7 +408,7 @@ test('cross-validate: EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP 적용 시 cap 로그 �
 // Phase 1A (#269) — backward-compat alias 검증
 // GEMINI_MODEL / GEMINI_RETRY_SLEEP_SECONDS / GEMINI_RETRY_SLEEP_CAP 는 1 릴리스 동안 alias 인식
 
-test('cross-validate (alias): GEMINI_RETRY_SLEEP_SECONDS alias 인식 — capacity 실패 시나리오 정상 동작', () => {
+test('cross-validate (alias #276): GEMINI_RETRY_SLEEP_SECONDS alias 인식 + WARN 출력', () => {
   const { tmpDir } = setupMockAgy('capacity');
   try {
     const result = runScript(['structure'], {
@@ -423,6 +423,29 @@ test('cross-validate (alias): GEMINI_RETRY_SLEEP_SECONDS alias 인식 — capaci
     assert.ok(
       result.stderr.includes('claude-only analysis completed'),
       `alias 로도 fallback 프리픽스 기대`
+    );
+    // #276: alias 사용 시 WARN 출력 (Phase 4 제거 사전 안내)
+    assert.ok(
+      result.stderr.includes('GEMINI_RETRY_SLEEP_SECONDS') && result.stderr.includes('deprecated'),
+      `#276 — GEMINI_RETRY_SLEEP_SECONDS deprecated WARN 기대. 실제 stderr: ${result.stderr}`
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('cross-validate (alias #276): GEMINI_RETRY_SLEEP_CAP alias 사용 시 WARN 출력', () => {
+  const { tmpDir } = setupMockAgy('ok');
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      REMINDER_ISSUE_DRYRUN: '1',
+      GEMINI_RETRY_SLEEP_CAP: '100',  // alias (값은 정상 path 라 미사용이지만 WARN 만 트리거)
+    });
+    assert.strictEqual(result.status, 0, `정상 응답 기대. 실제: ${result.status}`);
+    assert.ok(
+      result.stderr.includes('GEMINI_RETRY_SLEEP_CAP') && result.stderr.includes('deprecated'),
+      `#276 — GEMINI_RETRY_SLEEP_CAP deprecated WARN 기대. 실제 stderr: ${result.stderr}`
     );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
