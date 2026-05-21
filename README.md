@@ -16,7 +16,7 @@ CLAUDE.md                          # 워크플로우 규칙 + 실전 교훈
   agents/
     developer.md                   # 풀스택 구현 에이전트
   skills/
-    cross-validate/                # Gemini CLI 교차검증
+    cross-validate/                # 외부 검증 모델 교차검증 (현재 Antigravity `agy`, Phase 1A #269 부터 — 이전 gemini-cli)
     browser-test/                  # agent-browser 기반 E2E/시각적 검증
     create-issue/                  # GitHub 이슈 생성
     create-pr/                     # GitHub PR 생성
@@ -28,7 +28,7 @@ CLAUDE.md                          # 워크플로우 규칙 + 실전 교훈
 ```
 사용자 → Developer → 검증(CI + browser-test) → PR → Merge
                        ↑
-              cross-validate (선택, Gemini 교차검증)
+              cross-validate (선택, 외부 검증 모델 교차검증 — agy)
 ```
 
 ## 시작하기
@@ -106,7 +106,7 @@ volt 이슈(맥락) ↔ CLAUDE.md/스킬(행위 제약)의 양방향 컴파일 �
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 - [GitHub CLI (gh)](https://cli.github.com/)
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli) (교차검증용, 선택)
+- [Antigravity CLI (`agy`)](https://antigravity.google/docs/cli-overview) (교차검증용, 선택. Phase 1A #269 부터 — 이전 [Gemini CLI](https://github.com/google-gemini/gemini-cli) 가 2026-06-18 지원 종료)
 - [agent-browser](https://github.com/vercel-labs/agent-browser) (브라우저 테스트용, 선택)
 
 ## 핵심 가치
@@ -115,7 +115,7 @@ volt 이슈(맥락) ↔ CLAUDE.md/스킬(행위 제약)의 양방향 컴파일 �
 
 1. **실전 교훈 기반 규칙** — "빌드 성공 ≠ 동작하는 앱", "HTTP 200 ≠ 올바른 리소스" 등
 2. **스프린트 계약** — 구현 전 검증 가능한 완료 기준 합의 ([Anthropic 하네스 설계](docs/anthropic-harness-design.md) 기반)
-3. **교차검증** — Gemini의 독립적 시각으로 설계/코드 의사결정 검증
+3. **교차검증** — 외부 검증 모델 (현재 Antigravity `agy`) 의 독립적 시각으로 설계/코드 의사결정 검증
 4. **3단계 브라우저 검증** — 정적 → 인터랙션 → 흐름 (display-only 버그 방지)
 5. **디자인 품질 루브릭** — Design Quality / Originality / Craft / Functionality 4축 평가
 6. **자가 평가 경고** — AI의 과도한 긍정 평가 편향 방지
