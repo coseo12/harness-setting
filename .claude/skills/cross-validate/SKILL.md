@@ -250,7 +250,5 @@ harness #89 (post-apply 게이트) 교차검증에서 Gemini (당시 백엔드) 
 | `CROSS_VALIDATE_ANCHOR` | (없음) | 폴백 시 reminder 이슈 생성 트리거 |
 | `REMINDER_ISSUE_DRYRUN` | 1 | 0 이면 실제 reminder 이슈 생성 |
 
-### backward-compat alias (Phase 4 #272 에서 제거 예정)
-- `GEMINI_MODEL` — agy 는 모델 옵션 없음. 설정 시 WARN 만 출력하고 무시
-- `GEMINI_RETRY_SLEEP_SECONDS` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS` alias (#276 부터 사용 시 stderr WARN 출력)
-- `GEMINI_RETRY_SLEEP_CAP` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP` alias (#276 부터 사용 시 stderr WARN 출력)
+### backward-compat alias (Phase 4 #272 부터 제거)
+Phase 1A ~ Phase 4 사이 deprecation 기간 동안 인식되던 `GEMINI_MODEL` / `GEMINI_RETRY_SLEEP_SECONDS` / `GEMINI_RETRY_SLEEP_CAP` alias 는 **Phase 4 (#272) 부터 제거** (fail-fast 원칙). 다운스트림은 `EXTERNAL_VALIDATOR_*` 로 마이그레이션 필수.

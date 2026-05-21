@@ -117,37 +117,13 @@ AI는 자기 작업을 과도하게 긍정 평가하는 경향이 있으므로, 
 3. 기준 미충족 시 **구체적 피드백과 함께 반려** — 단순 "실패"가 아닌 원인+수정점 명시
 4. 표면적 테스트가 아닌 **엣지 케이스까지 탐색**한다
 5. 합의된 기준은 실측 후 **재조정 가능** — 단, 사용자와 명시적으로 합의 후 갱신
-6. 재조정 시 **테스트 ROI 5문 체크** 후 대체재를 우선 검토한다:
-   - 테스트 환경 구축 비용이 검증 대상 코드 라인 수의 5배 이상인가? (git fixture / DB seed / 네트워크 mock 등)
-   - 몇 줄을 보호하는가? 1~2줄짜리 스킵 조건은 **주석 계약 + 인접 속성 테스트**가 충분할 수 있다
-   - 회귀 시 조용히 퇴행 vs 빌드 실패? 조용히 퇴행 → 테스트 필수, 빌드 실패 → 주석 계약으로 충분 가능
-   - 인접 유닛 테스트 / 타입 가드 / 문서로 간접 보증 가능한가?
-   - 미래 fixture 인프라 구축 후 저렴해질 수 있는가? → **별도 인프라 이슈로 분리**
-   - **보강 3문 (volt [#71](https://github.com/coseo12/volt/issues/71))** — 위 5문이 "yes 편향" 으로 수렴할 때 교차점검:
-     - **회귀 종류를 구분하는가?** (성능 / 시각 / 논리 / 상태 일관성) — bench 게이트가 "조용히 퇴행" 을 감지한다고 낙관했다가 시각 회귀를 놓친 사례가 있음. bench 는 시각 정확성 측정 대상 아님
-     - **인접 테스트가 *같은 호출부* 를 덮는가?** — 클래스 계약 테스트는 인접으로 보이지만 tier 전환 같은 분기 로직은 별도 호출부라 간접 보증 범위 착각 가능
-     - **현 구조에 묶인 판정인가, 리팩터 후 판정인가?** — "Scene 클로저 mock 비용 과다" 로 판정한 로직이 사실 순수 함수로 추출 가능했던 사례. 구조 의존 비용 과대계상 방어
-6-a. **순수 함수 추출 우선 원칙 (volt [#71](https://github.com/coseo12/volt/issues/71))** — 다음 중 **하나**라도 해당하면 6항 ROI 체크 결과와 무관하게 **추출 + 단위 테스트 우선**:
-   - 분기 조건이 **입력 타입** (enum / discriminated union) 만으로 결정
-   - 사이드 이펙트가 **반환값 소비** 로 분리 가능 (`compute*(…) → result` 패턴)
-   - 같은 로직을 **다른 컨텍스트에서 재사용** 할 여지 (동일 함수가 여러 호출부에서 필요)
-   - 근거: astro-simulator #313 M2 에서 ROI 5문 전체 pass 판정 후 시각 회귀 (V5 322→296px, A1 0→119.9px) 실측. `computeFloatingOriginForTier(tier, focusId, lookup)` 로 추출 시 Scene 없이 8건 단위 테스트 가능했음. volt #49 (주석 계약 drift) 의 역방향 — **테스트 생략 판정의 drift** 도 동등하게 회귀 생성원
+6. **재조정 시 테스트 ROI 5문 체크** (+ 보강 3문, 6-a 순수 함수 추출 우선, 10항 수치 DoD 4단계, 10-a 메인 오케스트레이터 SSoT JSON 부호 규약 자기 점검) — 상세: [docs/lessons/sprint-contract-roi.md](docs/lessons/sprint-contract-roi.md). 근거: volt [#71](https://github.com/coseo12/volt/issues/71) / [#32](https://github.com/coseo12/volt/issues/32) / [#53](https://github.com/coseo12/volt/issues/53) / [#73](https://github.com/coseo12/volt/issues/73) / [#75](https://github.com/coseo12/volt/issues/75)
 7. 재조정 사실은 **세 위치에 동시 박제** (누락 방지):
    - **코드 주석** — 계약 자체 (무엇을 의도적으로 스킵했는지)
    - **PR 본문** — 결정 근거 (왜 재조정했는지)
    - **CHANGELOG Notes** — 미래 관찰자용 기록 (재발견 시 "누락"으로 오인 방지)
 8. 반대 함정: "완료 기준에 있으니 무조건 테스트 작성" (의존성 복잡도 무시한 단발성 부채) vs "ROI 낮다고 조용히 스킵" (재조정 박제 누락). 둘 다 금지.
 9. 근거: volt [#31](https://github.com/coseo12/volt/issues/31) — harness #92 Phase 2 merge 스킵 테스트에서 git fixture 구축 비용이 검증 대상 1줄 대비 역전되어 주석 계약 + 인접 속성 테스트로 대체한 사례
-10. **수치 DoD 미달 시 측정 방법 검증 우선** — DoD 수치가 미달이면 **(0) 측정 방법 검증 → (1) 식/구현 수정 → (2) 알고리즘 교체 → (3) 데이터 신뢰성 재확인** 4단계로 접근한다. 샘플링/윈도우/노이즈 특성이 미달의 진짜 원인인 경우가 잦다. 특히 신호가 약할 때(측정 대상 ≪ baseline) noise 가 이론값 방향으로 우연히 pull 되어 선행 Phase 의 "우연 성공" 기록으로 남아 있을 수 있다. 측정법 전환 전 식부터 수정하면 이미 올바른 식을 "틀렸다" 고 오진하는 역방향 손실이 발생한다.
-   - **(0)~(2) 는 "도구 측" (식·샘플링·적분기·알고리즘) 검증** — 측정 도구 자체의 결함을 배제
-   - **(3) 데이터 신뢰성 재확인은 "입력 측" 검증** — fixture / 상수 / 외부 참조 데이터의 epoch·좌표계·단위·발행 주체를 원본 대조. (0)~(2) 전수 수행 + 측정 도구가 synthetic/이상 fixture 에서 예상 동작 확인된 후에만 발동 (조기 실행 금지 — 도구 결함을 데이터 탓으로 돌리는 역방향 오진)
-   - **(3) 절차**: ① fixture 출처 재확인 (발행 주체·epoch·좌표계·단위) → ② 이론 평형/경계값 독립 계산으로 fixture 값이 정상 영역 내에 있는지 검증 → ③ 데이터 이슈로 판정 시 현 스프린트 범위 밖 후속 이슈로 분리 + 코드 assertion 제거 + `#[ignore]` 유지 + **세 위치 박제** (코드 주석 / PR 본문 / CHANGELOG — 항목 7 참조)
-   - **의사결정 질문 2개**: "측정 도구가 synthetic/이상 fixture 에서 예상 동작하는가?" (도구 정상 확인) + "fixture 값이 측정 대상의 이론 평형/경계 내에 있는가?" (데이터 신뢰성 확인)
-   - **범용 적용**: 물리 시뮬레이터 (fixture epoch / 좌표계) / ML 모델 평가 (데이터셋 label noise, sampling bias) / 성능 벤치마크 (benchmark fixture vs 실제 production) / API 계약 테스트 (mock/stub vs 실제 endpoint 응답)
-   - 근거:
-     - volt [#32](https://github.com/coseo12/volt/issues/32) — 지구 GR 세차 측정에서 EIH 식 structural bias 로 오진한 현상이 실제로는 `min_r` 샘플링 노이즈. LRL 벡터 + Newton baseline subtraction 측정법 전환으로 드러남 (**3단계 원칙 도출**)
-     - volt [#53](https://github.com/coseo12/volt/issues/53) — astro-simulator P9 D5-b Laplace resonance 측정에서 (0)~(2) 전수 후에도 미달. 원인이 `solar-system.json` Galilean 4체 `meanLongitudeDeg` JPL 원본의 epoch 불일치로 **초기 Laplace 인자 φ₀=218° (이론 평형 180° 대비 38° 벗어남 → circulation 영역)** 임이 드러남. 도구·적분기·식 모두 정상 + 입력 데이터 측 결함으로 **4단계 확장 도출**
-10-a. **메인 오케스트레이터 SSoT JSON 부호 규약 자기 점검 (volt [#73](https://github.com/coseo12/volt/issues/73) / [#75](https://github.com/coseo12/volt/issues/75))** — sub-agent 반환 SSoT JSON 필드명이 의미 단어 (`regression` / `error` / `loss` / `diff` 등) 를 포함할 때 필드값의 **부호 규약은 필드명만으론 판정 불가**. 메인 오케스트레이터가 수치 DoD 판정 전 **리포트 본문 (linked path) 을 먼저 읽고 부호 규약 확인** 필수. 특히 극단값 (±100% 이상, ±50% 이상 등) 은 부호 규약 재확인의 **자동 트리거**. sub-agent 텍스트 요약 ("5/5 PASS") 과 JSON 수치가 모순처럼 보이면 **해석이 틀렸을 가능성 먼저 의심** — DoD 위반 확정 전 본문 인용 필수. 항목 10 "측정 방법 검증 우선" 의 **메인 오케스트레이터 버전** — AI 자기 과대/과소 평가는 sub-agent 뿐 아니라 메인에도 적용. 근거: astro-simulator P11-B.2 PR #322 에서 `D4_regression_pct: {"idle": 366.2}` 를 메인이 "+366% 회귀" 로 역해석. 실제는 "+366% 개선" (fps 21.23→98.97). 리포트 본문은 `+366.2% 개선` 으로 명확 표기.
 
 ### 마일스톤 회고 루틴
 
@@ -334,27 +310,7 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 - 확신이 없으면 3번 재작업보다 1번 질문
 
 ### 세션 의도 이탈 감지 (메인 오케스트레이터)
-단일 세션에서 **본래 사용자 의도** 에서 부수 작업으로 이탈하는 패턴을 감지하고 사용자에게 **명시적 선택 요청** 을 트리거한다. 인프라 작업 (harness update / tooling migration / CI 디버깅) 이 연쇄 실패를 만들면 원 의도가 묻힐 수 있다.
-
-- **이탈 시그널 4개** (2개 이상 충족 시 사용자 고지) — **런타임 실측 명령** 포함:
-  1. 메인 오케스트레이터가 **upstream 레포에 PR 3+ 생성** (같은 세션). 측정: `gh pr list --author @me --state merged --search "created:>=<세션 시작>"` 카운트
-  2. **릴리스 태그 증가 ≥ 프로젝트 이슈 증가** — 인프라 작업 비중이 도메인 작업을 역전. 측정: `git tag --contains HEAD` 와 본 세션 생성 이슈 수 비교 (원 의도 레포의 이슈 수)
-  3. (옵션) 세션 시간이 **본래 작업 예상 시간의 2배 초과** — 시간 추정은 주관적이므로 **보조 시그널** 로 강등 (시그널 1~2, 4 중 2개 충족이 우선 조건)
-  4. 같은 세션에 **관심사 혼합 4+ 트랙 병렬** — 원 의도 / 인프라 fix / 교차검증 / 후속 이슈 분리 중 4개 이상 동시. 측정: 세션 내 편집 파일의 `.claude/` / `docs/` / 원 의도 소스 / `.github/` / `test/` 등 **디렉토리 다양성** 4+ 개
-- **중간 대응 규약** — 시그널 발견 시:
-  1. upstream PR **2개 이상 연쇄 생성 직후** 사용자에게 명시적 선택 요청: **"원 의도 (예: X 작업) 복귀"** vs **"현 작업 (예: 인프라 fix 체인) 완결"**
-  2. 시그널 2/4 이상 충족 시 같은 확인 루틴 트리거
-  3. 사용자가 "현 작업 완결" 선택 시 원 의도는 **다음 세션으로 명시적 이월** (회고에 박제)
-- **사전 분리 권고** — 인프라 작업 (harness update / 릴리스 파이프라인 개선) 과 **도메인 작업 (Phase 착수 / 기능 구현) 을 별개 세션으로 분리**. harness update 가 예상 외 실패를 만들면 즉시 별도 세션으로 분할 선언
-- **세션 사후 평가** — 세션 종료 시 3축 평가 박제:
-  - 원 의도 충족도 (0~100%)
-  - 부수 작업 범위 (완결 / 진행중 / 포기)
-  - 분할 가능 여부 (세션 분리 했어야 했는가)
-- **예외 조건 (escape hatch 방지)** — 다음 **단 하나** 경우만 시그널 무시:
-  - **세션 시작 시점 이전** 에 사용자가 명시적으로 "세션 전환 허용" / "인프라 집중" / "릴리스 운영 세션" 모드를 선언 (예: 첫 메시지가 `/volt-review` / `/release-run` 등)
-  - **사후 재분류 금지** — 세션 도중 시그널 충족 후 "이건 인프라 모드였어" 식 자기 정당화로 예외 적용 **불가**. 사후 재분류는 volt [#63](https://github.com/coseo12/volt/issues/63) 관찰 대상 escape hatch 이며, 본 규약 자체의 실효성을 잃게 만든다
-  - 원 의도가 **객관적으로** 인프라 작업 (예: 세션 첫 명령이 harness CLI 호출 / 명시적 릴리스 orchestration) 인 경우도 동일 — 선언이 없어도 세션 시작 시점 판단으로 확인 가능
-- 근거: volt [#63](https://github.com/coseo12/volt/issues/63) — 2026-04-20 세션 실측. 사용자 의도 "astro-simulator P10-A 착수" 가 harness 3 릴리스 (v2.28.2 / v2.29.1 / v2.30.0) 디버깅으로 세션 시간 80% 흡수. P10-A 는 60% 만 충족. volt [#24](https://github.com/coseo12/volt/issues/24) (sub-agent 마무리 누락) + volt [#34](https://github.com/coseo12/volt/issues/34) (sub-agent multi-turn 이탈) 의 **메인 오케스트레이터 버전**
+단일 세션에서 **본래 사용자 의도** → 부수 작업 이탈 패턴 감지 + 사용자 명시적 선택 요청 트리거. 이탈 시그널 4개 (PR 3+ 생성 / 릴리스 태그 ≥ 이슈 / 시간 2배 / 관심사 4+ 트랙) 중 2개 이상 충족 시 발화. 사전 분리 권고 + 세션 사후 3축 평가 + 예외 조건 (escape hatch 방지 — 사후 재분류 금지). 상세: [docs/lessons/session-intent-drift.md](docs/lessons/session-intent-drift.md). 근거: volt [#63](https://github.com/coseo12/volt/issues/63) / [#24](https://github.com/coseo12/volt/issues/24) / [#34](https://github.com/coseo12/volt/issues/34)
 
 ### 릴리스
 - **Semantic Versioning 분류 기준** (판정 애매 시 낮은 쪽 선택):
