@@ -7,6 +7,63 @@
 > "규약 추가 = MINOR" 선례(v2.5.0~v2.6.0) 폐기. v2.6.3 부터 **에이전트 지시어·스킬 절차의 행동 변화는 MINOR**, **행동 변화 없는 문서/문구/오타는 PATCH** 로 분기한다. MINOR/MAJOR 릴리스는 `### Behavior Changes` 섹션을 필수로 포함한다.
 > 분류 기준 전문: [CLAUDE.md `### 릴리스`](CLAUDE.md#릴리스).
 
+## [Unreleased]
+
+## [4.0.0] — 2026-05-21
+
+v3.7.0 이후 **MAJOR 릴리스** — **Antigravity 마이그레이션** (`gemini-cli` → `agy` 어댑터 교체, 2026-06-18 Gemini CLI 종료 대응) + 누적 cross-validate 가드 (plan-mode 우회 자동 가드, reviewer ADR 호환성 검증, create-pr Strict Assertion, PR 본문 7 체크박스 메타 가드).
+
+MAJOR 분류 사유: **다운스트림 필수 조치 — `agy` (Antigravity CLI) 설치 + OAuth 로그인. `gemini` 명령은 더 이상 호출되지 않음. `GEMINI_MODEL` 환경변수 deprecated (silent 무시 + WARN)**.
+
+**포함 범위** (본 release):
+- Antigravity 마이그레이션 Phase 0~3 + #276 — PR [#273](https://github.com/coseo12/harness-setting/pull/273) (기획/ADR) / [#274](https://github.com/coseo12/harness-setting/pull/274) (.gitignore) / [#275](https://github.com/coseo12/harness-setting/pull/275) (Phase 1A MAJOR) / [#277](https://github.com/coseo12/harness-setting/pull/277) (Phase 2 PATCH) / [#278](https://github.com/coseo12/harness-setting/pull/278) (Phase 3 PATCH) / [#280](https://github.com/coseo12/harness-setting/pull/280) (#276 alias WARN MINOR)
+- cross-validate plan-mode 가드 + reviewer ADR 호환성 + create-pr Strict Assertion + PR 본문 7 체크박스 메타 가드 — PR [#260](https://github.com/coseo12/harness-setting/pull/260) / [#261](https://github.com/coseo12/harness-setting/pull/261) / [#262](https://github.com/coseo12/harness-setting/pull/262) / [#264](https://github.com/coseo12/harness-setting/pull/264)
+- 5 페르소나 create-pr 의무 박제 + 측정 방법 C — PR [#248](https://github.com/coseo12/harness-setting/pull/248) / [#257](https://github.com/coseo12/harness-setting/pull/257)
+- real-lessons 박제 (spawnSync stdin / gitflow base 함정) — PR [#254](https://github.com/coseo12/harness-setting/pull/254)
+- CLAUDE.md 가지치기 (4 블록 lessons 위임) — PR [#263](https://github.com/coseo12/harness-setting/pull/263)
+
+### Behavior Changes (MAJOR — Antigravity 마이그레이션)
+
+- **`cross-validate` 스킬 백엔드 교체: `gemini-cli` → Antigravity `agy`** (이슈 [#267](https://github.com/coseo12/harness-setting/issues/267) 트래킹 / [#269](https://github.com/coseo12/harness-setting/issues/269) Phase 1A / PR [#275](https://github.com/coseo12/harness-setting/pull/275)) — 2026-06-18 Gemini CLI 종료 대응. ADR: [docs/decisions/20260521-gemini-to-antigravity.md](docs/decisions/20260521-gemini-to-antigravity.md). 기획서: [docs/plans/antigravity-migration.md](docs/plans/antigravity-migration.md). 핵심 변경:
+  - `cross_validate.sh` 의 `gemini` 명령 → `agy` 교체. 함수 이름 도구 중립화 (`run_gemini` → `run_external_validator`, `check_gemini_capacity` → `check_external_capacity`)
+  - **capacity 분기 재설계** — agy 는 timeout/error 도 exit 0 반환 (Phase 0 PoC T2 실측) → stderr `^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)` 패턴 매칭. exit code 보조 신호
+  - **L1 prompt strict prefix** (`STRICT INSTRUCTION: Do NOT execute any tool...`) 자동 prepend — agy `--print` 모드의 도구 자동 실행 차단 (Phase 0 PoC T10/T11 발견)
+  - **L3 snapshot 가드 (#479) 유지 + 강화** — agy 의 `--approval-mode plan` 등가 옵션 부재로 L1 + L3 이중 보호로 재설계. 동일 보호 효과
+  - `GEMINI_MODEL` 환경변수 **deprecated** — agy 는 모델 선택 옵션 부재 (백엔드 자동). 설정 시 stderr WARN + 무시
+  - `GEMINI_RETRY_SLEEP_SECONDS/CAP` → `EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS/CAP` 변수 이름 도구 중립화. **alias 인식 (Phase 4 #272 에서 제거 예정). 사용 시 stderr WARN** (#276 / PR [#280](https://github.com/coseo12/harness-setting/pull/280))
+  - 신규 `EXTERNAL_VALIDATOR_PRINT_TIMEOUT` (기본 300s) — agy `--print-timeout` 값
+  - outcome sentinel `"429-fallback-claude-only"` **유지** (5 agents `parse-cross-validate-outcome.sh` backward-compat. agy 의 timeout/quota 도 본 sentinel 통합)
+  - **다운스트림 필수 조치**: `agy` 설치 (https://antigravity.google/docs/cli-overview) + OAuth 로그인. `gemini` 명령은 더 이상 호출되지 않음
+- **`.claude/agents/architect.md` + `reviewer.md` + `commands/capture-merge.md` cross-validate 호출 안내 도구 중립화** (이슈 [#270](https://github.com/coseo12/harness-setting/issues/270) Phase 2 / PR [#277](https://github.com/coseo12/harness-setting/pull/277)) — "Gemini 1회 교차검증" → "외부 검증 모델 (현재 Antigravity `agy`) 1회 교차검증". 절차 변경 0, 안내 표현만 — 분류 PATCH
+- **6 docs 도구 중립화** (이슈 [#271](https://github.com/coseo12/harness-setting/issues/271) Phase 3 / PR [#278](https://github.com/coseo12/harness-setting/pull/278)) — `CLAUDE.md` §교차검증 + `README.md` + `docs/skills-guide.md` + `docs/security.md` + `docs/deployment-guide.md` + `docs/guides/cross-validate-protocol.md` 현재 안내 본문 도구 중립화. 보존 vs 교체 판정 규칙 적용 — 9 카테고리 (CHANGELOG / ADR / lessons / architecture / knowledge / governance / plan / report-* / scripts) 역사 인용 보존. 분류 PATCH
+
+### Behavior Changes (MINOR — cross-validate plan-mode 가드 + reviewer ADR 호환성 + create-pr Strict Assertion + PR 본문 7 체크박스 메타 가드 박제)
+
+- **`.claude/skills/cross-validate/scripts/cross_validate.sh` plan-mode 우회 자동 가드** (다운스트림 [astro-simulator#479](https://github.com/coseo12/astro-simulator/issues/479) PR [#482](https://github.com/coseo12/astro-simulator/pull/482) 박제) — Gemini 호출 전/후 워킹트리 snapshot 비교 (porcelain + hash-object 혼합) + 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`) + outcome JSON 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`). `--approval-mode plan` 가드가 무력화돼 Gemini 가 워킹트리에서 무단 파일 수정한 사고 (2026-05-16) 자동 차단
+- **`scripts/parse-cross-validate-outcome.sh` 3 신규 필드 파싱 + backward compat** — `CROSS_VALIDATE_PLAN_BYPASS` / `CROSS_VALIDATE_BYPASS_FILES` / `CROSS_VALIDATE_ROLLBACK_FAILED` KEY=value 출력. legacy outcome (필드 부재) 도 false / "" / false fallback
+- **`.claude/agents/reviewer.md` §절차 5 신설 — ADR 호환성 의미론적 검증** (다운스트림 [astro-simulator#463](https://github.com/coseo12/astro-simulator/issues/463) PR [#468](https://github.com/coseo12/astro-simulator/pull/468) 박제) — PR 본문 체크박스만의 self-attestation 함정 차단. 4 sub-step: (1) PR 변경 파일 진단 + 1줄 박제 의무 (2) 수정 미포함 PR 은 `적용 비대상` 명시 (3) 수정 포함 시 grep 1차 (`Amendment`/`폐기`/`Supersedes`/`§재검토 조건`) + LLM 2차 혼합 검증 (4) PR 본문 체크박스 검증. 결과 PR 코멘트 포맷에 `### ADR 호환성` 섹션 추가
+- **`.claude/skills/create-pr/SKILL.md` Strict Assertion 동적 읽기 박제** (다운스트림 [astro-simulator#471](https://github.com/coseo12/astro-simulator/issues/471) PR [#478](https://github.com/coseo12/astro-simulator/pull/478) 박제) — PR 본문 생성 시 `.github/PULL_REQUEST_TEMPLATE.md` `### 체크리스트` 섹션 동적 읽기 의무 + 하드코딩 fallback 금지 (CRITICAL). 1차 (test -f) → 2차 (sed 섹션 추출) → 3차 (grep -c checkbox) → 4차 (PR 본문 박제) 3+1 단 검증. drift 가드 strict assertion 자기모순 차단 (volt [#107](https://github.com/coseo12/volt/issues/107))
+- **PR 본문 7 체크박스 메타 가드 — 4 파일 동시 박제** (다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) PR [#475](https://github.com/coseo12/astro-simulator/pull/475) 박제) — 동일 메타 규칙이 3 곳에서 발화 (방어의 깊이):
+  - `.claude/agents/reviewer.md` §절차 6 신설 — 1차 구조 grep (체크박스) + 2차 phrase grep AND. 양쪽 0 hit 시 `non_blocking_suggestions` 박제. 기존 §절차 6/7/8 → 7/8/9 renumber
+  - `.claude/agents/qa.md` §검증 단계 4 신설 — backstop (reviewer 1차 가드 누락 시 grep ≥ 1 검증, 반환 0 시 reviewer 되돌림 권고). 기존 §4 (cross-validate outcome) → §5 renumber
+  - `.claude/agents/developer.md` §측정 방법 C 박스 끝에 reviewer/qa 박제 cross-link 참고 라인 추가
+  - `.claude/skills/create-pr/SKILL.md` §측정 방법 C 박스 끝에 reviewer/qa 박제 cross-link 참고 라인 추가
+- **5 페르소나 SSoT 박제** (drift 0):
+  - `.claude/agents/architect.md` §절차 9 — cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무
+  - `.claude/agents/reviewer.md` §절차 9 — 동일 SSoT (ADR 호환성 §절차 5 + PR 본문 메타 §절차 6 신설로 renumber 7→8→9)
+  - `.claude/agents/qa.md` §검증 단계 5 — 동일 SSoT (PR 본문 §검증 단계 4 신설로 renumber 4→5)
+  - `.claude/agents/developer.md` §금지 — cross-validate 호출 금지 + outcome 참조 시 정합성 검증
+  - `.claude/agents/pm.md` §금지 — 동일
+- **`CLAUDE.md` `## 교차검증` 섹션 plan-mode 가드 박제** — 메인 오케스트레이터 검증 의무 (sub-agent 복귀 직후 `parse-cross-validate-outcome.sh` 파싱 + `plan_bypass == false` 확인). `.gitignore` 변경 시 CRITICAL 격상
+- **D1 격리 동적 테스트 PASS** — 4 케이스 (clean / tracked-rollback / untracked-delete / set -u 빈 배열 안전성) 모두 PASS. parse-helper 4 mock 케이스 (bypass / clean / legacy / rollback-failed) 도 PASS
+
+### Non-Goals (다운스트림 #479 비-범위 유지)
+
+- `.gitignore` 이용 무시 파일 동시 수정 완전 방어 (`ls-files --others --ignored` snapshot) — 본 PR 부분 방어 (CRITICAL 격상) 만
+- session-start hook / `harness doctor` 통합 (별도 후속)
+- Gemini CLI 자체 수정 / `--approval-mode plan` 보장 강화 (외부 의존)
+- worktree 격리 / 다른 외부 LLM 통합
+
 ## [3.7.0] — 2026-05-17
 
 v3.6.0 이후 **MINOR 릴리스** — volt 13개 이슈 반영 (#95 #96 #98 #100 #101 #102 #103 #104 #105 #106 #107 #108 #109 #111 #112). MINOR 분류는 가드 도입 PR DoD 4축 규약 추가 + 가드 설계 3원칙 + record-adr 스킬 Amendment B 형식 / ADR Trigger 패턴 + architect/pm 에이전트 절차 추가로 결정. 동시에 PATCH 성격의 문서 보강 (verify-*.sh 작성 모범, GitHub Actions YAML 함정) 포함.

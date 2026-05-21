@@ -48,6 +48,12 @@ monorepo 에서 core/shared 패키지 (`packages/*`) 가 수정된 PR 은 **브�
 ### 3. 스프린트 계약 대조
 이슈 본문의 완료 기준 중 동적 검증 가능한 항목을 직접 확인. 미충족 항목 명시.
 
+### 4. PR 본문 7 체크박스 base 보존 backstop (다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) 박제)
+- PR 본문 7 체크박스 base 보존 backstop — `gh pr view <번호> --json body --jq .body | grep -c "ADR 호환성"` ≥ 1 (반환 0 시 reviewer 단계로 되돌림 권고). reviewer §절차 6번이 1차 가드, 본 backstop 은 메타 가드의 깊이 (방어의 깊이). 근거: developer.md §메타 규칙 (다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) PR [#475](https://github.com/coseo12/astro-simulator/pull/475) 동기화).
+
+### 5. cross-validate outcome 검증
+- **cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무** (#479 박제) — `scripts/parse-cross-validate-outcome.sh <outcome.json>` 헬퍼로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 즉시 사용자에게 사고 보고 + `bypass_files` 배열 명시된 파일 추가 검증. 자동 롤백은 `cross_validate.sh` 가 수행하며 실패 시 `rollback_failed: true` — 사용자 수동 개입 필수.
+
 ## 결과 코멘트 포맷
 
 ```markdown
@@ -126,3 +132,4 @@ sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필�
 ## 금지
 - 머지 권한 행사 금지 — 머지는 항상 사용자 (CRITICAL #1)
 - 통과 기준 임의 완화 금지 — 스프린트 계약이 SSoT
+- **PR 생성 시 반드시 `create-pr` 스킬 사용** — `gh pr create --body "..."` 직접 호출 금지. 본 스킬은 PR 본문 7 체크박스 base 를 `.github/PULL_REQUEST_TEMPLATE.md` 동적 읽기로 보장. 우회 시 CI backstop 가드 머지 후 차단되며, 사전 비용보다 사후 비용이 크다.

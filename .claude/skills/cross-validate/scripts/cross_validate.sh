@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Gemini CLI를 활용한 교차검증 스크립트
+# 외부 검증 모델 (Antigravity `agy`) 를 활용한 교차검증 스크립트
+# Phase 1A (#269) 부터 gemini-cli → agy 교체. ADR: docs/decisions/20260521-gemini-to-antigravity.md
+# 보호 모델 — L1 (prompt strict prefix) + L3 (snapshot diff + 자동 롤백, #479)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,9 +29,9 @@ usage() {
   exit 1
 }
 
-# Gemini CLI 확인
-if ! command -v gemini &> /dev/null; then
-  echo "에러: gemini CLI가 설치되어 있지 않습니다."
+# 외부 검증 모델 CLI 확인 (Antigravity `agy`)
+if ! command -v agy &> /dev/null; then
+  echo "에러: agy (Antigravity CLI) 가 설치되어 있지 않습니다. https://antigravity.google/docs/cli-overview 참조."
   exit 1
 fi
 
@@ -72,12 +74,63 @@ json_escape() {
 # 초기값 "none" — 호출 자체가 없었음
 REMINDER_ISSUE_RESULT="none"
 
+# plan-mode 우회 감지 결과 추적 (#479) — snapshot_pre / snapshot_post_and_rollback 이 저장
+# write_outcome_json 이 소비. 초기값은 호출 전 false / 빈 배열 / false (정상 상태).
+#   PLAN_BYPASS:     외부 검증 모델 (agy) 호출 전후 워킹트리 변경 감지 여부
+#   BYPASS_FILES:    감지된 파일 경로 배열 (bash 배열)
+#   ROLLBACK_FAILED: 자동 롤백 시도 중 실패한 파일이 있는지 (CRITICAL — 수동 개입 필요)
+# Phase 1A (#269): agy 는 --print mode 에서 도구 자동 실행 + --approval-mode plan 등가 부재 (PoC).
+#   사후 snapshot diff + 자동 롤백이 L3 핵심 보호. L1 (prompt strict prefix) 과 이중 가드.
+# 과거 (gemini 시점) reviewer 권고 박제: Q1 tracked + untracked 모두 추적, Q2 롤백 실패 케이스 분리
+PLAN_BYPASS=false
+BYPASS_FILES=()
+ROLLBACK_FAILED=false
+# snapshot 임시 파일 경로 — snapshot_pre 가 설정, snapshot_post_and_rollback 이 소비
+PRE_TRACKED_HASHES=""
+PRE_UNTRACKED=""
+
+# JSON 배열 문자열 생성 헬퍼 (#479) — bash 배열 → JSON string array.
+# bypass_files 가 비어있으면 "[]" 반환. 각 요소는 json_escape 적용.
+# NOTE: `set -u` 환경에서 빈 배열 expansion 은 unbound 오류 발생 — 호출 측은
+# `${ARR[@]+"${ARR[@]}"}` 또는 본 함수 내부에서 빈 배열 케이스 분기로 회피.
+json_array_from_bash_array() {
+  # $# 으로 인자 수 직접 확인 — `local -a arr=("$@")` 는 빈 인자에서 정상 작동하지만
+  # 호출 측 `"${ARR[@]}"` 가 unbound 인 경우 호출 자체가 실패하므로 본 함수 진입 전에 차단됨
+  if [ "$#" -eq 0 ]; then
+    printf '[]'
+    return
+  fi
+  local out="["
+  local first=1
+  local item
+  for item in "$@"; do
+    if [ "${first}" = "1" ]; then
+      first=0
+    else
+      out+=","
+    fi
+    out+="\"$(json_escape "${item}")\""
+  done
+  out+="]"
+  printf '%s' "${out}"
+}
+
 # outcome JSON 파일 출력
 # architect.md step 8 규약: 이 파일을 읽어 extends.cross_validate_outcome 에 매핑
-# outcome 값 규약:
-#   "applied"                  — Gemini 정상 응답 수신 (exit 0)
-#   "429-fallback-claude-only" — 429 최종 실패 폴백 (exit 77)
+# outcome 값 규약 (backward-compat 유지 — 5 agents `parse-cross-validate-outcome.sh` 와 정합성):
+#   "applied"                  — 외부 검증 모델 (agy) 정상 응답 수신 (exit 0)
+#   "429-fallback-claude-only" — capacity 최종 실패 폴백 (exit 77). Phase 1A 부터 agy 의
+#                                timeout / rate limit / quota / not logged 모두 본 sentinel
+#                                로 통합. 명칭 일반화는 별도 PR (sentinel 변경 시 5 agents 동기화 필수)
 #   "fatal-error"              — 비-capacity 치명적 오류 (exit 1)
+#
+# Phase 4 (#479) 확장 — plan-mode 우회 가드 3 필드:
+#   plan_bypass:     boolean — 외부 검증 모델 (agy) 호출 전후 워킹트리 변경 감지 여부
+#   bypass_files:    string[] — 감지된 파일 경로 배열
+#   rollback_failed: boolean — 자동 롤백 시도 중 실패가 있었는지 (true 면 수동 개입)
+# backward compat: 기존 8 필드 (outcome / exit_code / anchor / pr_ref / context /
+#   log_file / reminder_issue / timestamp) 미변경. parse-cross-validate-outcome.sh
+#   헬퍼가 신규 필드 옵션 처리.
 write_outcome_json() {
   local outcome="$1"
   local exit_code="$2"
@@ -92,6 +145,12 @@ write_outcome_json() {
   # reviewer 차단 반영: 이전에는 REMINDER_ISSUE_DRYRUN 환경변수만 보고 "created" 를 가정했음 — 실측으로 교정
   reminder_esc=$(json_escape "${REMINDER_ISSUE_RESULT}")
 
+  # Phase 4 (#479): bypass_files 배열은 JSON array 로 직접 생성
+  # `set -u` 안전 expansion — 빈 배열일 때 `${ARR[@]}` 가 unbound 발생하므로
+  # `${ARR[@]+"${ARR[@]}"}` 패턴으로 빈 배열을 인자 0개로 전달
+  local bypass_files_json
+  bypass_files_json=$(json_array_from_bash_array ${BYPASS_FILES[@]+"${BYPASS_FILES[@]}"})
+
   cat > "${OUTCOME_FILE}" <<EOF
 {
   "outcome": "${outcome}",
@@ -101,22 +160,172 @@ write_outcome_json() {
   "context": "${context_esc}",
   "log_file": "${log_file_esc}",
   "reminder_issue": "${reminder_esc}",
+  "plan_bypass": ${PLAN_BYPASS},
+  "bypass_files": ${bypass_files_json},
+  "rollback_failed": ${ROLLBACK_FAILED},
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
 }
 
-# Gemini 모델 설정 — 경량 모델 폴백 없음 (교차검증 품질 보존)
-GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-pro}"
-MAX_GEMINI_RETRIES=2
+# plan-mode 우회 가드 — 호출 전 워킹트리 snapshot (#479)
+# 결정점 1: D 방식 (porcelain + hash-object 혼합)
+#   - tracked 파일은 hash-object 로 정확 검증 (성능 부담 < 100ms)
+#   - untracked 는 porcelain ?? 프리픽스로 별도 식별
+# git 저장소가 아닌 경로에서 호출되면 silent skip (가드 비활성).
+# 비-범위: .gitignore 이용 무시 파일 동시 수정 완전 방어는 후속 분리.
+# Phase 1A (#269): agy 는 --print mode 에서 도구 자동 실행 → L3 (본 가드) 가 최종 안전망.
+snapshot_pre() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    log "plan-bypass 가드: git 저장소가 아닌 경로 — 가드 비활성"
+    return 0
+  fi
+  PRE_TRACKED_HASHES="${LOG_DIR}/cv-pre-tracked-${TIMESTAMP}.txt"
+  PRE_UNTRACKED="${LOG_DIR}/cv-pre-untracked-${TIMESTAMP}.txt"
+  # tracked 파일 해시 (정확). git ls-files 가 staged + tracked 모두 포함.
+  # hash-object 는 동일 내용이면 동일 해시 → 라인 변경이든 추가든 모두 검출.
+  git ls-files 2>/dev/null | while read -r f; do
+    if [ -f "${f}" ]; then
+      printf '%s\t%s\n' "$(git hash-object "${f}" 2>/dev/null)" "${f}"
+    fi
+  done > "${PRE_TRACKED_HASHES}"
+  # untracked 파일 (?? 프리픽스만) — porcelain 으로 식별.
+  # 'git status --porcelain' 의 untracked 라인은 "?? path" 형식.
+  git status --porcelain 2>/dev/null | grep "^?? " | sed 's/^?? //' > "${PRE_UNTRACKED}" || true
+  log "plan-bypass 가드: 사전 snapshot 완료 (tracked=$(wc -l < "${PRE_TRACKED_HASHES}" | tr -d ' ') / untracked=$(wc -l < "${PRE_UNTRACKED}" | tr -d ' '))"
+}
+
+# plan-mode 우회 가드 — 호출 후 diff 검증 + 자동 롤백 (#479)
+# 결정점 2: R4 (자동 롤백 + 사용자 사후 알림)
+# 결정점 1: tracked 는 hash-object 비교, untracked 는 신규 라인 비교
+# Q2 (과거 gemini 시점 reviewer 권고) 수용: 롤백 실패 케이스를 ROLLBACK_FAILED 로 분리
+# .gitignore 변경 시 CRITICAL 격상
+snapshot_post_and_rollback() {
+  # snapshot_pre 가 skip 된 경우 (git 저장소 아님) 본 함수도 skip
+  if [ -z "${PRE_TRACKED_HASHES}" ] || [ ! -f "${PRE_TRACKED_HASHES}" ]; then
+    return 0
+  fi
+  local post_tracked="${LOG_DIR}/cv-post-tracked-${TIMESTAMP}.txt"
+  local post_untracked="${LOG_DIR}/cv-post-untracked-${TIMESTAMP}.txt"
+  # 사후 snapshot — 사전과 동일 방식
+  git ls-files 2>/dev/null | while read -r f; do
+    if [ -f "${f}" ]; then
+      printf '%s\t%s\n' "$(git hash-object "${f}" 2>/dev/null)" "${f}"
+    fi
+  done > "${post_tracked}"
+  git status --porcelain 2>/dev/null | grep "^?? " | sed 's/^?? //' > "${post_untracked}" || true
+
+  # tracked diff — 해시가 달라진 파일 식별
+  # `diff` 출력 중 '>' (post 에만 있음) 또는 '<' (pre 에만 있음) 라인의 두 번째 필드 = 파일 경로
+  # 동일 경로의 해시가 변경되면 양쪽에 나옴 → uniq 로 중복 제거
+  local tracked_changed
+  tracked_changed=$(diff "${PRE_TRACKED_HASHES}" "${post_tracked}" 2>/dev/null \
+    | grep -E "^[<>] " \
+    | awk -F'\t' '{print $2}' \
+    | sort -u || true)
+
+  # untracked 신규 파일 — post 에만 있는 라인
+  local untracked_new
+  untracked_new=$(comm -13 \
+    <(sort "${PRE_UNTRACKED}") \
+    <(sort "${post_untracked}") 2>/dev/null || true)
+
+  # 변경이 없으면 정상 — PLAN_BYPASS 기본값 (false) 유지하고 종료
+  if [ -z "${tracked_changed}" ] && [ -z "${untracked_new}" ]; then
+    log "plan-bypass 가드: 사후 snapshot diff empty — 정상"
+    return 0
+  fi
+
+  # plan-mode 우회 감지 — CRITICAL
+  PLAN_BYPASS=true
+  local gitignore_modified=false
+
+  # tracked 파일 자동 롤백 (git checkout --)
+  if [ -n "${tracked_changed}" ]; then
+    while IFS= read -r f; do
+      [ -z "${f}" ] && continue
+      BYPASS_FILES+=("${f}")
+      if [ "${f}" = ".gitignore" ]; then
+        gitignore_modified=true
+      fi
+      if ! git checkout -- "${f}" 2>/dev/null; then
+        ROLLBACK_FAILED=true
+        log "plan-bypass 가드: 자동 롤백 실패 — ${f}"
+      fi
+    done <<< "${tracked_changed}"
+  fi
+
+  # untracked 신규 파일 자동 삭제 (Gemini Q1 수용)
+  # git checkout -- 는 untracked 를 건드리지 않으므로 rm 이 필요
+  if [ -n "${untracked_new}" ]; then
+    while IFS= read -r f; do
+      [ -z "${f}" ] && continue
+      BYPASS_FILES+=("${f}")
+      if ! rm -f "${f}" 2>/dev/null; then
+        ROLLBACK_FAILED=true
+        log "plan-bypass 가드: untracked 신규 파일 삭제 실패 — ${f}"
+      fi
+    done <<< "${untracked_new}"
+  fi
+
+  # stderr 경고 (CRITICAL 위반 즉시 차단 시각화)
+  echo "WARN: external validator (agy) plan-mode bypass detected — ${#BYPASS_FILES[@]} files modified, auto-rollback applied" >&2
+  # `${ROLLBACK_FAILED:+...}` 는 변수가 비어있지 않으면 (값이 'true' 또는 'false' 어느 쪽이든)
+  # 텍스트를 출력하므로 실제 실패 여부와 무관. 명시적 비교로 교체.
+  local rollback_status="성공"
+  [ "${ROLLBACK_FAILED}" = "true" ] && rollback_status="일부 실패"
+  log "plan-bypass 가드: ${#BYPASS_FILES[@]}개 파일 감지 — 자동 롤백 (${rollback_status})"
+
+  # .gitignore 변경은 CRITICAL — 별도 경고
+  # 무시 대상 파일 동시 수정 false negative 위험. 사용자 수동 검증 권고.
+  if [ "${gitignore_modified}" = "true" ]; then
+    echo "CRITICAL: .gitignore modified by external validator (agy) — 무시 파일 동시 수정 false negative 위험. 수동 검증 필요." >&2
+    log "plan-bypass 가드 CRITICAL: .gitignore 변경 감지 — 사용자 수동 검증 의무"
+  fi
+
+  # 롤백 실패 시 추가 경고 (Gemini Q2 수용)
+  if [ "${ROLLBACK_FAILED}" = "true" ]; then
+    echo "CRITICAL: 자동 롤백 실패 — 수동 개입 필요. outcome.rollback_failed=true" >&2
+  fi
+}
+
+# 외부 검증 모델 (agy) 설정
+# Phase 1A (#269) 부터: agy 는 모델 선택 옵션 부재 — 백엔드 자동 결정
+# `GEMINI_MODEL` 환경변수는 deprecated, 설정되어 있어도 무시 (사용자 가시성 WARN)
+if [ -n "${GEMINI_MODEL:-}" ]; then
+  echo "WARN: GEMINI_MODEL 환경변수는 Phase 1A 부터 deprecated 입니다 (agy 는 모델 옵션 부재). 무시됩니다. Phase 4 (#272) 에서 제거 예정." >&2
+fi
+
+MAX_EXTERNAL_VALIDATOR_RETRIES=2
 # 재시도 간 sleep 단위 (초). 테스트에서는 0 으로 설정해 실행 시간 단축.
-GEMINI_RETRY_SLEEP_SECONDS="${GEMINI_RETRY_SLEEP_SECONDS:-5}"
+# backward-compat: GEMINI_RETRY_SLEEP_SECONDS alias 인식 (1 릴리스 동안 — Phase 4 #272 에서 제거)
+# #276: silent → WARN 으로 전환. 사용자 가시성 강화 (Phase 4 제거 사전 안내)
+if [ -n "${GEMINI_RETRY_SLEEP_SECONDS:-}" ]; then
+  echo "WARN: GEMINI_RETRY_SLEEP_SECONDS 환경변수는 Phase 1A 부터 deprecated 입니다. EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS 를 사용하세요. Phase 4 (#272) 에서 제거 예정." >&2
+fi
+EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS="${EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS:-${GEMINI_RETRY_SLEEP_SECONDS:-5}}"
 # sleep 상한 (초). 지수 backoff 가 MAX_RETRIES 증설 시 폭증하는 것을 방지.
 # reviewer non-blocking (#137, v2.21.0~ #131 Phase B): MIN(cap, 2^attempt * BASE)
-GEMINI_RETRY_SLEEP_CAP="${GEMINI_RETRY_SLEEP_CAP:-300}"
-# capacity probe 옵트아웃. 기본 0 (수행). 권고 4 (#131 Phase B): probe (`gemini -p "hello"`)
-# 자체가 free tier quota 를 소모하므로 429 가 이미 감지된 상황에선 생략이 유리할 수 있다.
+# #276: silent → WARN 으로 전환 (위와 동일 사유)
+if [ -n "${GEMINI_RETRY_SLEEP_CAP:-}" ]; then
+  echo "WARN: GEMINI_RETRY_SLEEP_CAP 환경변수는 Phase 1A 부터 deprecated 입니다. EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP 를 사용하세요. Phase 4 (#272) 에서 제거 예정." >&2
+fi
+EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP="${EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP:-${GEMINI_RETRY_SLEEP_CAP:-300}}"
+# capacity probe 옵트아웃. 기본 0 (수행). 권고 4 (#131 Phase B): probe (`agy -p "hello"`)
+# 자체가 free tier quota 를 소모하므로 capacity 부족이 이미 감지된 상황에선 생략이 유리할 수 있다.
 SKIP_CAPACITY_PROBE="${SKIP_CAPACITY_PROBE:-0}"
+
+# L1 가드 — agy 가 도구 호출을 수행하지 않도록 prompt 에 자동 prepend (#269 Phase 0 PoC)
+# agy --print mode 는 도구 호출을 silent 자동 승인 → prompt 레벨 차단 필수
+# PoC T10/T11 실측: agy 가 "DO NOT execute" 지시를 순순히 따름 (효과 확인)
+EXTERNAL_VALIDATOR_STRICT_PREFIX="STRICT INSTRUCTION: You are performing read-only code review and analysis. Do NOT execute any shell command or tool. Do NOT modify any file. Respond ONLY with text-based analysis. If you would have used a tool, describe in text what you would have done.
+
+---
+
+"
+
+# agy --print-timeout 기본값 (초). 응답 대기 한계. agy 의 default 는 5m (300s).
+EXTERNAL_VALIDATOR_PRINT_TIMEOUT="${EXTERNAL_VALIDATOR_PRINT_TIMEOUT:-300s}"
 
 # Exit code 규약 (CLAUDE.md API capacity 폴백 프로토콜)
 # 0  = Gemini 정상 응답 수신
@@ -124,7 +333,7 @@ SKIP_CAPACITY_PROBE="${SKIP_CAPACITY_PROBE:-0}"
 # 1  = 그 외 실패 (인자 오류 / 파일 부재 / 민감 파일 등)
 EXIT_CLAUDE_ONLY_FALLBACK=77
 
-# check_gemini_capacity 반환 코드 규약 (reviewer 권고 2, #131 Phase A)
+# check_external_capacity 반환 코드 규약 (reviewer 권고 2, #131 Phase A — gemini 시점부터 유지)
 # 0 = capacity 복구 (probe 성공)
 # 2 = 여전히 429/503/500 — capacity 부족 (재시도 의미 낮음)
 # 1 = 비-429 probe 실패 (네트워크/인증 등 — 기타 오류와 구분)
@@ -133,16 +342,35 @@ CAPACITY_OK=0
 CAPACITY_EXHAUSTED=2
 CAPACITY_OTHER_ERROR=1
 
-# Gemini capacity 체크 — `gemini -p "hello"` 로 빠른 응답성 확인
+# 외부 검증 모델 (agy) capacity 체크 — `agy -p "hello"` 로 빠른 응답성 확인
 # CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜 단계 1
-check_gemini_capacity() {
-  local probe_output
-  probe_output=$(gemini -m "${GEMINI_MODEL}" -p "hello" --approval-mode plan 2>&1) && return "${CAPACITY_OK}"
-  if echo "${probe_output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
-    log "capacity 체크 결과: 여전히 용량 부족 (code=${CAPACITY_EXHAUSTED})"
+# Phase 1A (#269): agy 는 timeout/capacity 실패 시에도 exit 0 반환 (PoC T2 실측) —
+# stderr 의 `^Error: ` 패턴 매칭으로 판정. exit code 는 보조 신호.
+check_external_capacity() {
+  local probe_stdout probe_stderr probe_rc
+  local probe_stderr_file
+  probe_stderr_file=$(mktemp)
+  # agy 권고 제안 1 수용 (PR #275 dogfooding): SIGINT/SIGTERM 또는 set -e 조기 이탈 시 임시 파일 누수 차단
+  # RETURN trap 은 함수 종료 시점에 호출되며 호출자로 전파 안 됨 (bash 기본 INHERITRC 비활성)
+  trap "rm -f '${probe_stderr_file}'" RETURN
+  # capacity probe — 빠른 응답 (30s) timeout, 정상 응답은 1~3s 안에 옴
+  probe_stdout=$(agy --print-timeout 30s -p "hello" 2>"${probe_stderr_file}") && probe_rc=0 || probe_rc=$?
+  probe_stderr=$(cat "${probe_stderr_file}")
+
+  # 정상 응답: 비어있지 않은 stdout + stderr Error 없음 (exit code 무관 — agy 는 항상 0)
+  # agy 권고 제안 2 수용: echo "${var}" 는 `-e/-n` 시작 문자열에서 옵션 파싱 오동작 가능 → printf '%s\n' 사용
+  if [ -n "${probe_stdout}" ] && ! printf '%s\n' "${probe_stderr}" | grep -qE "^Error: "; then
+    return "${CAPACITY_OK}"
+  fi
+
+  # capacity 실패 패턴 매칭 — PoC T2 발견 + 추정 패턴 (rate limit/quota/not logged)
+  if printf '%s\n' "${probe_stderr}" | grep -qE "^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)"; then
+    log "capacity 체크 결과: agy capacity 부족 또는 인증 문제 (code=${CAPACITY_EXHAUSTED}) — $(printf '%s\n' "${probe_stderr}" | head -1)"
     return "${CAPACITY_EXHAUSTED}"
   fi
-  log "capacity 체크 결과: 비-capacity probe 실패 (code=${CAPACITY_OTHER_ERROR}) — $(echo "${probe_output}" | head -1)"
+
+  # 그 외: 알 수 없는 probe 실패
+  log "capacity 체크 결과: 비-capacity probe 실패 (code=${CAPACITY_OTHER_ERROR}) — stdout=$(printf '%s\n' "${probe_stdout}" | head -1) stderr=$(printf '%s\n' "${probe_stderr}" | head -1)"
   return "${CAPACITY_OTHER_ERROR}"
 }
 
@@ -158,7 +386,7 @@ create_reminder_issue() {
   body=$(cat <<BODY
 ## 배경
 
-cross-validate 스킬 실행 중 Gemini API capacity 소진으로 **claude-only fallback** 발생. CLAUDE.md \`## 교차검증\` API capacity 폴백 프로토콜 단계 3 (노출 효율 최대 앵커 해당 시 reminder 이슈 박제) 에 따라 API 복구 후 재검증용 이슈 박제.
+cross-validate 스킬 실행 중 외부 검증 모델 (agy) capacity 소진 또는 인증 문제로 **claude-only fallback** 발생. CLAUDE.md \`## 교차검증\` API capacity 폴백 프로토콜 단계 3 (노출 효율 최대 앵커 해당 시 reminder 이슈 박제) 에 따라 복구 후 재검증용 이슈 박제.
 
 ## 맥락
 
@@ -176,13 +404,13 @@ cross-validate 스킬 실행 중 Gemini API capacity 소진으로 **claude-only 
 
 ## 완료 기준
 
-- [ ] Gemini API 복구 확인 (\`gemini -p "hello"\`)
+- [ ] agy 응답성 복구 확인 (\`agy -p "hello"\`)
 - [ ] 원 컨텍스트에 대해 cross-validate 재실행
 - [ ] 결과를 원 PR / ADR / CHANGELOG 해당 위치에 박제
 - [ ] 재시도 성공 시 본 이슈 close
 BODY
 )
-  local title="[cross-validate reminder] ${context} — Gemini capacity 복구 후 재시도 (${anchor})"
+  local title="[cross-validate reminder] ${context} — agy 응답성 복구 후 재시도 (${anchor})"
   if [ "${REMINDER_ISSUE_DRYRUN:-1}" = "0" ]; then
     log "reminder 이슈 생성 (실제)"
     # gh issue create 의 성공/실패를 실측해 REMINDER_ISSUE_RESULT 에 반영 (reviewer 차단 반영)
@@ -202,55 +430,80 @@ BODY
   fi
 }
 
-# Gemini 실행 (읽기 전용)
+# 외부 검증 모델 (agy) 실행 (L1 prompt-level read-only)
 # CLAUDE.md `## 교차검증` API capacity 폴백 프로토콜:
-#   1. 1차 429/timeout → capacity 체크 + 지연 후 1회 재시도
+#   1. 1차 capacity 실패 → capacity 체크 + 지연 후 1회 재시도
 #   2. 2차 실패 → claude-only analysis completed 프리픽스 + exit 77
 #   3. 앵커 해당 시 reminder 이슈 박제
 # 앵커 컨텍스트는 호출 측에서 CROSS_VALIDATE_ANCHOR 환경변수로 전달 가능
-run_gemini() {
+#
+# Phase 1A (#269) 변경:
+#   - L1: prompt 에 EXTERNAL_VALIDATOR_STRICT_PREFIX 자동 prepend (도구 호출 차단)
+#   - capacity 판정: stderr `^Error: ` 패턴 매칭 (agy exit code 는 timeout 도 0 — PoC T2)
+#   - stdout/stderr 분리 처리 (이전: 2>&1 합쳐서 처리)
+run_external_validator() {
   local prompt="$1"
   local attempt=1
   local fatal=0
   # Phase B (reviewer #140 권고 3): 루프 내 사용 변수를 함수 스코프에 local 선언해 전역 유출 방지
   local raw_sleep=0
   local capacity_rc=0
+  # L1: prompt 에 strict prefix 자동 prepend (호출 측 PROMPT 변경 없이 일괄 적용)
+  local guarded_prompt="${EXTERNAL_VALIDATOR_STRICT_PREFIX}${prompt}"
 
-  while [ "${attempt}" -le "${MAX_GEMINI_RETRIES}" ]; do
-    log "Gemini 실행 중 (모델: ${GEMINI_MODEL}, 시도: ${attempt}/${MAX_GEMINI_RETRIES})..."
-    local output
-    output=$(gemini -m "${GEMINI_MODEL}" -p "${prompt}" --approval-mode plan 2>&1) && {
-      echo "${output}" | tee -a "${LOG_FILE}"
+  # agy 권고 제안 1 수용 (PR #275 dogfooding): mktemp 임시 파일 누수 차단 (SIGINT/SIGTERM 또는 set -e 조기 이탈)
+  # 루프 안에서 새 mktemp 가 생성되므로 trap 의 변수 참조는 RETURN 시점의 최종 값을 사용 (마지막 루프 반복의 파일만 cleanup)
+  # 이를 보강하기 위해 루프 안에서 명시적 rm 도 유지 (이중 안전망)
+  local stdout_file=""
+  local stderr_file=""
+  trap "rm -f \"\${stdout_file:-}\" \"\${stderr_file:-}\"" RETURN
+
+  while [ "${attempt}" -le "${MAX_EXTERNAL_VALIDATOR_RETRIES}" ]; do
+    log "외부 검증 모델 (agy) 실행 중 (시도: ${attempt}/${MAX_EXTERNAL_VALIDATOR_RETRIES}, timeout: ${EXTERNAL_VALIDATOR_PRINT_TIMEOUT})..."
+    local stdout_content stderr_content
+    stdout_file=$(mktemp)
+    stderr_file=$(mktemp)
+    # agy 호출 — stdout/stderr 분리, --print-timeout 으로 wait 한계 설정
+    # `|| true` 는 set -e 회피 (agy 는 exit code 신뢰 불가 — stderr 패턴으로 판정)
+    agy --print-timeout "${EXTERNAL_VALIDATOR_PRINT_TIMEOUT}" -p "${guarded_prompt}" >"${stdout_file}" 2>"${stderr_file}" || true
+    stdout_content=$(cat "${stdout_file}")
+    stderr_content=$(cat "${stderr_file}")
+    rm -f "${stdout_file}" "${stderr_file}"
+
+    # 정상 응답 판정: 비어있지 않은 stdout + stderr Error 패턴 없음
+    # agy 권고 제안 2 수용: echo "${var}" 는 `-e/-n` 시작 문자열에서 옵션 파싱 오동작 가능 → printf '%s\n' 사용
+    if [ -n "${stdout_content}" ] && ! printf '%s\n' "${stderr_content}" | grep -qE "^Error: "; then
+      printf '%s\n' "${stdout_content}" | tee -a "${LOG_FILE}"
+      # stderr 가 비어있지 않으면 (정상 경로의 부수 메시지) 로그에만 남김
+      if [ -n "${stderr_content}" ]; then
+        printf '%s\n' "${stderr_content}" >> "${LOG_FILE}"
+      fi
       return 0
-    }
+    fi
 
-    if echo "${output}" | grep -qE "RESOURCE_EXHAUSTED|429|503|500"; then
-      log "경고: ${GEMINI_MODEL} 용량 부족 (시도 ${attempt}/${MAX_GEMINI_RETRIES})"
-      if [ "${attempt}" -lt "${MAX_GEMINI_RETRIES}" ]; then
+    # capacity 실패 패턴 매칭 — PoC T2 (`Error: timed out`) + 추정 패턴
+    if printf '%s\n' "${stderr_content}" | grep -qE "^Error: (timed out|rate limit|quota|not logged|unauthorized|forbidden)"; then
+      log "경고: agy capacity/인증 실패 (시도 ${attempt}/${MAX_EXTERNAL_VALIDATOR_RETRIES}) — $(printf '%s\n' "${stderr_content}" | head -1)"
+      if [ "${attempt}" -lt "${MAX_EXTERNAL_VALIDATOR_RETRIES}" ]; then
         # 폴백 프로토콜 단계 1: 지연 후 (선택적으로) capacity 체크 + 재시도
         # sleep 공식: MIN(SLEEP_CAP, 2^attempt * BASE) — Phase A 의 지수 공식에
-        #   Phase B (reviewer non-blocking) 상한 cap 을 추가. MAX_RETRIES=10 이상에서도
-        #   sleep 이 GEMINI_RETRY_SLEEP_CAP (기본 300s) 이하로 보장됨.
-        # 테스트 환경에서는 GEMINI_RETRY_SLEEP_SECONDS=0 으로 sleep 생략
-        if [ "${GEMINI_RETRY_SLEEP_SECONDS}" -gt 0 ]; then
-          raw_sleep=$(( (1 << attempt) * GEMINI_RETRY_SLEEP_SECONDS ))
-          if [ "${raw_sleep}" -gt "${GEMINI_RETRY_SLEEP_CAP}" ]; then
-            log "sleep cap ${GEMINI_RETRY_SLEEP_CAP}s 적용 (원시 ${raw_sleep}s, attempt=${attempt})"
-            raw_sleep="${GEMINI_RETRY_SLEEP_CAP}"
+        #   Phase B (reviewer non-blocking) 상한 cap 을 추가.
+        # 테스트 환경에서는 EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS=0 (또는 GEMINI_RETRY_SLEEP_SECONDS=0 alias) 으로 sleep 생략
+        if [ "${EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS}" -gt 0 ]; then
+          raw_sleep=$(( (1 << attempt) * EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS ))
+          if [ "${raw_sleep}" -gt "${EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP}" ]; then
+            log "sleep cap ${EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP}s 적용 (원시 ${raw_sleep}s, attempt=${attempt})"
+            raw_sleep="${EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP}"
           fi
           sleep "${raw_sleep}"
         fi
         # 권고 4 (#131 Phase B) — probe 옵트아웃
-        # SKIP_CAPACITY_PROBE=1 설정 시 probe 호출 생략 → free tier quota 보존
-        # 호출 측이 "429 이면 재시도도 어차피 429" 를 확신할 때 비용 절약 경로
         if [ "${SKIP_CAPACITY_PROBE}" = "1" ]; then
           log "capacity probe 생략 (SKIP_CAPACITY_PROBE=1) — 바로 재시도"
         else
           # 반환 코드 3값 분기 (reviewer 권고 2, #131 Phase A)
-          # Gemini 교차검증 (#137) 고유 발견 반영: CAPACITY_OTHER_ERROR 케이스 명시 +
-          # `*)` 는 알 수 없는 code 방어용 (향후 반환 코드 추가 시 조용한 오분기 방지)
           capacity_rc=0
-          check_gemini_capacity || capacity_rc=$?
+          check_external_capacity || capacity_rc=$?
           case "${capacity_rc}" in
             "${CAPACITY_OK}")
               log "capacity 복구 감지 — 재시도 진행"
@@ -259,7 +512,7 @@ run_gemini() {
               log "capacity 여전히 부족 — 재시도 진행하되 조기 포기 가능성 높음"
               ;;
             "${CAPACITY_OTHER_ERROR}")
-              log "capacity probe 실패 (비-429) — 재시도는 진행 (probe 자체 이슈일 수 있음)"
+              log "capacity probe 실패 (비-capacity) — 재시도는 진행 (probe 자체 이슈일 수 있음)"
               ;;
             *)
               log "알 수 없는 capacity_rc (${capacity_rc}) — 재시도 진행 (방어적 분기)"
@@ -269,8 +522,9 @@ run_gemini() {
       fi
       attempt=$((attempt + 1))
     else
-      log "경고: ${GEMINI_MODEL} 실패 (비-capacity 오류) — $(echo "${output}" | head -3)"
-      echo "${output}" >> "${LOG_FILE}"
+      # agy 권고 제안 2 수용: printf '%s\n' 사용
+      log "경고: agy 실패 (비-capacity 오류) — stdout=$(printf '%s\n' "${stdout_content}" | head -1) stderr=$(printf '%s\n' "${stderr_content}" | head -1)"
+      printf 'stdout:\n%s\nstderr:\n%s\n' "${stdout_content}" "${stderr_content}" >> "${LOG_FILE}"
       fatal=1
       break
     fi
@@ -281,12 +535,12 @@ run_gemini() {
   log "${fallback_msg}"
   echo "${fallback_msg}" >&2
   # stdout 헤더 (reviewer 권고 1, #131 Phase A) — 호출 측이 stdout 만으로 fallback 모드 감지 가능
-  # 정상 경로 stdout 에는 Gemini 응답 본문이 출력됨. fallback 경로는 본문이 없으므로 이 프리픽스가 signal.
+  # 정상 경로 stdout 에는 agy 응답 본문이 출력됨. fallback 경로는 본문이 없으므로 이 프리픽스가 signal.
   # NOTE (qa non-blocking, #131 Phase B): fatal 경로 (비-capacity 오류, exit 1) 도 이 헤더를
-  #   동일하게 출력한다. fatal vs 429 정확 구분은 outcome JSON 의 "outcome" 필드를 참조해야 하며
+  #   동일하게 출력한다. fatal vs capacity 정확 구분은 outcome JSON 의 "outcome" 필드를 참조해야 하며
   #   (scripts/parse-cross-validate-outcome.sh 헬퍼 사용 권장), stdout 헤더 단독으로는 구분 불가.
-  echo "[claude-only-fallback] Gemini ${GEMINI_MODEL} 응답 없음 — Claude 단독 분석 (교차검증 미확보)"
-  echo "⚠ 교차검증 불가 — Claude 단독 분석. Gemini ${GEMINI_MODEL} 응답 없음." | tee -a "${LOG_FILE}"
+  echo "[claude-only-fallback] agy (Antigravity CLI) 응답 없음 — Claude 단독 분석 (교차검증 미확보)"
+  echo "⚠ 교차검증 불가 — Claude 단독 분석. agy (Antigravity CLI) 응답 없음." | tee -a "${LOG_FILE}"
 
   # 폴백 프로토콜 단계 3: 앵커 컨텍스트 있으면 reminder 이슈 (dry-run 기본)
   if [ -n "${CROSS_VALIDATE_ANCHOR:-}" ]; then
@@ -313,6 +567,11 @@ is_sensitive() {
   return 1
 }
 
+# plan-mode 우회 가드 — 호출 전 워킹트리 snapshot (#479)
+# 외부 검증 모델 호출 (run_external_validator) 직전에 실행해 사전 상태를 박제.
+# 사후 비교는 case 분기 후 snapshot_post_and_rollback 으로 수행.
+snapshot_pre
+
 case "${TYPE}" in
   structure)
     log "=== 구조 교차검증 시작 ==="
@@ -334,7 +593,7 @@ case "${TYPE}" in
 한국어로 답변해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}" || RC=$?
+    run_external_validator "${PROMPT}" || RC=$?
     ;;
 
   code)
@@ -389,7 +648,7 @@ ${DIFF}
 한국어로 항목별 평가(양호/주의/위험)와 구체적 개선 제안을 해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}" || RC=$?
+    run_external_validator "${PROMPT}" || RC=$?
     ;;
 
   architecture)
@@ -431,7 +690,7 @@ ${DOC_CONTENT}
 한국어로 항목별 평가와 개선 제안을 해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}" || RC=$?
+    run_external_validator "${PROMPT}" || RC=$?
     ;;
 
   skill)
@@ -482,7 +741,7 @@ ${EVALS_INFO}
 한국어로 항목별 평가와 개선 제안을 해주세요.
 PROMPT_END
 )"
-    run_gemini "${PROMPT}" || RC=$?
+    run_external_validator "${PROMPT}" || RC=$?
     ;;
 
   *)
@@ -494,6 +753,11 @@ esac
 log ""
 log "=== 교차검증 완료 ==="
 log "로그: ${LOG_FILE}"
+
+# plan-mode 우회 가드 — 호출 후 diff 검증 + 자동 롤백 (#479)
+# 외부 검증 모델 호출 직후 워킹트리 변경이 있는지 검증. 변경 발견 시 자동 롤백 + PLAN_BYPASS=true.
+# 결과는 write_outcome_json 이 outcome JSON 의 plan_bypass / bypass_files / rollback_failed 필드에 박제.
+snapshot_post_and_rollback
 
 # outcome JSON 출력 (Phase 3, #131) — 호출 측이 extends.cross_validate_outcome 자동 매핑
 FINAL_RC="${RC:-0}"
@@ -508,5 +772,5 @@ log "outcome: ${OUTCOME} (exit ${FINAL_RC}) — ${OUTCOME_FILE}"
 # stdout 파싱 편의용 prefix — 호출 측은 grep '^\[outcome-file\] ' 로 추출
 echo "[outcome-file] ${OUTCOME_FILE}"
 
-# run_gemini 가 77 (claude-only fallback) 또는 1 (fatal) 을 반환한 경우 스크립트도 동일 코드로 종료
+# run_external_validator 가 77 (claude-only fallback) 또는 1 (fatal) 을 반환한 경우 스크립트도 동일 코드로 종료
 exit "${FINAL_RC}"

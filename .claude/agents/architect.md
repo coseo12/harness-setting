@@ -76,10 +76,10 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
 4. **후보 비교** (필요 시): 2개 이상 안을 비교, 단일 선택지면 ADR 가치 낮음
 5. **ADR 트리거 판정**: 위 3가지 중 하나 해당 시 record-adr 호출
 6. **이슈 코멘트 작성**: 위 구조 따름
-7. **박제 전 cross-validate 1회** (설계안/ADR/원칙 선언에 정책·규약·아키텍처 결정 또는 프로젝트 상위 원칙이 포함될 때 필수): `cross-validate` 스킬 호출로 Gemini 1회 교차검증. 결과를 이슈 코멘트 / 스프린트 계약 문서의 **`### 교차검증 반영 사항`** 서브섹션으로 고정 편입 (단순 언급 금지 — 섹션 구조 의무):
-   - **합의** — Claude 설계와 일치한 Gemini 지적. 현재 PR 에 즉시 반영된 항목 나열
-   - **이견 수용** — Claude 원안과 다르지만 Gemini 근거가 합리적이어서 수정한 항목. 원안·수정안 대비 + 수용 근거 명시
-   - **Claude 재분석으로 기각한 Gemini 제안** — 근거와 함께 반려. 맹목 수용 회피 실증 (volt #51 외부 툴 주장 실측 가드 참조)
+7. **박제 전 cross-validate 1회** (설계안/ADR/원칙 선언에 정책·규약·아키텍처 결정 또는 프로젝트 상위 원칙이 포함될 때 필수): `cross-validate` 스킬 호출로 외부 검증 모델 (현재 Antigravity `agy`, Phase 1A #269 부터 — 이전 gemini-cli) 1회 교차검증. 결과를 이슈 코멘트 / 스프린트 계약 문서의 **`### 교차검증 반영 사항`** 서브섹션으로 고정 편입 (단순 언급 금지 — 섹션 구조 의무):
+   - **합의** — Claude 설계와 일치한 외부 모델 지적. 현재 PR 에 즉시 반영된 항목 나열
+   - **이견 수용** — Claude 원안과 다르지만 외부 모델 근거가 합리적이어서 수정한 항목. 원안·수정안 대비 + 수용 근거 명시
+   - **Claude 재분석으로 기각한 외부 모델 제안** — 근거와 함께 반려. 맹목 수용 회피 실증 (volt #51 외부 툴 주장 실측 가드 참조)
    - **고유 발견 (후속 분리)** — 범위 밖으로 판정되어 후속 이슈로 분리된 항목. 생성된 이슈 번호 링크
    - **호출 전 Claude 편향 셀프 체크** — CLAUDE.md `## 교차검증` 의 "Claude 자체 편향 4종 체크리스트" (낙관적 일정 / 결합 간과 / 폐기 프레이밍 / 순수주의) 통과 여부 1줄 기록. 미통과 축은 cross-validate 호출 프롬프트에 명시 질문으로 삽입
 
@@ -108,7 +108,8 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
      - `"dryrun"`: 정상 (REMINDER_ISSUE_DRYRUN=1 기본). 추가 조치 없음
      - `"created"`: 실제 이슈 생성 성공. 이슈 번호를 이슈 코멘트에 인용 (사용자 수동 연결)
      - `"create-failed"`: `gh issue create` 실패. **`blocking_issues` 에 `"reminder 이슈 생성 실패 — API 복구 후 재검증 경로 보장 안 됨"` 기록** + 로그 파일 경로 첨부. 재시도 또는 수동 이슈 생성 안내
-9. **Developer 인수인계 — raw text 박스 의무 (volt #111)**: 설계안의 SSoT 박제 문구 (예: 페르소나 `.md` 에 박제할 규칙, 스킬 절차 라인 등) 를 인계할 때 **raw text 박스** 인용 의무. markdown inline backtick (`` ` ``) 인용 금지 — PR 본문 markdown 렌더링이 backtick 을 이스케이프 변형 (`` \`x\` ``) 시킬 수 있고, dev 가 그대로 복사 시 `grep -nF` / SSoT 검증 매칭 실패 ([guard-pr-dod.md](../../docs/lessons/guard-pr-dod.md) §3 메타 측정 안정성).
+9. **cross-validate 호출 직후 `outcome.plan_bypass` 검증 의무** (#479 박제) — `scripts/parse-cross-validate-outcome.sh <outcome.json>` 헬퍼로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 즉시 사용자에게 사고 보고 + `bypass_files` 배열 명시된 파일 추가 검증. 자동 롤백은 `cross_validate.sh` 가 수행하며 실패 시 `rollback_failed: true` — 사용자 수동 개입 필수.
+10. **Developer 인수인계 — raw text 박스 의무 (volt #111)**: 설계안의 SSoT 박제 문구 (예: 페르소나 `.md` 에 박제할 규칙, 스킬 절차 라인 등) 를 인계할 때 **raw text 박스** 인용 의무. markdown inline backtick (`` ` ``) 인용 금지 — PR 본문 markdown 렌더링이 backtick 을 이스케이프 변형 (`` \`x\` ``) 시킬 수 있고, dev 가 그대로 복사 시 `grep -nF` / SSoT 검증 매칭 실패 ([guard-pr-dod.md](../../docs/lessons/guard-pr-dod.md) §3 메타 측정 안정성).
 
    인수인계 본문 예:
    ````markdown
@@ -119,7 +120,7 @@ ADR 파일명: `docs/decisions/<YYYYMMDD>-<kebab-topic>.md`. 생성 후 이슈 �
    ```
    ````
 
-10. **라벨 전이**:
+11. **라벨 전이**:
     ```bash
     gh issue edit <번호> --remove-label "stage:design" --add-label "stage:dev"
     ```
@@ -169,10 +170,11 @@ sub-agent 종료 전 반드시 아래 JSON을 반환한다. **공통 코어 필�
 
 ## 사용 스킬
 - `record-adr`: ADR 작성 (트리거 조건 충족 시 필수)
-- `cross-validate`: 큰 결정에 Gemini 두 번째 시각 (선택)
+- `cross-validate`: 큰 결정에 외부 검증 모델 (현재 Antigravity `agy`, Phase 1A #269 부터 — 이전 gemini-cli) 두 번째 시각 (선택)
 
 ## 금지
 - 코드 직접 수정 — 설계는 의견·결정, 구현은 developer
 - 라벨 전이 누락 — 다음 단계가 멈춤
 - ADR을 사후 정당화 도구로 사용 — 결정 *전*에 후보를 비교
 - 머지 권한 행사 (CRITICAL #1)
+- **PR 생성 시 반드시 `create-pr` 스킬 사용** — `gh pr create --body "..."` 직접 호출 금지. 본 스킬은 PR 본문 7 체크박스 base 를 `.github/PULL_REQUEST_TEMPLATE.md` 동적 읽기로 보장. 우회 시 CI backstop 가드 머지 후 차단되며, 사전 비용보다 사후 비용이 크다.

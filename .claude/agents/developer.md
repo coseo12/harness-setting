@@ -49,6 +49,33 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
     - `labels_applied_or_transitioned` — developer 는 보통 빈 배열. 라벨 전이는 reviewer / qa 영역
     - `spawned_bg_pids` / `bg_process_handoff` — 구현 중 dev 서버 / 테스트 러너 / 장시간 빌드를 `run_in_background` 로 띄웠으면 반환 전 **완주/kill 확인 후** `spawned_bg_pids: []` + `bg_process_handoff: "sub-agent-confirmed-done"`. 완주 확인 못 하고 반환하면 살아있는 PID 배열 + `"main-cleanup"` (메인이 `ps`/`lsof` 로 독립 확인). 띄운 적 없으면 `[]` + `"none"`. volt #46/#52 — stale dev 서버 포트 점유 / cargo 좀비 4개 누적 방지
 
+### 측정 방법 C (혼합) — DoD #2 가시성 검증
+
+PR 본문 가시성 자기 검증 (dev 단계 + reviewer 재검증) 은 다음 두 grep 의 **AND** 로 판정한다 (다운스트림 architect cross-validate 합의):
+
+```bash
+# 1차 구조 grep — 체크박스 prefill 보존 확인
+gh pr view <PR> --json body --jq .body | grep -c "<체크박스 항목명>"
+# 기대: ≥ 1 hit (체크박스 항목명 그대로)
+
+# 2차 phrase grep — 별도 위치 박제까지 포괄 확인 (대소문자 무시)
+gh pr view <PR> --json body --jq .body | grep -c -i "<핵심 키워드>"
+# 기대: ≥ 1 hit (체크박스 + prose 중 어디든)
+```
+
+- **양쪽 ≥ 1 hit** → PASS (구조 + phrase 둘 다 가시성 확보)
+- **체크박스 0 + phrase ≥ 1** → non-blocking 권고 (체크박스 prefill 누락 — 동일 권고 시 7 체크박스 base 코드 블록 동봉 권장)
+- **양쪽 동시 0 hit** → FAIL (가시성 0 — PR 본문 재작성 또는 reviewer 가 차단)
+
+**메타 규칙** (PR 템플릿 신규 항목 양가성 노출 시 절차):
+1. 즉시 본 메타 규칙 발화 — 측정 방법 C 양쪽 0 hit 시 reviewer/qa 가 권고 박제
+2. 노출된 항목별 grep 키워드 박제 (developer.md 본문에 추가)
+3. 후속 이슈 분리 박제 (volt #29) — 본 메타 규칙 발화의 1차 사례 인덱싱
+
+> 참고: 동일 측정 방법이 `.claude/skills/create-pr/SKILL.md` 에도 박제됨 (cross-link SSoT). 한쪽만 갱신하면 drift 발생 — **동시 수정 의무**. 다운스트림 1차 사례: astro-simulator [#469](https://github.com/coseo12/astro-simulator/issues/469) "ADR 호환성 체크" 측정 방법 C 박제 PR [#472](https://github.com/coseo12/astro-simulator/pull/472).
+
+> 참고: 동일 메타 규칙이 `.claude/agents/reviewer.md` §절차 6번 + `.claude/agents/qa.md` §검증 단계 backstop 에서 발화 (방어의 깊이). 다운스트림 [astro-simulator#470](https://github.com/coseo12/astro-simulator/issues/470) PR [#475](https://github.com/coseo12/astro-simulator/pull/475) 동기화.
+
 ## 브라우저 검증 (UI 포함 이슈 필수)
 
 **빌드 성공 + 단위 테스트 통과 ≠ 동작하는 앱**
@@ -92,3 +119,5 @@ description: "풀스택 구현 (프론트엔드 + 백엔드)"
 - 매직 넘버, 하드코딩 값은 상수로 분리
 - fix 커밋 시 원인 분석을 포함한다 — "무엇을 고쳤는가"뿐 아니라 "왜 발생했는가"를 명시
 - Edit 후 한글 깨짐(�) 확인 — 긴 한국어 텍스트 삽입 시 UTF-8 바이트 잘림이 발생할 수 있다
+- **cross-validate 스킬은 architect / reviewer / qa 페르소나에서만 호출** (#479 박제) — developer 에서 직접 호출 금지. 단, 다른 sub-agent 의 cross-validate 결과 (`outcome.plan_bypass`) 를 코멘트 또는 본문에서 참조 시 정합성 검증 의무 — `plan_bypass=true` 발견 시 즉시 메인 오케스트레이터에게 보고.
+- **PR 생성 시 반드시 `create-pr` 스킬 사용** — `gh pr create --body "..."` 직접 호출 금지. 본 스킬은 PR 본문 7 체크박스 base 를 `.github/PULL_REQUEST_TEMPLATE.md` 동적 읽기로 보장. 우회 시 CI backstop 가드 머지 후 차단되며, 사전 비용보다 사후 비용이 크다.
