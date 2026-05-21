@@ -9,6 +9,38 @@
 
 ## [Unreleased]
 
+## [4.1.1] — 2026-05-21
+
+v4.1.0 이후 **PATCH 릴리스** — CLAUDE.md 3차 가지치기 + Phase 4 reviewer 권고 후속 시제 통일. **행동 변화 0**.
+
+**포함 범위**:
+- CLAUDE.md 3차 가지치기 (#266 부분 진행) — PR [#287](https://github.com/coseo12/harness-setting/pull/287)
+- Phase 4 (#272 / PR #283) reviewer 권고 2~4 후속 시제 통일 — 동일 PR
+
+### Behavior Changes: None — 문서/문구만
+
+PATCH 분류: 행동 변화 0 (가지치기는 본문 위치 이동, 시제 통일은 사후 단어 변경, ADR 상태 갱신은 의사결정 메타).
+
+### Added (PATCH — CLAUDE.md 가지치기)
+
+- **`docs/guides/branch-strategy-workflow.md` 신설** — CLAUDE.md §브랜치 전략 워크플로 3단계 (일상 개발 / 릴리스 / 핫픽스) + drift 감지 위임. 정보 보존 100% (reviewer line-by-line 검증)
+- **`docs/guides/release-process.md` 신설** — CLAUDE.md §릴리스 본문 (SemVer 3축 + 행동 변화 판정 + CHANGELOG 의무 + verify-release-version-bump + Phase 분리 3 조건 + 근거) 위임. 정보 보존 100%
+- **CLAUDE.md 본문 압축**: 40,984 → 35,907 chars (-5,077, 누적 v4.0.0 49,860 대비 -13,953 = 약 28% 감축). 35k warn 임계 직전. 각인층 핵심 유지 (브랜치 표 / 머지 의무 3건 / SemVer 분류 매트릭스 / `package.json::version` bump 의무)
+
+### Changed (PATCH — Phase 4 사후 시제 통일)
+
+- **`docs/decisions/20260521-gemini-to-antigravity.md` 상태**: Proposed → **Accepted** (v4.0.0 release 박제 / v4.1.0 Phase 4 완결)
+- **`docs/guides/cross-validate-protocol.md:65`**: "Phase 4 #272 에서 제거" → "Phase 4 #272 / v4.1.0 부터 제거됨" (사후 시제)
+- **`docs/plans/antigravity-migration.md` §Phase 4**: 사후 갱신 1줄 추가 (v4.1.0 완료 박제)
+- **`test/cross-validate-fallback.test.js` 헤더**: Phase 1A (v4.0.0) / Phase 4 (v4.1.0) 시제 + 버전 매핑 명시
+- **`test/cross-validate-diff-truncation.test.js:71`**: dead reference 갱신 ("fallback.test.js 에서 별도 검증" → "fail-fast 회귀 가드가 무시 검증")
+
+### Notes
+
+- **이슈 #266 (CLAUDE.md 가지치기) 진행 중** — 본 release 로 누적 28% 감축. 30k 목표까지 약 5.9k 추가 가지치기 필요 (별도 세션)
+- **Phase 4 (#272) Accepted 박제 완료** — PR #283 reviewer 권고 1 (fail-fast 회귀 가드) 은 PR #283 즉시 수용, 권고 2~4 (시제 통일) 는 본 PR 일괄 처리
+- PR #287 reviewer 권고 2 (`Closes #266 일부` 문법) 즉시 수용 — `Refs #266 부분 진행` 으로 정정
+
 ## [4.1.0] — 2026-05-21
 
 v4.0.0 이후 **MINOR 릴리스** — Antigravity 마이그레이션 Phase 4 (gemini-cli alias 분기 완전 제거, fail-fast) + CLAUDE.md 2차 가지치기 (49,860 → 40,984 chars, -8,876).
