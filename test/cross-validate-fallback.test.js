@@ -408,6 +408,31 @@ test('cross-validate: EXTERNAL_VALIDATOR_RETRY_SLEEP_CAP 적용 시 cap 로그 �
 // Phase 4 (#272) — alias 검증 테스트 3건 제거 (GEMINI_RETRY_SLEEP_SECONDS/CAP + GEMINI_MODEL WARN)
 // 분기 자체가 cross_validate.sh 에서 제거됨 (fail-fast 원칙). 다운스트림 마이그레이션 완료 가정.
 
+// Phase 4 (#272) fail-fast 회귀 가드 — PR #283 reviewer 권고 1 수용
+// GEMINI_RETRY_SLEEP_SECONDS 설정해도 무시됨 (alias 분기 재추가 차단)
+// 검증 방식: alias 가 인식되면 sleep 9999s → 테스트 timeout 60s 초과 fail
+//           무시되면 EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS=0 적용 → 빠르게 완료
+test('cross-validate (#272 fail-fast): GEMINI_RETRY_SLEEP_SECONDS 환경변수 무시 검증 (alias 분기 제거 회귀 가드)', () => {
+  const { tmpDir } = setupMockAgy('capacity');
+  try {
+    const result = runScript(['structure'], {
+      PATH: `${tmpDir}:${process.env.PATH}`,
+      REMINDER_ISSUE_DRYRUN: '1',
+      EXTERNAL_VALIDATOR_RETRY_SLEEP_SECONDS: '0',  // 정상 동작 변수
+      GEMINI_RETRY_SLEEP_SECONDS: '9999',  // alias 가 인식되면 sleep 9999s → timeout fail
+    });
+    // capacity 실패 fallback 정상 동작 (alias 무시 → EXTERNAL_VALIDATOR_*=0 적용)
+    assert.strictEqual(result.status, 77, `Phase 4: alias 무시 + default 적용 시 exit 77 기대. 실제: ${result.status}`);
+    // GEMINI_RETRY_SLEEP_SECONDS deprecated WARN 출력 없어야 함 (분기 제거 확인)
+    assert.ok(
+      !result.stderr.includes('GEMINI_RETRY_SLEEP_SECONDS'),
+      `Phase 4: GEMINI_RETRY_SLEEP_SECONDS WARN 분기가 제거되어 출력 없어야 함. 실제 stderr: ${result.stderr}`
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 // parse-cross-validate-outcome.sh 헬퍼 스크립트 단위 테스트 (권고 7, #131 Phase B)
 const HELPER_PATH = path.join(PROJECT_DIR, 'scripts/parse-cross-validate-outcome.sh');
 
