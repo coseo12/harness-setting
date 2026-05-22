@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+## [4.2.3] — 2026-05-22
+
+v4.2.2 이후 **PATCH 릴리스** — CLAUDE.md plan-mode 가드 L1/L3 약어 자기설명력 보강 (PR #296 reviewer 권고 2 즉시 수용). **행동 변화 0**.
+
+**포함 범위**: PR [#299](https://github.com/coseo12/harness-setting/pull/299)
+
+### Behavior Changes: None — 문서/문구만
+
+### Changed (PATCH)
+
+- **CLAUDE.md §교차검증 plan-mode 가드 L1/L3 약어 자기설명력 보강** — `agy 는 L1 prompt strict prefix + L3 snapshot 이중 가드` → `agy 는 **L1** (prompt strict prefix — 도구 호출 사전 차단) + **L3** (사후 snapshot diff + 자동 롤백) 이중 가드`. CLAUDE.md 각인층에서 L1/L3 약어 처음 등장 위치에 약식 정의 박제 — 후속 세션 회수 시 의미 즉시 인지 가능
+- **CLAUDE.md 29,823 → 29,895 bytes** (+72). 30k 임계 안전 (35k warn / 40k PR warn / 45k CI fail 회피)
+
+### Notes
+
+- **PR #299 reviewer 발견**: `docs/guides/cross-validate-protocol.md` 에 L1/L3 토큰 자체가 부재 → 본 CLAUDE.md inline 정의가 **유일한 정의처**. 자기설명력 가치 명확
+- PR #299 reviewer 권고 1 (L2 부재 자기설명력 — agy 미지원 단서 추가) — 후속 별도 PR (선택, CLAUDE.md 비대화 원칙과 trade-off)
+
 ## [4.2.2] — 2026-05-22
 
 v4.2.1 이후 **PATCH 릴리스** — **CLAUDE.md 가지치기 30k 목표 달성** (이슈 [#266](https://github.com/coseo12/harness-setting/issues/266) close). **행동 변화 0**.
