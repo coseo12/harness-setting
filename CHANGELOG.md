@@ -9,6 +9,23 @@
 
 ## [Unreleased]
 
+## [4.2.4] — 2026-05-22
+
+v4.2.3 이후 **PATCH 릴리스** — CLAUDE.md plan-mode 가드 L2 부재 단서 자기설명력 추가 (PR #299 reviewer 권고 1 즉시 수용). **행동 변화 0**.
+
+**포함 범위**: PR [#302](https://github.com/coseo12/harness-setting/pull/302)
+
+### Behavior Changes: None — 문서/문구만
+
+### Changed (PATCH)
+
+- **CLAUDE.md §교차검증 plan-mode 가드 L2 부재 자기설명력** — `(Phase 1A 부터, --approval-mode plan 등가 부재)` → `(Phase 1A 부터, --approval-mode plan 등가 부재 / L2 cwd 격리는 agy 미지원으로 생략)`. Phase 0 PoC #268 발견 (agy cwd 격리 옵션 부재) 인용. 미래 독자의 "L2 는 왜 없지?" 의문 즉시 해소
+- **CLAUDE.md 29,895 → 29,941 bytes** (+46). 30k 임계 안전 (35k warn / 40k PR warn / 45k CI fail 모두 회피)
+
+### Notes
+
+- PR #302 reviewer **블로커 0건 / 권고 0건** (완벽 통과) — 5축 모두 PASS + 메타 가드 (ADR 호환성 / 7 체크박스 / SSoT drift) 전부 PASS
+
 ## [4.2.3] — 2026-05-22
 
 v4.2.2 이후 **PATCH 릴리스** — CLAUDE.md plan-mode 가드 L1/L3 약어 자기설명력 보강 (PR #296 reviewer 권고 2 즉시 수용). **행동 변화 0**.
