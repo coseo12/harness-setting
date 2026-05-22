@@ -9,6 +9,33 @@
 
 ## [Unreleased]
 
+## [4.2.1] — 2026-05-22
+
+v4.2.0 이후 **PATCH 릴리스** — pr-conventions.md 단독 분리 (#290 reviewer 권고 3) + CLAUDE.md 5차 가지치기. **행동 변화 0**.
+
+**포함 범위**: PR [#293](https://github.com/coseo12/harness-setting/pull/293)
+
+### Behavior Changes: None — 문서/문구만
+
+### Added (PATCH)
+
+- **`docs/guides/pr-conventions.md` 신설** (#290 reviewer 권고 3) — `docs/guides/branch-strategy-workflow.md` 의 §커밋 컨벤션 + §PR 규칙 단독 분리. 파일명 가시성 문제 해소 (PR/커밋 규칙이 "브랜치 전략" 키워드에 묻히던 검색 효율 개선)
+- **`docs/guides/branch-strategy-workflow.md`**: §커밋/§PR 제거 + 포인터로 갱신
+- **CLAUDE.md 본문 포인터**: `branch-strategy-workflow.md` → `pr-conventions.md` 로 갱신
+
+### Changed (PATCH — CLAUDE.md 5차 가지치기)
+
+- **CLAUDE.md 본문 32,114 → 31,257 chars** (-857 추가, 누적 v4.0.0 49,860 대비 -18,603 = **37.3% 감축**). 30k 목표까지 약 1.3k 추가 가지치기 권고
+- §workflow_dispatch 함정 양면성 (volt #97) inline 압축 — 720 → 250 chars
+- §주석 계약 숨은 상수 변형 (volt #69) inline 압축 — 480 → 180 chars
+- §다운스트림 harness update 체크리스트 inline 압축 — 4 라인 → 1 라인
+
+### Notes
+
+- 이슈 #266 (CLAUDE.md 가지치기) 진행 중 — 본 release 로 누적 37.3%. 30k 목표 (마진 5k 포함 25~30k) 까지 약 1.3k 추가 가지치기 후속 (별도 세션)
+- PR #290 reviewer 권고 3 완료 (pr-conventions.md 단독 분리)
+- PR #293 reviewer 권고 2 (pr-conventions.md:18 공백 1개 drift) 즉시 수용 (commit ce6e8840)
+
 ## [4.2.0] — 2026-05-21
 
 v4.1.1 이후 **MINOR 릴리스** — PR 템플릿에 `ADR 호환성 체크` prefill 신설 (reviewer.md §절차 5 정합) + CLAUDE.md 4차 가지치기 (35,907 → 32,134 chars).
