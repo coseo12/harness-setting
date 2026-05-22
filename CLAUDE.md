@@ -92,19 +92,14 @@ UI 작업 4축 평가 (Design Quality 30% / Originality 30% / Craft 20% / Functi
 > **블록 내 포인터 포맷 컨벤션**: 각 실전 교훈 블록은 내용 불릿 → `근거:` 불릿 → (선택) `일반화된 설계 지식:` 불릿 순서로 마감한다. `docs/architecture/` 나 `docs/decisions/` 로 승격된 지식이 있을 때만 마지막 포인터를 추가하고, 없으면 생략한다 (빈 placeholder 금지). 형식: `- 일반화된 설계 지식: [docs/architecture/<파일>.md](경로) — 한 줄 요약`. 근거: PR [#113](https://github.com/coseo12/harness-setting/pull/113) reviewer 권고 3, 이슈 [#114](https://github.com/coseo12/harness-setting/issues/114).
 
 ### 빌드 성공 ≠ 동작하는 앱
-빌드 통과 + 단위 테스트 통과여도 실제 브라우저에서 동작하지 않는 경우가 빈번하다.
-커밋 전 반드시 브라우저에서 3단계 검증을 수행한다:
+빌드/단위 테스트 통과 ≠ 브라우저 동작. 커밋 전 **3단계 브라우저 검증 의무**:
+1. **정적**: 이미지 로드 / 콘솔 에러 0 / 모바일·데스크톱 레이아웃
+2. **인터랙션**: 버튼·링크·검색·필터·폼
+3. **흐름**: 네비게이션 → 페이지 → 데이터 연동, URL ↔ 상태 동기화
 
-1. **정적 확인**: 이미지 로드, 콘솔 에러 없음, 모바일/데스크톱 레이아웃
-2. **인터랙션 확인**: 버튼/링크 클릭, 검색/필터/정렬, 폼 제출
-3. **흐름 확인**: 네비게이션 → 페이지 → 데이터 연동, URL ↔ 상태 동기화
+> 스크린샷 = Level 1. "렌더링 = 동작" 아님.
 
-> 스크린샷 캡처는 Level 1에 불과하다. "렌더링 됨 = 동작함"이 아니다.
-
-- 변형 3종 (모두 lessons 위임):
-  - **monorepo dist stale** (volt [#70](https://github.com/coseo12/volt/issues/70)) — core 패키지 `src/` 수정이 dev 서버에 미반영 + QA 결정적 동일 실패 재현. 상세: [docs/lessons/monorepo-dist-stale.md](docs/lessons/monorepo-dist-stale.md)
-  - **엄격 원칙 + 동적 적응 부재** (volt [#68](https://github.com/coseo12/volt/issues/68)) — 단일 축 원칙만 선언되고 뷰포트·해상도 동적 적응 부재 시 자동 검증 PASS / 실 UX 깨짐. 상세: [docs/lessons/strict-principle-dynamic-context.md](docs/lessons/strict-principle-dynamic-context.md)
-  - **DoD PASS ≠ 제품 동작** (volt [#72](https://github.com/coseo12/volt/issues/72) / [#74](https://github.com/coseo12/volt/issues/74)) — 수치 DoD 전부 PASS 여도 기본 진입 화면이 빈 화면일 수 있음. UX DoD 는 성능 DoD 와 별도 축. 상세: [docs/lessons/ux-dod-vs-product-behavior.md](docs/lessons/ux-dod-vs-product-behavior.md)
+변형 3종 (lessons): **monorepo dist stale** ([docs/lessons/monorepo-dist-stale.md](docs/lessons/monorepo-dist-stale.md), volt #70) / **엄격 원칙 + 동적 적응 부재** ([docs/lessons/strict-principle-dynamic-context.md](docs/lessons/strict-principle-dynamic-context.md), volt #68) / **DoD PASS ≠ 제품 동작** ([docs/lessons/ux-dod-vs-product-behavior.md](docs/lessons/ux-dod-vs-product-behavior.md), volt #72/#74)
 
 ### CI 통과 ≠ 테스트 실행
 "언어 자동 감지" 범용 CI 템플릿이 `echo` 만 수행하고 실제 `npm test` 를 돌리지 않는 경우 — 초록 체크 머지 뒤에도 테스트 미실행. 실행 시간/Actions 로그/CI 구조 3개 진단 신호로 감지, 고의적 실패 PR 실측으로 게이트 작동 확인.
@@ -210,7 +205,7 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 - **수용 전 실측 sanity check (volt [#66](https://github.com/coseo12/volt/issues/66))** — 외부 모델이 제안한 **수치 DoD 재정의·물리/환경 제약** 은 ADR/계약 박제 전 1회 실측 (실 환경 실행 또는 단위 테스트 snippet) 으로 자가모순 확인 선행. "엄격한 DoD = 안전" 편향은 외부 모델+Claude 공유이므로 교차검증 자체로는 self-contradiction 을 거르지 못한다. cross-validate 스킬 결과 분석 §0 참조.
 - **외부 툴 동작 주장은 실측 필수** — 같은 생태계 내 도구 간 flag 복사 금지. 검증 템플릿: `<tool> --help | grep -A 2 <flag>` (공식 지원 여부 판정)
 - **고유 발견은 스프린트 비목표와 대조** — 범위 밖이면 후속 이슈로 분리 (CRITICAL #6 보호)
-- **plan-mode 우회 자동 가드 (#479)** — `cross_validate.sh` 가 외부 모델 호출 전/후 워킹트리 snapshot 을 비교 (porcelain + hash-object 혼합) 하여 plan-mode 우회 (Phase 1A #269 부터 agy 는 `--approval-mode plan` 등가 옵션 부재 → L1 prompt strict prefix + L3 snapshot 이중 가드. 이전 gemini-cli 시점은 `--approval-mode plan` 무력화 감지) 를 감지하고 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`). outcome JSON 의 3 신규 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`) 가 결과 박제. **메인 오케스트레이터 의무**: sub-agent (architect / reviewer / qa) 가 cross-validate 호출했다면 복귀 직후 `scripts/parse-cross-validate-outcome.sh <log>-outcome.json` 으로 파싱 후 `plan_bypass == false` 확인. `true` 발견 시 사용자에게 즉시 사고 보고 + `bypass_files` 추가 검증, `rollback_failed == true` 면 수동 개입 (자동 복구 불가). `.gitignore` 변경 감지 시 CRITICAL 격상 (무시 파일 동시 수정 false negative 위험). 5 페르소나 SSoT: 3 §절차 (architect/reviewer/qa) + 2 §금지 (developer/pm) — drift 0
+- **plan-mode 우회 자동 가드 (#479)** — `cross_validate.sh` 가 외부 모델 호출 전/후 워킹트리 snapshot 비교 + 자동 롤백 (tracked = `git checkout --`, untracked = `rm -f`) + outcome JSON 3 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`). agy 는 L1 prompt strict prefix + L3 snapshot 이중 가드 (Phase 1A 부터, `--approval-mode plan` 등가 부재). **메인 오케스트레이터 의무**: sub-agent 복귀 직후 `parse-cross-validate-outcome.sh` 파싱 + `plan_bypass == false` 확인. `true` 발견 시 즉시 사용자 보고 + `bypass_files` 추가 검증, `rollback_failed == true` 면 수동 개입. `.gitignore` 변경 시 CRITICAL 격상. 5 페르소나 SSoT (architect/reviewer/qa §절차 + developer/pm §금지, drift 0)
 - 상세 프로토콜 / 매트릭스 / 근거 체인: [docs/guides/cross-validate-protocol.md](docs/guides/cross-validate-protocol.md)
 
 ---
@@ -245,8 +240,7 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 - **Phase 분리 / CHANGELOG 작성 / 근거** 상세: [docs/guides/release-process.md](docs/guides/release-process.md)
 
 ### 문서 동기화
-- 에이전트/스킬/설정을 삭제하거나 변경할 때, docs/ 하위 관련 문서를 확인하고 업데이트한다
-- 삭제된 구성요소를 참조하는 문서가 남아 있으면 안 된다
+에이전트/스킬/설정 변경·삭제 시 docs/ 동기화 + dead reference 0 확인.
 
 ### CLAUDE.md 비대화 방지
 - CLAUDE.md 는 **각인층** — 세션 시작 즉시 상기돼야 행동이 바뀌는 규칙만. 매트릭스(3행+)·코드블록(5라인+)·프로토콜(3스텝+)·근거 체인(이슈 2+) 은 `docs/` 로 추출하고 1~3 줄 포인터만 남긴다.
@@ -274,9 +268,7 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 - 프로젝트별 고유 패턴(상태 관리, 씬 동기화 등)도 추후 에이전트가 참조 가능하도록 `docs/architecture/` 또는 해당 프로젝트 CLAUDE.md에 명시 기록한다
 
 ### 한글 인코딩 검증
-- 한국어가 포함된 파일을 Edit한 후, 깨진 문자(U+FFFD, �)가 없는지 확인한다
-- 커밋 전 `grep -rn '�' <수정한 파일>` 실행을 권장한다
-- 긴 한국어 텍스트를 Edit으로 삽입할 때 깨짐이 발생할 수 있으므로, 깨짐 발견 시 즉시 수정한다
+한국어 파일 Edit 후 `grep -rn '�' <파일>` (U+FFFD) 검증 의무. 발견 시 즉시 수정.
 
 ### 금지 사항
 - main 브랜치 직접 수정 금지
