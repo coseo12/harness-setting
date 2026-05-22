@@ -9,6 +9,36 @@
 
 ## [Unreleased]
 
+## [4.2.2] — 2026-05-22
+
+v4.2.1 이후 **PATCH 릴리스** — **CLAUDE.md 가지치기 30k 목표 달성** (이슈 [#266](https://github.com/coseo12/harness-setting/issues/266) close). **행동 변화 0**.
+
+**포함 범위**: PR [#296](https://github.com/coseo12/harness-setting/pull/296)
+
+### Behavior Changes: None — 문서/문구만
+
+### Changed (PATCH — CLAUDE.md 6차 가지치기)
+
+- **CLAUDE.md 본문 31,257 → 29,823 bytes** (`wc -c`, 한글 ≈3 bytes/char). **code points 19,446** (`verify-claudemd-size.sh` SSoT, `wc -m` 기준). 누적 v4.0.0 49,860 bytes 대비 **-40% 감축**. 이슈 #266 DoD 충족:
+  - bytes 기준: < 30,000 ✅
+  - code points 기준: 19,446 (28k 목표 대비 마진 8,554) ✅
+- **4 inline 압축**:
+  - §교차검증 plan-mode 우회 자동 가드 (#479): 1000 → 500 bytes (메인 오케스트레이터 의무 + 5 페르소나 SSoT 보존)
+  - §빌드 성공 ≠ 동작하는 앱 도입 본문: 약 -300 bytes (3단계 검증 의무 + 변형 3종 lessons 포인터 보존)
+  - §문서 동기화 2 라인 → 1 라인: -100 bytes
+  - §한글 인코딩 검증 3 라인 → 1 라인: -150 bytes
+
+### Notes
+
+- **이슈 #266 close** — 30k 목표 달성. v4.0.0 ~ v4.2.2 동안 6 가지치기 phase 진행:
+  - v4.1.0: 2 lessons 위임 (sprint-contract-roi / session-intent-drift)
+  - v4.1.1: 2 docs/guides 위임 (branch-strategy-workflow / release-process)
+  - v4.2.0: 3 신설 (design-quality-rubric / gh-cli-execsync / no-op-adr) + PR 템플릿 ADR 호환성 prefill
+  - v4.2.1: pr-conventions.md 단독 분리 + inline 압축 3건
+  - v4.2.2: inline 압축 4건 (본 release)
+- **단위 혼동 박제**: PR #296 reviewer 발견 — `wc -c` 는 bytes (한글 ≈3 bytes/char), `verify-claudemd-size.sh` 는 code points 측정. 본 CHANGELOG 부터 단위 명시
+- PR #296 reviewer 권고 2 (plan-mode 가드 L1/L3 약어 자기설명력) — 후속 별도 PR (선택)
+
 ## [4.2.1] — 2026-05-22
 
 v4.2.0 이후 **PATCH 릴리스** — pr-conventions.md 단독 분리 (#290 reviewer 권고 3) + CLAUDE.md 5차 가지치기. **행동 변화 0**.
