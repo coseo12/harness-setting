@@ -73,6 +73,20 @@ grep/sed 파이프라인의 `\"` escape 처리 한계는 **실측 확인됨** �
 - volt [#40](https://github.com/coseo12/volt/issues/40) — v2.13.0 / v2.15.0 박제 직후 Gemini 429 2회 관찰 (시점 사실 — 보존)
 - harness [#107](https://github.com/coseo12/harness-setting/issues/107) 선례 (복구 후 재시도 이슈 박제 → 2차 성공 후 close)
 
+### 2.9 L1/L2/L3 plan-mode 가드 약어 정의 (SSoT)
+
+plan-mode 우회 자동 가드 (#479) 의 3 계층 약어. CLAUDE.md §교차검증 plan-mode 가드 본문에서 inline 으로 사용되며, 본 § 가 단일 정의처 (SSoT).
+
+| 약어 | 역할 | 구현 | agy 지원 여부 |
+|---|---|---|---|
+| **L1** | prompt strict prefix — 도구 호출 사전 차단 | `cross_validate.sh` 가 `EXTERNAL_VALIDATOR_STRICT_PREFIX` 를 PROMPT 에 자동 prepend. agy `-p` 모드의 silent 도구 자동 실행 방지 (Phase 0 PoC #268 T10/T11 실측 — agy 가 "DO NOT execute" 지시 준수) | ✅ 적용 |
+| **L2** | cwd 격리 — 외부 모델 작업 디렉토리를 호출자 워크트리에서 분리 | gemini-cli 시점의 `--approval-mode plan` 등가. **agy 미지원** (Phase 0 PoC #268 — agy 는 cwd 격리 옵션 부재). 미적용 사유는 CLAUDE.md §교차검증 plan-mode 가드 본문에 인라인 박제 | ❌ 미적용 (agy 등가 옵션 부재) |
+| **L3** | 사후 snapshot diff + 자동 롤백 | `cross_validate.sh::snapshot_pre()` + `snapshot_post_and_rollback()` 가 호출 전/후 워킹트리 hash 비교. 변경 발견 시 tracked = `git checkout --`, untracked = `rm -f`. outcome JSON 3 필드 (`plan_bypass` / `bypass_files` / `rollback_failed`) 박제. `.gitignore` 변경 시 CRITICAL 격상 | ✅ 적용 |
+
+**agy 보호 모델**: L1 + L3 이중 가드 (L2 부재 — agy 의 `--approval-mode plan` / cwd 격리 옵션 양쪽 모두 부재로 인한 설계 trade-off). 메인 오케스트레이터는 sub-agent 복귀 직후 `scripts/parse-cross-validate-outcome.sh` 로 outcome JSON 파싱 후 `plan_bypass == false` 확인 의무 (5 페르소나 SSoT — architect/reviewer/qa §절차 + developer/pm §금지, drift 0).
+
+**근거**: ADR [docs/decisions/20260521-gemini-to-antigravity.md](../decisions/20260521-gemini-to-antigravity.md) §축 (c) `--sandbox` + 사후 snapshot diff 강화 / Phase 0 PoC 이슈 [#268](https://github.com/coseo12/harness-setting/issues/268).
+
 ## 3. 정책·설계·ADR 박제 직후 1회 루틴
 
 정책 문서, ADR, CRITICAL DIRECTIVE 등을 박제한 직후 cross-validate 스킬을 1회 호출한다. 단일 모델 편향(범주 오류/암묵 전제 누락)은 박제 직후가 노출 효율이 가장 높다. v2.6.2→v2.6.3(SemVer 세분화) 사례 참조.

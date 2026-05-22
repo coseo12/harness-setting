@@ -9,6 +9,27 @@
 
 ## [Unreleased]
 
+## [4.2.5] — 2026-05-22
+
+v4.2.4 이후 **PATCH 릴리스** — `docs/guides/cross-validate-protocol.md` 에 L1/L2/L3 plan-mode 가드 약어 SSoT 정의 신설 (PR #299 reviewer 발견 후속). **행동 변화 0**.
+
+**포함 범위**: PR [#305](https://github.com/coseo12/harness-setting/pull/305)
+
+### Behavior Changes: None — 문서/문구만
+
+### Added (PATCH)
+
+- **`docs/guides/cross-validate-protocol.md` §2.9 'L1/L2/L3 plan-mode 가드 약어 정의 (SSoT)' 신설** — 4 컬럼 표 (약어 / 역할 / 구현 / agy 지원 여부) + agy 보호 모델 + 메인 오케스트레이터 의무 + 5 페르소나 SSoT 박제 + ADR/PoC 근거 cross-reference
+  - **L1** (prompt strict prefix — 도구 호출 사전 차단) ✅ 적용
+  - **L2** (cwd 격리) ❌ agy 미지원 (Phase 0 PoC #268)
+  - **L3** (사후 snapshot diff + 자동 롤백) ✅ 적용
+- **CLAUDE.md 미변경** — 각인층 보존. CLAUDE.md L208 inline 정의 ↔ docs/guides §2.9 표 100% 일치 (reviewer 검증)
+
+### Notes
+
+- PR #305 reviewer **블로커 0 / 권고 0** (완벽 통과) — 5축 모두 PASS + 5 검토 항목 모두 PASS + ADR §축 (c) 인용 정확 + Phase 0 PoC #268 실측 인용 정확
+- PR #299 발견 (cross-validate-protocol.md 의 L1/L3 토큰 부재 → CLAUDE.md inline 이 유일 정의처) 후속 처리 완결 — 이제 docs/guides 가 SSoT 단일 정의처
+
 ## [4.2.4] — 2026-05-22
 
 v4.2.3 이후 **PATCH 릴리스** — CLAUDE.md plan-mode 가드 L2 부재 단서 자기설명력 추가 (PR #299 reviewer 권고 1 즉시 수용). **행동 변화 0**.
