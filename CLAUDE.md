@@ -49,7 +49,7 @@ AI 에이전트 기반 개발 워크플로우 템플릿. 1인 개발자-AI 페�
 - **feature/fix PR 의 `base=main` 금지** — release/hotfix PR 만 main 대상
 
 ## 커밋 컨벤션 + PR 규칙
-형식 `<type>(<scope>): <description>` (type: feat/fix/refactor/test/docs/chore). PR 제목 `[#이슈번호] 설명`. **multi-issue auto-close keyword 함정** (각 이슈 앞 `Closes` 반복 또는 줄 분리 필수, 콜론·콤마 단일 형태는 #B 미인식) + 머지 직후 `gh issue view` 검증 루틴. 상세: [docs/guides/branch-strategy-workflow.md](docs/guides/branch-strategy-workflow.md). 근거: volt [#41](https://github.com/coseo12/volt/issues/41).
+형식 `<type>(<scope>): <description>` (type: feat/fix/refactor/test/docs/chore). PR 제목 `[#이슈번호] 설명`. **multi-issue auto-close keyword 함정** (각 이슈 앞 `Closes` 반복 또는 줄 분리 필수, 콜론·콤마 단일 형태는 #B 미인식) + 머지 직후 `gh issue view` 검증 루틴. 상세: [docs/guides/pr-conventions.md](docs/guides/pr-conventions.md). 근거: volt [#41](https://github.com/coseo12/volt/issues/41).
 
 ---
 
@@ -111,11 +111,7 @@ UI 작업 4축 평가 (Design Quality 30% / Originality 30% / Craft 20% / Functi
 - 상세: [docs/lessons/ci-and-downstream-verification.md](docs/lessons/ci-and-downstream-verification.md)
 
 ### 다운스트림 harness update 부합성 사전 체크리스트
-`harness update` 이후 다운스트림 CI 에서 발생하는 반복 push-fail-fix 루프를 **사전 진단**으로 방지. 4단계 체크 (모노레포 재귀 호출 / 빌드 산출물 exports / 특수 빌드 도구 / 기존 전용 워크플로) + 4개 옵션 비교 (A 제거 / B shim / C divergent / D upstream 확장). 판정 애매 시 A 추천.
-
-- 상세: [docs/harness-update-compat-checklist.md](docs/harness-update-compat-checklist.md)
-- 근거: volt [#62](https://github.com/coseo12/volt/issues/62) — astro-simulator PR #270 6단계 push-fail-fix 실측 (2026-04-20)
-- 관련 실행 이슈: [harness#190](https://github.com/coseo12/harness-setting/issues/190) — upstream CI 에 pnpm workspace + WASM 스모크 fixture 추가 (volt #64)
+`harness update` 후 다운스트림 CI push-fail-fix 루프 **사전 진단** — 4단계 체크 + 4 옵션 (A 제거 / B shim / C divergent / D upstream 확장, 애매 시 A). 상세: [docs/harness-update-compat-checklist.md](docs/harness-update-compat-checklist.md). 근거: volt [#62](https://github.com/coseo12/volt/issues/62) / [harness#190](https://github.com/coseo12/harness-setting/issues/190).
 
 ### 다운스트림 실측이 최종 가드 — upstream 3중 방어 blindspot
 upstream 의 단위 테스트 / reviewer / cross-validate 3중 방어가 통과해도 다운스트림 환경 매트릭스에서만 드러나는 결함 존재. release 를 막는 대신 **역방향 피드백 속도 최대화**. "N 적용 시나리오" 근거는 `[실측]` / `[가정]` 라벨 부착 + 박제 문턱 (실측 ≥ 1 + 가정 ≥ 3 + 공통 조건 매트릭스) 충족 필수 (#195).
@@ -124,7 +120,7 @@ upstream 의 단위 테스트 / reviewer / cross-validate 3중 방어가 통과�
 ### workflow_dispatch 2단계 함정 (GitHub Actions)
 `workflow_dispatch` 트리거는 default branch 반영 후에만 discover 된다 (feature/develop push 로는 실행 불가). 추가로 PR 자동 생성 workflow 는 저장소 Settings `can_approve_pull_request_reviews` 가 기본 OFF 라 거부된다. 도입 PR DoD 에 "default branch 반영 후 실행 검증" 명시.
 - 상세: [docs/lessons/workflow-dispatch-pitfalls.md](docs/lessons/workflow-dispatch-pitfalls.md)
-- **함정의 양면성 — release 가속 트리거 변형 (volt [#97](https://github.com/coseo12/volt/issues/97))**: 본 함정이 검증 차단 효과로 작용해 사용자에게 "지금 release 할지" 결정을 강제 노출시키는 부산물 관찰. develop 누적 ≥ 50 커밋 시 정공법 (release PR) 비용 < 우회법 (cherry-pick) → 결과적으로 자연 release 리듬 정렬. 단, 모든 검증 차단이 release 가속을 정당화하지 않음 — 누적 < 10 커밋이면 옵션 B (대기) / C (cherry-pick) 가 합리적. 가드 도입 PR DoD 에 A/B/C 결정 분기 표 (비용/시점/gitflow 정합성) 명시 의무 추가 권고. release-cadence-check workflow 신설로 함정 의존 제거 가능.
+- **함정의 양면성 — release 가속 트리거 변형 (volt [#97](https://github.com/coseo12/volt/issues/97))**: 검증 차단이 사용자에게 release 결정 강제 노출하는 부산물 + 자연 리듬 정렬 효과. 단 모든 차단이 정당화 아님 — 누적 < 10 커밋이면 옵션 B (대기) / C (cherry-pick) 합리. release-cadence-check workflow 신설로 함정 의존 제거 가능.
 
 ### gh CLI 마크다운 본문 발송 — execSync shell metachar 함정 (volt #114)
 Node.js `execSync('gh pr comment N --body "..."')` 로 백틱/`$`/`!`/`;` 포함 본문 발송 시 shell 이 명령 치환·변수 확장으로 해석 → silent syntax error. **`spawnSync('gh', [...args])` + `--body-file -` + `{ input: body, stdio: ['pipe', 'inherit', 'inherit'] }` 3축 우회** 의무. 상세: [docs/lessons/gh-cli-execsync-pitfall.md](docs/lessons/gh-cli-execsync-pitfall.md).
@@ -132,7 +128,7 @@ Node.js `execSync('gh pr comment N --body "..."')` 로 백틱/`$`/`!`/`;` 포함
 ### 주석 계약 vs 구현 drift — 버그 생성원
 파일 상단 주석 / JSDoc 이 선언한 계약과 구현의 drift 는 **버그 생성원**. default fallback 이 누락을 조용히 흡수해 테스트도 fail 하지 않는다. 주석에 선언된 규칙은 테스트 커버리지 대상이며, enum 분기 fallback 에 경고·assert 추가로 drift 감지.
 - 상세: [docs/lessons/comment-implementation-drift.md](docs/lessons/comment-implementation-drift.md)
-- **숨은 상수 변형 (volt [#69](https://github.com/coseo12/volt/issues/69))**: 모듈 A 에서 상수 폐기 + 동적 함수 교체해도 위성 모듈 B/C/D 의 독립 선언이 잔존하면 상대 비율/단위/스케일 drift 를 조용히 생성. 주 모듈 grep 만으로는 누락 — reviewer 파괴적 리팩토링 체크리스트 (저장소 전체 `grep -rn "<CONST_NAME>"` + 주석 SSoT 참조 dead reference) 로 차단. 원천: `.claude/agents/reviewer.md` §4.
+- **숨은 상수 변형 (volt [#69](https://github.com/coseo12/volt/issues/69))**: 위성 모듈 독립 선언 잔존 → 상대 비율/단위/스케일 drift 조용히 생성. 저장소 전체 `grep -rn "<CONST_NAME>"` + 주석 SSoT 참조 dead reference 차단 의무 (reviewer.md §4).
 
 ### HTTP 200 ≠ 올바른 리소스
 - 이미지 URL이 200을 반환해도 **내용이 의도와 다를 수 있다**
