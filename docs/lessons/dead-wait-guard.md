@@ -40,7 +40,15 @@ AI 에이전트 세션(Conductor 등)이 중단·재시작될 때, 메인 오케
 
 ## harness 반영 상태
 
-현재 harness 에는 **본 문서(문서·행동 규약)** 만 반영. 실제 구현(SessionStart 복구 훅 + `.context/pending-waits.json` + `verify --self-test` 스크립트)은 규모가 커서 별도 스프린트 계약으로 분리한다. 좀비 검출 훅이 있는 harness 라면 "가드 A/B/C(프로세스 라이프사이클)의 직교 확장 = 가드 D(대기 라이프사이클)" 로 위치한다.
+**A안(문서·행동 규약)** + **B안(실제 구현)** 모두 반영 완료 (#311, volt #121).
+
+- **hook**: `.claude/hooks/session-start-dead-wait-check.sh` — SessionStart 훅. `.context/pending-waits.json` 을 읽어 Grace Period(기본 60s, `DEAD_WAIT_GRACE_SECONDS` override) 초과 미해소 대기만 stdout 경고. exit 0 불변. 경로는 `PENDING_WAITS_PATH` override 가능(testability).
+- **등록**: `.claude/settings.json` `SessionStart` 배열에 `bash .claude/hooks/session-start-dead-wait-check.sh` 추가. (이 저장소는 harness upstream 이므로 다운스트림용 Z-패턴 sidecar 불필요 — settings.json 이 곧 SSoT.)
+- **verify**: `scripts/verify-dead-wait-check.mjs` — 기본 모드는 SSoT 박제 회귀 정적 검증, `--self-test` 는 실제 hook 을 fixture 로 구동하는 3중 시뮬(positive → negative → recovery) + 방어 케이스(Grace Period / 비정상·미래 timestamp / 빈·whitespace·손상 JSON / 파일 부재 / shell injection 면역) = 17 assertion. `harness-guards` CI 에서 실행.
+- **상태 파일**: `.context/` 는 `.gitignore` 등록(런타임 생성, best-effort). 메인 오케스트레이터가 대기 진입 시 append / 해소 시 제거.
+- **행동 규약**: CLAUDE.md `### 세션 중단 dead-wait 방지 — 스케줄러 heartbeat 3계층 가드` 블록. heartbeat(1차) + 훅(2차) + 상태 파일(3차) 직교 방어.
+
+좀비 검출 훅이 있는 harness 라면 "프로세스 라이프사이클 가드의 직교 확장 = 대기 라이프사이클 가드" 로 위치한다.
 
 ## 관련
 

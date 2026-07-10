@@ -63,3 +63,11 @@ jobs:
       - name: docs/lessons README 동기화 가드
         if: hashFiles('scripts/verify-lessons-readme.sh') != ''
         run: bash scripts/verify-lessons-readme.sh
+
+      # 세션 중단 dead-wait 가드 회귀 방지 (#311, volt #121)
+      # SSoT 박제(hook / settings.json 등록 / CLAUDE.md 블록 / lessons 문서) 회귀 정적 검증
+      # + --self-test 로 실제 hook 을 fixture 구동하는 3중 시뮬(가드 도입 PR DoD).
+      # node 스크립트 — ubuntu-latest 기본 node 로 동작(별도 setup 불필요).
+      - name: dead-wait 가드 self-test
+        if: hashFiles('scripts/verify-dead-wait-check.mjs') != ''
+        run: node scripts/verify-dead-wait-check.mjs --self-test
