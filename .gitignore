@@ -28,3 +28,6 @@ playwright-report/
 
 # Antigravity CLI 로컬 워크스페이스 (사용자별 OAuth/프로젝트 데이터 심볼릭 링크)
 .antigravitycli/
+
+# 세션 대기 상태 파일 (dead-wait 가드 — best-effort, 런타임 생성)
+.context/
