@@ -11,7 +11,7 @@
 //
 // 근거: docs/lessons/dead-wait-guard.md (3계층 방어 + 가드 도입 PR DoD 4축), volt #121
 
-import { readFileSync, statSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, statSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -268,6 +268,12 @@ function runSelfTest() {
       'injection: shell metachar 미해석 리터럴 노출',
       out.includes('$(touch') && out.includes('rm -rf'),
       out.trim(),
+    );
+    // 부작용 negative assert — `$(touch /tmp/...)` 가 실제 실행됐다면 파일이 생겼을 것 (reviewer 권고 1)
+    expect(
+      'injection: 부작용 파일 미생성 (command substitution 미실행)',
+      !existsSync('/tmp/dead-wait-injection'),
+      '/tmp/dead-wait-injection 이 생성됨 — shell command substitution 실행 의심',
     );
   } catch (err) {
     fail++;
