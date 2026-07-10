@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+## [4.3.0] — 2026-07-10
+
+v4.2.5 이후 **MINOR 릴리스** — `/volt-review` 로 volt [#121](https://github.com/coseo12/volt/issues/121) / [#120](https://github.com/coseo12/volt/issues/120) 반영 + 리뷰 후속 스킬 개선. 세션 중단 dead-wait 방지 3계층 가드 행동 규약 + 흩어진 상수 drift 자동 생성/정적 가드 구분 + volt-review 스킬 PR 템플릿 체크리스트 병합 규약.
+
+**포함 범위**: PR [#310](https://github.com/coseo12/harness-setting/pull/310) / [#312](https://github.com/coseo12/harness-setting/pull/312)
+
+### Behavior Changes
+
+- **메인 오케스트레이터 dead-wait 대응 규약 신설** (volt #121) — background 대기 진입 시 장기 `ScheduleWakeup`(1200~1800s) 병행 예약 + 상태파일 append 를 **원자 단위**로 처리. SessionStart 훅 경고 확인 시 **대기를 그대로 재개하지 말고** `상태 조회 → 생사 판단 → 항목 제거/재개`. 현재는 문서/규약 반영이며 실제 훅 구현은 [#311](https://github.com/coseo12/harness-setting/issues/311) 후속 스프린트로 분리.
+- **volt-review 스킬 — PR 생성 시 템플릿 체크리스트 병합 의무** — `create-pr` 위임 시 커스텀 본문이 `.github/PULL_REQUEST_TEMPLATE.md` 의 `### 체크리스트` base 를 대체하지 않도록 병합. 미병합 시 reviewer §6 "PR 본문 7 체크박스 메타 가드" 발화.
+
+### Added (MINOR)
+
+- **`docs/lessons/dead-wait-guard.md` 신설** (volt #121) — 세션 중단 dead-wait 스케줄러 heartbeat 3계층 직교 방어(fallback heartbeat / SessionStart 복구 훅 / 대기 상태 파일) + 방어적 처리(Grace Period 60s / 비정상 timestamp 대칭 노출 / exit 0 불변).
+- **CLAUDE.md 실전 교훈 "세션 중단 dead-wait 방지" 블록** (volt #121) — 3계층 요약 + 메인 오케스트레이터 행동 규약 + docs 포인터.
+- **CLAUDE.md "숨은 상수 변형" 블록에 "자동 생성 vs 정적 가드 구분" 확장** (volt #120) + **`docs/lessons/data-not-code-extension.md` 상세 섹션** — 데이터 메타 SSoT 자동 생성 가능 여부(격리성/직교 축)로 정적 가드 분기.
+- **`.claude/skills/volt-review/SKILL.md` 절차 4 — PR 본문 템플릿 체크리스트 병합 규약** (PR #310 리뷰 후속).
+
+### Notes
+
+- 후속: [#311](https://github.com/coseo12/harness-setting/issues/311) — volt #121 B안(실제 구현: SessionStart 훅 + `.context/pending-waits.json` + `verify --self-test`) 별도 스프린트 계약.
+- cross-validate: MINOR Behavior Changes 포함 릴리스이나, 반영 내용이 volt 에서 이미 다운스트림(astro-simulator) 실측·검증된 지식이라 단일 모델 편향 노출 필요성이 낮아 `claude-only analysis completed — 단일 모델 편향 노출 미확보`. 후속 세션에서 1회 루틴 가능.
+
 ## [4.2.5] — 2026-05-22
 
 v4.2.4 이후 **PATCH 릴리스** — `docs/guides/cross-validate-protocol.md` 에 L1/L2/L3 plan-mode 가드 약어 SSoT 정의 신설 (PR #299 reviewer 발견 후속). **행동 변화 0**.

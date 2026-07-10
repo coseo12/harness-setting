@@ -124,6 +124,7 @@ Node.js `execSync('gh pr comment N --body "..."')` 로 백틱/`$`/`!`/`;` 포함
 파일 상단 주석 / JSDoc 이 선언한 계약과 구현의 drift 는 **버그 생성원**. default fallback 이 누락을 조용히 흡수해 테스트도 fail 하지 않는다. 주석에 선언된 규칙은 테스트 커버리지 대상이며, enum 분기 fallback 에 경고·assert 추가로 drift 감지.
 - 상세: [docs/lessons/comment-implementation-drift.md](docs/lessons/comment-implementation-drift.md)
 - **숨은 상수 변형 (volt [#69](https://github.com/coseo12/volt/issues/69))**: 위성 모듈 독립 선언 잔존 → 상대 비율/단위/스케일 drift 조용히 생성. 저장소 전체 `grep -rn "<CONST_NAME>"` + 주석 SSoT 참조 dead reference 차단 의무 (reviewer.md §4).
+- **drift 근본 제거 — 자동 생성 vs 정적 가드 구분 (volt [#120](https://github.com/coseo12/volt/issues/120))**: "drift 감지"(매칭 가드)보다 "중복 출처 제거"(데이터 메타 SSoT + 자동 생성)가 근본 해결. 단 사본마다 격리성/직교 축이 달라, **자동 생성 가능**(단일 메타 파생 + 소비처의 SUT import 허용)과 **정적 가드로 묶어야 함**(테스트 더블 격리 위반 / 직교 축은 별도 boolean 메타 + "데이터 파생 == 하드코딩" 단위 테스트)을 구분하는 게 핵심 판단. 상세: [docs/lessons/data-not-code-extension.md](docs/lessons/data-not-code-extension.md).
 
 ### HTTP 200 ≠ 올바른 리소스
 - 이미지 URL이 200을 반환해도 **내용이 의도와 다를 수 있다**
@@ -191,6 +192,12 @@ sub-agent 에 multi-turn 세션 위임 시 세부 매트릭스가 다음 라운�
 ### 가드 설계 원칙 — measurement-first / 의식적 silent 약화 / fail-fast
 가드 무력화 3축 (설계/구현/운영) 차단: (1) architect broad 권고 → dev D1 실측 false-positive → precision 정정 3중 박제 (measurement-first), (2) 발화 빈도 ≥ 1/주 시 의식적 silent 약화 + ADR §결정 CRITICAL 명시, (3) drift 가드는 fail-fast 만 — fallback 분기 절대 금지 (strict assertion 자기모순 회피).
 - 상세: [docs/lessons/guard-design-principles.md](docs/lessons/guard-design-principles.md) — volt [#101](https://github.com/coseo12/volt/issues/101) / [#106](https://github.com/coseo12/volt/issues/106) / [#107](https://github.com/coseo12/volt/issues/107)
+
+### 세션 중단 dead-wait 방지 — 스케줄러 heartbeat 3계층 가드
+background 대기 / sub-agent notification 경로는 세션의 자식 프로세스라 세션 재시작 시 SIGKILL 로 소멸 → **아무것도 모델을 재호출하지 않아 무기한 침묵(dead-wait)**, 사용자는 진행 중으로 오인. 작업 유실보다 이 "무인지 대기" 가 더 치명적. `ScheduleWakeup`(세션 재시작에도 지속 발화)을 dead-man's switch 로 쓰는 3계층 직교 방어: (1) fallback heartbeat (background 대기 진입 시 장기 `ScheduleWakeup` 1200~1800s 병행 예약, 단발성) / (2) SessionStart 복구 훅 (미해소 대기 stdout 경고, exit 0 불변) / (3) 대기 상태 파일 (`.context/pending-waits.json`, best-effort).
+- **행동 규약 (메인 오케스트레이터)**: 대기 진입 = `ScheduleWakeup 예약 + 상태파일 append` 를 원자 단위로. 훅 경고 확인 시 **대기를 그대로 재개 금지** — waiter 는 이미 소멸했을 수 있으므로 `상태 조회 → 생사 판단 → 항목 제거/재개`.
+- 상세: [docs/lessons/dead-wait-guard.md](docs/lessons/dead-wait-guard.md) — volt [#121](https://github.com/coseo12/volt/issues/121)
+- 일반화된 설계 지식: [docs/architecture/state-atomicity-3-layer-defense.md](docs/architecture/state-atomicity-3-layer-defense.md) — 도중/사후/안내 3계층 직교 방어 패턴
 <!-- harness:managed:real-lessons:end -->
 
 ---
