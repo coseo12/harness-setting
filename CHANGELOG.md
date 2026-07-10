@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+## [4.4.0] — 2026-07-10
+
+v4.3.0 이후 **MINOR 릴리스** — volt [#121](https://github.com/coseo12/volt/issues/121) dead-wait 가드 **B안(실제 구현)** ([#311](https://github.com/coseo12/harness-setting/issues/311)). v4.3.0 의 문서/행동 규약(A안)을 코드로 실현: SessionStart 훅 + verify self-test + CI 통합. astro-simulator #817/PR #819 원본을 harness-generic 정제(프로젝트 고유 참조 + Z-패턴 sidecar 제거 — upstream 은 `.claude/settings.json` 자체가 SSoT).
+
+**포함 범위**: PR [#315](https://github.com/coseo12/harness-setting/pull/315)
+
+### Behavior Changes
+
+- **SessionStart 훅 신설 — 세션 시작 시 미해소 대기(dead-wait) 경고** — `harness update` 후 다운스트림은 세션 시작 시 `.context/pending-waits.json` 에 Grace Period(60s) 초과 미해소 대기가 있으면 stdout 경고를 보게 된다. exit 0 불변(세션 블로킹 없음). 상태 파일이 없으면 조용히 통과(무영향). `PENDING_WAITS_PATH`/`DEAD_WAIT_GRACE_SECONDS` env override 가능.
+- **`harness-guards` CI 에 dead-wait self-test step 추가** — `scripts/verify-dead-wait-check.mjs` 를 포함한 프로젝트는 CI 에서 SSoT 박제 회귀 정적 검증 + 3중 시뮬 self-test 가 자동 실행된다(`hashFiles` 가드로 미포함 프로젝트는 조용히 스킵).
+
+### Added (MINOR)
+
+- **`.claude/hooks/session-start-dead-wait-check.sh`** (신규) — SessionStart 복구 훅. `.context/pending-waits.json` Grace Period 초과 미해소 대기만 경고, 비정상·미래 timestamp 보수 노출, 빈/whitespace/손상 JSON 방어적 처리, exit 0 불변.
+- **`scripts/verify-dead-wait-check.mjs`** (신규) — 기본 모드 SSoT 박제 정적 검증 + `--self-test` 3중 시뮬(positive→negative→recovery) + 방어 케이스(Grace/미래ts/빈·whitespace·손상 JSON/파일부재/injection 면역) = **18 assertion**.
+- **`.claude/settings.json`** — SessionStart 배열에 훅 등록. **`.gitignore`** — `.context/` 등록. **`.github/workflows/harness-guards.yml`** — self-test step. **`docs/lessons/dead-wait-guard.md`** — 반영 상태 A+B 완료 갱신.
+
+### Notes
+
+- volt #121 은 이제 harness 에서 A안(v4.3.0 문서/규약) + B안(v4.4.0 실제 구현) 모두 완결.
+- 좀비 검출 훅이 있는 harness 라면 "프로세스 라이프사이클 가드의 직교 확장 = 대기 라이프사이클 가드" 로 위치.
+- cross-validate: `claude-only analysis completed — 단일 모델 편향 노출 미확보` (volt 다운스트림 astro-simulator 실측·검증 완료 지식의 generic 정제 반영).
+
 ## [4.3.0] — 2026-07-10
 
 v4.2.5 이후 **MINOR 릴리스** — `/volt-review` 로 volt [#121](https://github.com/coseo12/volt/issues/121) / [#120](https://github.com/coseo12/volt/issues/120) 반영 + 리뷰 후속 스킬 개선. 세션 중단 dead-wait 방지 3계층 가드 행동 규약 + 흩어진 상수 drift 자동 생성/정적 가드 구분 + volt-review 스킬 PR 템플릿 체크리스트 병합 규약.
