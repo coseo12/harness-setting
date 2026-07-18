@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 외부 검증 모델 (Antigravity `agy`) 를 활용한 교차검증 스크립트
-# Phase 1A (#269) 부터 gemini-cli → agy 교체. ADR: docs/decisions/20260521-gemini-to-antigravity.md
+# Phase 1A (#269) 부터 gemini-cli → agy 교체. ADR: https://github.com/coseo12/harness-setting/blob/main/docs/decisions/20260521-gemini-to-antigravity.md (upstream)
 # 보호 모델 — L1 (prompt strict prefix) + L3 (snapshot diff + 자동 롤백, #479)
 set -euo pipefail
 
