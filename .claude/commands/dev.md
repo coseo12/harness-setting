@@ -9,6 +9,7 @@ allowed-tools: [Bash, Read, Grep, Agent]
 developer 페르소나를 sub-agent 로 호출. 설계안(있는 경우)을 기반으로 feature 브랜치에서 구현 + 테스트 + PR 생성까지.
 
 ## 사용자 입력
+
 `$ARGUMENTS`
 
 ## 절차
@@ -21,6 +22,7 @@ developer 페르소나를 sub-agent 로 호출. 설계안(있는 경우)을 기�
 6. **다음 단계 안내**: `/review <PR>` (reviewer 디스패치)
 
 ## 금지
+
 - 메인 컨텍스트에서 직접 구현 금지 (페르소나 격리)
 - develop/main 직접 커밋 금지 — feature 브랜치 강제 (CRITICAL #1)
 - 머지 자동화 금지 — 머지는 reviewer/qa 게이트 통과 후
