@@ -21,11 +21,13 @@ else
   exit 1
 fi
 
-# Chrome for Testing 확인
-if agent-browser doctor &> /dev/null 2>&1; then
-  echo "  [OK] Chrome for Testing 설치됨"
+# Chrome for Testing 확인 — 실기 스모크 (agent-browser v0.21.0 에 doctor 서브커맨드 없음: 상시 WARN 오탐 원인, astro-simulator#856)
+if agent-browser open about:blank > /dev/null 2>&1; then
+  agent-browser close > /dev/null 2>&1 || true
+  echo "  [OK] Chrome 기동 스모크 통과"
 else
-  echo "  [WARN] Chrome for Testing 미설치. 'agent-browser install' 실행 필요"
+  agent-browser close > /dev/null 2>&1 || true
+  echo "  [WARN] Chrome 기동 실패. 'agent-browser install' 실행 필요"
 fi
 
 echo ""

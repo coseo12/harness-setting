@@ -9,6 +9,27 @@
 
 ## [Unreleased]
 
+## [4.5.0] — 2026-07-27
+
+v4.4.0 이후 **MINOR 릴리스** — 다운스트림 astro-simulator 의 AI 환경 전수 감사 (2026-07-18) 발 Z 패턴 Phase 2 기여 일괄 수용. 에이전트 마무리 의무 2건 + 스킬 계층 라벨 일원화 + PR 템플릿 SSoT 정합 + browser-test 실기 정합 + 유령 참조 해소 + 잔재 정리. 에이전트·스킬 **행동 변화 다수** → MINOR.
+
+**포함 범위**: PR [#309](https://github.com/coseo12/harness-setting/pull/309) / [#318](https://github.com/coseo12/harness-setting/pull/318) / [#320](https://github.com/coseo12/harness-setting/pull/320) / [#321](https://github.com/coseo12/harness-setting/pull/321) / [#322](https://github.com/coseo12/harness-setting/pull/322) / [#323](https://github.com/coseo12/harness-setting/pull/323) / [#324](https://github.com/coseo12/harness-setting/pull/324)
+
+### Behavior Changes
+
+- **qa/developer 마무리 체크리스트에 산출물 처분 의무 추가** (PR [#309](https://github.com/coseo12/harness-setting/pull/309), 다운스트림 astro-simulator#793) — sub-agent 가 검증 과정에서 생성한 임시 산출물(스크린샷·debug 스크립트·로그)의 처분을 반환 직전 명시하도록 의무화. 저장소 오염이 조용히 누적되던 경로 차단.
+- **qa 에 agent-browser Chrome 좀비 정리 의무 + pgrep self-match bracket** (PR [#318](https://github.com/coseo12/harness-setting/pull/318), 다운스트림 astro-simulator#830, volt [#79](https://github.com/coseo12/volt/issues/79)) — `browser-test` 사용 후 `agent-browser-chrome-<UUID>` 프로세스가 sub-agent 비정상 종료(timeout/SIGKILL) 시 lineage 가 끊긴 채 잔존하던 문제. 실측 6 세션 / 52 좀비 / 3일 누적 → 800%+ CPU. **pgrep/pkill 패턴은 bracket 표기 필수** (`agent-browser-chrome[-]`) — 미사용 시 자기 셸 명령행을 매칭해 pkill 이 **자기 자신을 죽인다**.
+- **스킬 계층 라벨 일원화 — 폐기 `status:*`/`agent:*`/`size:*` 제거** (PR [#320](https://github.com/coseo12/harness-setting/pull/320), 다운스트림 astro-simulator#854) — 라벨 체계가 `stage:*` 로 통일됐음에도 스킬 6종(create-issue/create-pr/browser-test/record-adr/capture-merge/cross_validate.sh)이 폐기 라벨을 지시해 **실제 PR 에 이중 라벨 오염**이 발생하던 3계층 단층 해소. `stage:review` 부착 주체를 create-pr 스킬로 명시해 reviewer 디스패치 사슬 연결.
+- **PR 템플릿 `### Test plan` 3자 drift 해소** (PR [#321](https://github.com/coseo12/harness-setting/pull/321), 다운스트림 astro-simulator#855) — 체크리스트 가드가 요구하는 영문 phrase `Test plan` 이 템플릿 SSoT(`### 테스트`)에 없어 **템플릿을 충실히 따를수록 CI FAIL 이 재생산**되던 구조. 템플릿에 `### Test plan (테스트)` 병기 + create-pr 스킬에 keyword 의무 명시.
+- **browser-test 실기 정합 (agent-browser 0.21.0) + Chrome 좀비 정리 규약** (PR [#322](https://github.com/coseo12/harness-setting/pull/322), 다운스트림 astro-simulator#856) — 부재 플래그/서브커맨드 교체: `--viewport` → `set viewport`, `--script` → 독립 스크립트·`eval`. `check-browser.sh` 의 `doctor`(미존재 서브커맨드 — **정상 환경에서 상시 WARN 오탐**)를 open/close 실기 스모크로 교체. run-tests 에 dev 서버 spawn 전 `lsof` 선행 가드 추가.
+- **유령 참조 3계열 해소 — `/dev` 커맨드 신설 + npx 경로 정정 + create-pr 잔재 정리** (PR [#323](https://github.com/coseo12/harness-setting/pull/323), 다운스트림 astro-simulator#857) — 문서 5곳이 참조하던 `/dev` 커맨드가 실재하지 않던 것을 신설(qa.md 동형). `harness-update.md` 의 npm 404 경로를 `npx github:coseo12/harness-setting` 로 정정. create-pr 의 P-era 잔재(Stack PR main-base 자기모순 등) 를 develop 기준으로 재작성 + **base=develop auto-close 미발동 시 수동 close / `--delete-branch` 분리** 운영 규약 반영.
+- **cross-validate snapshot 자동 정리 + 로그 rotation 규약** (PR [#324](https://github.com/coseo12/harness-setting/pull/324), 다운스트림 astro-simulator#858) — `cross_validate.sh` 가 정상 종료 시 `cv-*` snapshot 임시파일을 자동 삭제(다운스트림 실측 203개 누적 해소, 비정상 종료분은 forensic 보존). 로그 30일 rotation 규약을 SKILL.md 에 박제. capture-merge 규약 중복 서술을 동적 읽기 포인터로 축약, `verify-agent-ssot.sh` "코어 필드 7개"→9개 표기 정정.
+
+### Notes
+
+- 본 릴리스는 **다운스트림 Z 패턴 Phase 2 의 upstream 수용분**이다 (ADR `20260515-harness-managed-divergent-pattern.md` §Amendment 16 — 다운스트림 선반영 → upstream 기여 → `harness update` 동기화 3단계 중 2단계). 다운스트림 astro-simulator 는 본 릴리스 이후 Phase 3(`harness update --apply-all-safe`)으로 drift 를 해소한다.
+- 머지 과정에서 PR 3건(#318/#322/#323)이 선행 머지와 충돌했으나 **한쪽 삭제 0건**으로 통합 (양쪽 규칙 병렬 추가 형태 — 이슈 번호·실측 수치 전부 원문 보존).
+
 ## [4.4.0] — 2026-07-10
 
 v4.3.0 이후 **MINOR 릴리스** — volt [#121](https://github.com/coseo12/volt/issues/121) dead-wait 가드 **B안(실제 구현)** ([#311](https://github.com/coseo12/harness-setting/issues/311)). v4.3.0 의 문서/행동 규약(A안)을 코드로 실현: SessionStart 훅 + verify self-test + CI 통합. astro-simulator #817/PR #819 원본을 harness-generic 정제(프로젝트 고유 참조 + Z-패턴 sidecar 제거 — upstream 은 `.claude/settings.json` 자체가 SSoT).
